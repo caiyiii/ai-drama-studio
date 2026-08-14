@@ -1,0 +1,59 @@
+import { createRouter, createWebHistory } from "@ionic/vue-router";
+import type { RouteRecordRaw } from "vue-router";
+import TabsPage from "./views/TabsPage.vue";
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: "/",
+    redirect: "/tabs/home",
+  },
+  {
+    path: "/tabs",
+    component: TabsPage,
+    children: [
+      { path: "", redirect: "/tabs/home" },
+      {
+        path: "home",
+        component: () => import("./views/HomePage.vue"),
+      },
+      {
+        path: "projects",
+        component: () => import("./views/ProjectsPage.vue"),
+      },
+      {
+        path: "projects/:id",
+        component: () => import("./views/ProjectDetailPage.vue"),
+      },
+      {
+        path: "projects/:id/world",
+        component: () => import("./views/WorldHubPage.vue"),
+      },
+      {
+        path: "projects/:id/world/:section",
+        component: () => import("./views/WorldSectionPage.vue"),
+      },
+      {
+        path: "tasks",
+        component: () => import("./views/PlaceholderPage.vue"),
+        props: { title: "任务", body: "生成任务将在后续阶段接入 GenerationTask。" },
+      },
+      {
+        path: "assets",
+        component: () => import("./views/PlaceholderPage.vue"),
+        props: { title: "素材", body: "素材库仅作信息架构预留，当前不实现上传。" },
+      },
+      {
+        path: "me",
+        component: () => import("./views/PlaceholderPage.vue"),
+        props: { title: "我的", body: "当前阶段不实现登录与账户系统。" },
+      },
+    ],
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+export default router;

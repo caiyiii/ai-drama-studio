@@ -1,0 +1,33 @@
+node_modules
+dist
+.output
+.nuxt
+.turbo
+coverage
+*.log
+.env
+.env.local
+.env.*.local
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Capacitor native projects (generated)
+apps/mobile/android
+apps/mobile/ios
+
+# Tauri
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
+
+# IDE
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# OS
+desktop.ini

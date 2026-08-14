@@ -1,0 +1,22 @@
+:root {
+  --ion-color-primary: #d4af37;
+  --ion-color-primary-rgb: 212, 175, 55;
+  --ion-color-primary-contrast: #070708;
+  --ion-color-primary-contrast-rgb: 7, 7, 8;
+  --ion-color-primary-shade: #c9a227;
+  --ion-color-primary-tint: #e4c56a;
+  --ion-background-color: #070708;
+  --ion-background-color-rgb: 7, 7, 8;
+  --ion-text-color: #f4f1ea;
+  --ion-text-color-rgb: 244, 241, 234;
+  --ion-toolbar-background: #0c0c0e;
+  --ion-tab-bar-background: #0c0c0e;
+  --ion-item-background: #121216;
+  --ion-card-background: #121216;
+  --ion-border-color: rgba(255, 255, 255, 0.08);
+  --ion-font-family: "Outfit", system-ui, sans-serif;
+}
+
+body {
+  background: #070708;
+}

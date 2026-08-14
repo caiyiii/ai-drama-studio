@@ -1,0 +1,151 @@
+<template>
+  <section class="px-4 py-6 tablet:px-8 desktop:px-8">
+    <PageState
+      :loading="worldStore.loading"
+      :error="worldStore.error"
+      loading-text="正在载入世界观…"
+      :on-retry="() => worldStore.load(projectId)"
+    >
+      <div v-if="worldStore.missing" class="mx-auto max-w-xl py-10 text-center">
+        <p class="font-display text-3xl">还没有世界观</p>
+        <p class="mt-3 text-sm text-zinc-500">先创建这个漫剧的世界根基，再展开文明、历史与能力体系。</p>
+        <p v-if="worldStore.actionError" class="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {{ worldStore.actionError }}
+        </p>
+        <form class="mt-8 space-y-3 text-left" @submit.prevent="onCreate">
+          <input v-model="createTitle" required maxlength="120" placeholder="世界名称" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
+          <textarea v-model="createSummary" rows="4" placeholder="世界简介" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
+          <button type="submit" :disabled="worldStore.saving" class="w-full rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950">
+            {{ worldStore.saving ? "创建中…" : "创建世界观" }}
+          </button>
+        </form>
+      </div>
+
+      <div v-else-if="worldStore.world" class="desktop:grid desktop:grid-cols-[200px_1fr] desktop:gap-8">
+        <aside v-if="!isMobile || !activeSection" class="mb-6 desktop:mb-0">
+          <WorldNav :current="section" @select="onSelect" />
+        </aside>
+        <div v-if="!isMobile || activeSection">
+          <p
+            v-if="worldStore.actionError"
+            class="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+          >
+            {{ worldStore.actionError }}
+          </p>
+          <button
+            v-if="isMobile && activeSection"
+            type="button"
+            class="mb-4 text-sm text-zinc-400"
+            @click="activeSection = null"
+          >
+            返回分类
+          </button>
+
+          <WorldOverviewPanel
+            v-if="section === 'overview'"
+            :world="worldStore.world"
+            :saving="worldStore.saving"
+            @save="onSaveWorld"
+          />
+          <WorldTextPanel
+            v-else-if="section === 'cosmic'"
+            eyebrow="Cosmos"
+            title="宇宙背景"
+            :value="worldStore.world.cosmicBackground"
+            :saving="worldStore.saving"
+            @save="(value) => onSaveWorld({ cosmicBackground: value })"
+          />
+          <WorldCivilizationPanel
+            v-else-if="section === 'civilizations'"
+            :items="worldStore.civilizations"
+            @create="(data) => worldStore.createCivilization(projectId, data)"
+            @update="(id, data) => worldStore.updateCivilization(projectId, id, data)"
+            @remove="(id) => worldStore.deleteCivilization(projectId, id)"
+          />
+          <WorldPowerPanel
+            v-else-if="section === 'power'"
+            :items="worldStore.powerSystems"
+            @create="(data) => worldStore.createPowerSystem(projectId, data)"
+            @update="(id, data) => worldStore.updatePowerSystem(projectId, id, data)"
+            @remove="(id) => worldStore.deletePowerSystem(projectId, id)"
+          />
+          <WorldHistoryPanel
+            v-else-if="section === 'history'"
+            :items="worldStore.history"
+            @create="(data) => worldStore.createHistory(projectId, data)"
+            @update="(id, data) => worldStore.updateHistory(projectId, id, data)"
+            @remove="(id) => worldStore.deleteHistory(projectId, id)"
+            @move="(id, direction) => worldStore.moveHistory(projectId, id, direction)"
+          />
+          <WorldFactionPanel
+            v-else-if="section === 'factions'"
+            :items="worldStore.factions"
+            :civilizations="worldStore.civilizations"
+            @create="(data) => worldStore.createFaction(projectId, data)"
+            @update="(id, data) => worldStore.updateFaction(projectId, id, data)"
+            @remove="(id) => worldStore.deleteFaction(projectId, id)"
+          />
+          <WorldLocationPanel
+            v-else-if="section === 'locations'"
+            :items="worldStore.locations"
+            :civilizations="worldStore.civilizations"
+            @create="(data) => worldStore.createLocation(projectId, data)"
+            @update="(id, data) => worldStore.updateLocation(projectId, id, data)"
+            @remove="(id) => worldStore.deleteLocation(projectId, id)"
+          />
+          <WorldTextPanel
+            v-else-if="section === 'conflict'"
+            eyebrow="Conflict"
+            title="核心冲突"
+            :value="worldStore.world.coreConflict"
+            :saving="worldStore.saving"
+            @save="(value) => onSaveWorld({ coreConflict: value })"
+          />
+        </div>
+      </div>
+    </PageState>
+  </section>
+</template>
+
+<script setup lang="ts">
+import type { UpdateWorldInput } from "@ai-drama-studio/types";
+
+const { projectId, project } = useCurrentProject();
+const { isMobile } = useViewport();
+const worldStore = useWorldStore();
+const section = ref("overview");
+const activeSection = ref<string | null>(null);
+const createTitle = ref("");
+const createSummary = ref("");
+
+onMounted(async () => {
+  if (projectId.value) {
+    await worldStore.load(projectId.value);
+    createTitle.value = project.value?.name ? `${project.value.name}` : "未命名世界";
+  }
+});
+
+watch(projectId, (id) => {
+  if (id) {
+    void worldStore.load(id);
+  }
+});
+
+function onSelect(key: string) {
+  section.value = key;
+  if (isMobile.value) {
+    activeSection.value = key;
+  }
+}
+
+async function onCreate() {
+  await worldStore.createWorld(projectId.value, {
+    title: createTitle.value.trim(),
+    summary: createSummary.value.trim() || undefined,
+  });
+}
+
+async function onSaveWorld(payload: UpdateWorldInput) {
+  await worldStore.updateWorld(projectId.value, payload);
+}
+</script>

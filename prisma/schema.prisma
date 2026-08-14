@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProjectStep {
+  WORLD
+  CHARACTERS
+  LOCATIONS
+  EPISODES
+  SCRIPT
+  STORYBOARD
+  IMAGES
+  VIDEOS
+  VOICES
+  RENDER
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  OTHER
+}
+
+enum GenerationTaskType {
+  SCRIPT
+  IMAGE
+  VIDEO
+  VOICE
+  STORYBOARD
+}
+
+enum GenerationTaskStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model Project {
+  id              String           @id @default(cuid())
+  name            String
+  description     String?
+  genre           String?
+  cover           String?
+  status          ProjectStatus    @default(DRAFT)
+  currentStep     ProjectStep      @default(WORLD)
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  episodes        Episode[]
+  characters      Character[]
+  locations       Location[]
+  assets          Asset[]
+  generationTasks GenerationTask[]
+  world           World?
+}
+
+model Episode {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  synopsis  String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Character {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Asset {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      AssetType
+  name      String
+  url       String?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model GenerationTask {
+  id         String                @id @default(cuid())
+  projectId  String
+  project    Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type       GenerationTaskType
+  status     GenerationTaskStatus  @default(PENDING)
+  provider   String?
+  model      String?
+  input      Json?
+  output     Json?
+  error      String?
+  retryCount Int                   @default(0)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+}
+
+model World {
+  id               String          @id @default(cuid())
+  projectId        String          @unique
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title            String
+  summary          String?
+  cosmicBackground String?
+  coreConflict     String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  civilizations    Civilization[]
+  histories        WorldHistory[]
+  factions         Faction[]
+  worldLocations   WorldLocation[]
+  powerSystems     PowerSystem[]
+}
+
+model Civilization {
+  id             String          @id @default(cuid())
+  worldId        String
+  world          World           @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  origin         String?
+  philosophy     String?
+  society        String?
+  culture        String?
+  technology     String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  factions       Faction[]
+  worldLocations WorldLocation[]
+
+  @@index([worldId])
+}
+
+model WorldHistory {
+  id          String   @id @default(cuid())
+  worldId     String
+  world       World    @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([worldId])
+}
+
+model Faction {
+  id             String        @id @default(cuid())
+  worldId        String
+  world          World         @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  civilizationId String?
+  civilization   Civilization? @relation(fields: [civilizationId], references: [id], onDelete: SetNull)
+  name           String
+  description    String?
+  type           String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([worldId])
+}
+
+model WorldLocation {
+  id             String        @id @default(cuid())
+  worldId        String
+  world          World         @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  civilizationId String?
+  civilization   Civilization? @relation(fields: [civilizationId], references: [id], onDelete: SetNull)
+  name           String
+  description    String?
+  type           String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([worldId])
+}
+
+model PowerSystem {
+  id          String   @id @default(cuid())
+  worldId     String
+  world       World    @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  rules       Json?
+  levels      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([worldId])
+}

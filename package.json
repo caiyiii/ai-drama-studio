@@ -1,0 +1,46 @@
+{
+  "name": "ai-drama-studio",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Multi-platform AI drama creation studio",
+  "packageManager": "pnpm@10.5.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@ai-drama-studio/web --filter=@ai-drama-studio/api",
+    "dev:web": "turbo run dev --filter=@ai-drama-studio/web",
+    "dev:api": "turbo run dev --filter=@ai-drama-studio/api",
+    "dev:mobile": "turbo run dev --filter=@ai-drama-studio/mobile",
+    "dev:desktop": "turbo run dev --filter=@ai-drama-studio/desktop",
+    "dev:tauri": "pnpm --filter @ai-drama-studio/desktop dev:tauri",
+    "build": "turbo run build",
+    "lint": "eslint .",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:seed:world-demo": "tsx prisma/seed-world-demo.ts",
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.13.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "eslint": "^9.32.0",
+    "eslint-plugin-vue": "^10.4.0",
+    "globals": "^16.3.0",
+    "prisma": "^6.13.0",
+    "tsx": "^4.20.0",
+    "turbo": "^2.5.5",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vue-eslint-parser": "^10.2.0"
+  }
+}

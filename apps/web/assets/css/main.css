@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#__nuxt {
+  min-height: 100%;
+}
+
+body {
+  background: #070708;
+  color: #f4f1ea;
+  font-family: Outfit, system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(212, 175, 55, 0.28);
+  color: #fff8e7;
+}
+
+.film-grain {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.035) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+}
