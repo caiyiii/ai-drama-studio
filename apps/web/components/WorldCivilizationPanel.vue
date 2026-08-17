@@ -51,13 +51,13 @@
       @close="showForm = false"
     >
       <form class="space-y-3" @submit.prevent="onSubmit">
-        <input v-model="form.name" required maxlength="120" placeholder="名称" class="field" />
-        <textarea v-model="form.description" rows="2" placeholder="简介" class="field" />
-        <textarea v-model="form.origin" rows="2" placeholder="起源" class="field" />
-        <textarea v-model="form.philosophy" rows="2" placeholder="哲学" class="field" />
-        <textarea v-model="form.society" rows="2" placeholder="社会" class="field" />
-        <textarea v-model="form.culture" rows="2" placeholder="文化" class="field" />
-        <textarea v-model="form.technology" rows="2" placeholder="科技" class="field" />
+        <input v-model="form.name" required maxlength="120" placeholder="名称" class="studio-field" />
+        <textarea v-model="form.description" rows="2" placeholder="简介" class="studio-field resize-none" />
+        <textarea v-model="form.origin" rows="2" placeholder="起源" class="studio-field resize-none" />
+        <textarea v-model="form.philosophy" rows="2" placeholder="哲学" class="studio-field resize-none" />
+        <textarea v-model="form.society" rows="2" placeholder="社会" class="studio-field resize-none" />
+        <textarea v-model="form.culture" rows="2" placeholder="文化" class="studio-field resize-none" />
+        <textarea v-model="form.technology" rows="2" placeholder="科技" class="studio-field resize-none" />
         <div class="flex justify-end gap-2">
           <button type="button" class="text-sm text-zinc-400" @click="showForm = false">取消</button>
           <button type="submit" class="rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950">保存</button>
@@ -155,15 +155,3 @@ function onDelete() {
   }
 }
 </script>
-
-<style scoped>
-.field {
-  width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  background: #09090b;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  outline: none;
-}
-</style>

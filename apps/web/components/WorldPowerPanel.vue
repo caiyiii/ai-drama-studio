@@ -44,15 +44,15 @@
 
     <AppModal :open="showForm" :title="editing ? '编辑能力体系' : '新增能力体系'" description="用等级和规则描述力量如何成长，无需手写 JSON。" @close="showForm = false">
       <form class="space-y-4" @submit.prevent="onSubmit">
-        <input v-model="form.name" required maxlength="120" placeholder="名称，如修仙体系" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
-        <textarea v-model="form.description" rows="3" placeholder="简介" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
+        <input v-model="form.name" required maxlength="120" placeholder="名称，如修仙体系" class="studio-field" />
+        <textarea v-model="form.description" rows="3" placeholder="简介" class="studio-field resize-none" />
         <div>
           <div class="flex items-center justify-between">
             <p class="text-xs text-zinc-500">规则</p>
             <button type="button" class="text-xs text-gold-300" @click="form.rules.push('')">添加规则</button>
           </div>
           <div v-for="(_, index) in form.rules" :key="`rule-${index}`" class="mt-2 flex gap-2">
-            <input v-model="form.rules[index]" placeholder="例如：越阶战斗会反噬" class="flex-1 rounded-xl border border-white/10 bg-ink-900 px-3 py-2 text-sm" />
+            <input v-model="form.rules[index]" placeholder="例如：越阶战斗会反噬" class="studio-field flex-1 !py-2 !px-3" />
             <button type="button" class="text-xs text-red-300" @click="form.rules.splice(index, 1)">删除</button>
           </div>
         </div>
@@ -62,8 +62,8 @@
             <button type="button" class="text-xs text-gold-300" @click="form.levels.push({ name: '', description: '' })">添加等级</button>
           </div>
           <div v-for="(level, index) in form.levels" :key="`level-${index}`" class="mt-2 grid gap-2 tablet:grid-cols-[1fr_2fr_auto]">
-            <input v-model="level.name" placeholder="炼气 / 筑基" class="rounded-xl border border-white/10 bg-ink-900 px-3 py-2 text-sm" />
-            <input v-model="level.description" placeholder="简要说明" class="rounded-xl border border-white/10 bg-ink-900 px-3 py-2 text-sm" />
+            <input v-model="level.name" placeholder="炼气 / 筑基" class="studio-field !px-3 !py-2" />
+            <input v-model="level.description" placeholder="简要说明" class="studio-field !px-3 !py-2" />
             <button type="button" class="text-xs text-red-300" @click="form.levels.splice(index, 1)">删除</button>
           </div>
         </div>

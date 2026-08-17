@@ -12,9 +12,11 @@
         <p v-if="worldStore.actionError" class="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {{ worldStore.actionError }}
         </p>
+        <WorldGenerateModal :project-id="projectId" :has-world="false" @applied="onApplied" />
+        <WorldGenerationHistory :items="worldStore.generations" />
         <form class="mt-8 space-y-3 text-left" @submit.prevent="onCreate">
-          <input v-model="createTitle" required maxlength="120" placeholder="世界名称" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
-          <textarea v-model="createSummary" rows="4" placeholder="世界简介" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
+          <input v-model="createTitle" required maxlength="120" placeholder="世界名称" class="studio-field" />
+          <textarea v-model="createSummary" rows="4" placeholder="世界简介" class="studio-field resize-none" />
           <button type="submit" :disabled="worldStore.saving" class="w-full rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950">
             {{ worldStore.saving ? "创建中…" : "创建世界观" }}
           </button>
@@ -47,6 +49,10 @@
             :saving="worldStore.saving"
             @save="onSaveWorld"
           />
+          <div v-if="section === 'overview'" class="mt-6">
+            <WorldGenerateModal :project-id="projectId" :has-world="true" @applied="onApplied" />
+            <WorldGenerationHistory :items="worldStore.generations" />
+          </div>
           <WorldTextPanel
             v-else-if="section === 'cosmic'"
             eyebrow="Cosmos"
@@ -109,16 +115,30 @@
 
 <script setup lang="ts">
 import type { UpdateWorldInput } from "@ai-drama-studio/types";
+import { useCurrentProject } from "~/composables/useCurrentProject";
+import { useViewport } from "~/composables/useViewport";
+import { useWorldStore } from "~/stores/world";
 
+const route = useRoute();
 const { projectId, project } = useCurrentProject();
 const { isMobile } = useViewport();
 const worldStore = useWorldStore();
-const section = ref("overview");
+
+function readWorldSection() {
+  const value = route.query.section;
+  return typeof value === "string" && value ? value : "overview";
+}
+
+const section = ref(readWorldSection());
 const activeSection = ref<string | null>(null);
 const createTitle = ref("");
 const createSummary = ref("");
 
 onMounted(async () => {
+  section.value = readWorldSection();
+  if (isMobile.value && section.value !== "overview") {
+    activeSection.value = section.value;
+  }
   if (projectId.value) {
     await worldStore.load(projectId.value);
     createTitle.value = project.value?.name ? `${project.value.name}` : "未命名世界";
@@ -131,11 +151,29 @@ watch(projectId, (id) => {
   }
 });
 
+watch(
+  () => route.query.section,
+  () => {
+    section.value = readWorldSection();
+    if (isMobile.value && section.value !== "overview") {
+      activeSection.value = section.value;
+    }
+  },
+);
+
 function onSelect(key: string) {
-  section.value = key;
   if (isMobile.value) {
     activeSection.value = key;
   }
+  const current = readWorldSection();
+  if (current === key) {
+    section.value = key;
+    return;
+  }
+  void navigateTo({
+    path: route.path,
+    query: key === "overview" ? {} : { section: key },
+  });
 }
 
 async function onCreate() {
@@ -147,5 +185,9 @@ async function onCreate() {
 
 async function onSaveWorld(payload: UpdateWorldInput) {
   await worldStore.updateWorld(projectId.value, payload);
+}
+
+async function onApplied() {
+  await worldStore.load(projectId.value);
 }
 </script>

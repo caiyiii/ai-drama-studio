@@ -1,6 +1,10 @@
 import { API_DEFAULT_BASE_URL } from "@ai-drama-studio/config";
 import type {
+  AIProvider,
+  AIProviderTestInput,
+  AIProviderTestResult,
   Civilization,
+  CreateAIProviderInput,
   CreateCivilizationInput,
   CreateFactionInput,
   CreatePowerSystemInput,
@@ -12,6 +16,8 @@ import type {
   HealthResponse,
   PowerSystem,
   Project,
+  ProjectAIProvider,
+  UpdateAIProviderInput,
   UpdateCivilizationInput,
   UpdateFactionInput,
   UpdatePowerSystemInput,
@@ -22,17 +28,21 @@ import type {
   World,
   WorldHistory,
   WorldLocation,
+  WorldGenerationInput,
+  GenerationTask,
 } from "@ai-drama-studio/types";
 
 export class ApiError extends Error {
   readonly status: number;
   readonly body: unknown;
+  readonly code?: string;
 
-  constructor(message: string, status: number, body: unknown) {
+  constructor(message: string, status: number, body: unknown, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.body = body;
+    this.code = code;
   }
 }
 
@@ -254,6 +264,101 @@ export class ApiClient {
     );
   }
 
+  async createWorldGeneration(
+    projectId: string,
+    data: WorldGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/world`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getProjectGenerations(projectId: string): Promise<GenerationTask[]> {
+    return this.request<GenerationTask[]>(
+      `/projects/${projectId}/generations`,
+    );
+  }
+
+  async getGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/${id}`,
+    );
+  }
+
+  async applyWorldGeneration(
+    projectId: string,
+    id: string,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/${id}/apply`,
+      { method: "POST" },
+    );
+  }
+
+  async getAIProviders(): Promise<AIProvider[]> {
+    return this.request<AIProvider[]>("/ai/providers");
+  }
+
+  async getAIProvider(id: string): Promise<AIProvider> {
+    return this.request<AIProvider>(`/ai/providers/${id}`);
+  }
+
+  async createAIProvider(data: CreateAIProviderInput): Promise<AIProvider> {
+    return this.request<AIProvider>("/ai/providers", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAIProvider(
+    id: string,
+    data: UpdateAIProviderInput,
+  ): Promise<AIProvider> {
+    return this.request<AIProvider>(`/ai/providers/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAIProvider(id: string): Promise<void> {
+    await this.request<void>(`/ai/providers/${id}`, { method: "DELETE" });
+  }
+
+  async testAIProvider(id: string): Promise<AIProviderTestResult> {
+    return this.request<AIProviderTestResult>(`/ai/providers/${id}/test`, {
+      method: "POST",
+    });
+  }
+
+  async testAIProviderConfig(
+    data: AIProviderTestInput,
+  ): Promise<AIProviderTestResult> {
+    return this.request<AIProviderTestResult>("/ai/providers/test", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getProjectAIProvider(projectId: string): Promise<ProjectAIProvider> {
+    return this.request<ProjectAIProvider>(
+      `/projects/${projectId}/ai-provider`,
+    );
+  }
+
+  async setProjectAIProvider(
+    projectId: string,
+    aiProviderId: string | null,
+  ): Promise<ProjectAIProvider> {
+    return this.request<ProjectAIProvider>(
+      `/projects/${projectId}/ai-provider`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ aiProviderId }),
+      },
+    );
+  }
+
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...init,
@@ -271,15 +376,35 @@ export class ApiClient {
     const body = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const message =
-        (body && typeof body === "object" && "message" in body
-          ? String((body as { message: unknown }).message)
-          : null) || `Request failed: ${response.status}`;
-      throw new ApiError(message, response.status, body);
+      const message = extractErrorMessage(body) || `Request failed: ${response.status}`;
+      const code = extractErrorCode(body);
+      throw new ApiError(message, response.status, body, code);
     }
 
     return body as T;
   }
+}
+
+function extractErrorMessage(body: unknown): string | null {
+  if (!body || typeof body !== "object" || !("message" in body)) {
+    return null;
+  }
+  const message = (body as { message: unknown }).message;
+  if (typeof message === "string") {
+    return message;
+  }
+  if (Array.isArray(message)) {
+    return message.map(String).join("；");
+  }
+  return null;
+}
+
+function extractErrorCode(body: unknown): string | undefined {
+  if (!body || typeof body !== "object" || !("code" in body)) {
+    return undefined;
+  }
+  const code = (body as { code: unknown }).code;
+  return typeof code === "string" ? code : undefined;
 }
 
 export function createApiClient(baseUrl = API_DEFAULT_BASE_URL): ApiClient {

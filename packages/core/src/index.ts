@@ -8,6 +8,7 @@ export {
 } from "./workflow";
 export {
   canRetryTask,
+  getGenerationStatusLabel,
   isTaskInProgress,
   isTaskTerminal,
 } from "./generation";

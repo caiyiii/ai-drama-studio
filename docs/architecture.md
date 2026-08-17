@@ -11,7 +11,7 @@ Desktop (Tauri 2 + Vue)
         │
         │  packages/api-client
         ▼
-   NestJS API  (:3001)
+   NestJS API  (:3011)
         │
         ▼
    PostgreSQL + Prisma

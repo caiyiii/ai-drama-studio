@@ -18,6 +18,8 @@ import type {
   World,
   WorldHistory,
   WorldLocation,
+  GenerationTask,
+  WorldGenerationInput,
 } from "@ai-drama-studio/types";
 
 export const useWorldStore = defineStore("world", () => {
@@ -28,8 +30,10 @@ export const useWorldStore = defineStore("world", () => {
   const factions = ref<Faction[]>([]);
   const locations = ref<WorldLocation[]>([]);
   const powerSystems = ref<PowerSystem[]>([]);
+  const generations = ref<GenerationTask[]>([]);
   const loading = ref(false);
   const saving = ref(false);
+  const generating = ref(false);
   const error = ref<string | null>(null);
   const actionError = ref<string | null>(null);
   const missing = ref(false);
@@ -41,6 +45,7 @@ export const useWorldStore = defineStore("world", () => {
     factions.value = [];
     locations.value = [];
     powerSystems.value = [];
+    generations.value = [];
     missing.value = false;
     error.value = null;
     actionError.value = null;
@@ -71,11 +76,17 @@ export const useWorldStore = defineStore("world", () => {
         loadFactions(projectId),
         loadLocations(projectId),
         loadPowerSystems(projectId),
+        loadGenerations(projectId),
       ]);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         reset();
         missing.value = true;
+        try {
+          await loadGenerations(projectId);
+        } catch {
+          generations.value = [];
+        }
         return;
       }
       error.value = err instanceof Error ? err.message : "加载世界观失败";
@@ -344,6 +355,42 @@ export const useWorldStore = defineStore("world", () => {
     }
   }
 
+  async function loadGenerations(projectId: string) {
+    generations.value = await $api.getProjectGenerations(projectId);
+  }
+
+  async function createWorldGeneration(
+    projectId: string,
+    data: WorldGenerationInput,
+  ) {
+    generating.value = true;
+    actionError.value = null;
+    try {
+      const task = await $api.createWorldGeneration(projectId, data);
+      generations.value = [
+        task,
+        ...generations.value.filter((entry) => entry.id !== task.id),
+      ];
+      return task;
+    } catch (err) {
+      actionError.value = err instanceof Error ? err.message : "AI 生成失败";
+      return null;
+    } finally {
+      generating.value = false;
+    }
+  }
+
+  async function applyWorldGeneration(projectId: string, id: string) {
+    const task = await runMutation(
+      () => $api.applyWorldGeneration(projectId, id),
+      "应用世界观失败",
+    );
+    if (task) {
+      await load(projectId);
+    }
+    return task;
+  }
+
   return {
     world,
     civilizations,
@@ -351,8 +398,10 @@ export const useWorldStore = defineStore("world", () => {
     factions,
     locations,
     powerSystems,
+    generations,
     loading,
     saving,
+    generating,
     error,
     actionError,
     missing,
@@ -375,5 +424,8 @@ export const useWorldStore = defineStore("world", () => {
     createPowerSystem,
     updatePowerSystem,
     deletePowerSystem,
+    loadGenerations,
+    createWorldGeneration,
+    applyWorldGeneration,
   };
 });

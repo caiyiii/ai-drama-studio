@@ -10,6 +10,7 @@ import { StoryboardModule } from "./modules/storyboard/storyboard.module";
 import { AssetsModule } from "./modules/assets/assets.module";
 import { WorldModule } from "./modules/world/world.module";
 import { GenerationModule } from "./modules/generation/generation.module";
+import { AiModule } from "./modules/ai/ai.module";
 import configuration from "./config/configuration";
 
 @Module({
@@ -26,6 +27,7 @@ import configuration from "./config/configuration";
     LocationsModule,
     StoryboardModule,
     AssetsModule,
+    AiModule,
     GenerationModule,
     WorldModule,
   ],

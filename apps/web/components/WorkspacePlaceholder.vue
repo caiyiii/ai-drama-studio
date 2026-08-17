@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { getProjectStepLabel } from "@ai-drama-studio/core";
 import type { ProjectStep } from "@ai-drama-studio/types";
+import { useCurrentProject } from "~/composables/useCurrentProject";
 
 const props = defineProps<{
   eyebrow: string;

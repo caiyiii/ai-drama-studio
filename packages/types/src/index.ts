@@ -40,6 +40,7 @@ export enum AssetType {
 }
 
 export enum GenerationTaskType {
+  WORLD = "WORLD",
   SCRIPT = "SCRIPT",
   IMAGE = "IMAGE",
   VIDEO = "VIDEO",
@@ -47,13 +48,34 @@ export enum GenerationTaskType {
   STORYBOARD = "STORYBOARD",
 }
 
+export const GenerationType = GenerationTaskType;
+export type GenerationType = GenerationTaskType;
+
 export enum GenerationTaskStatus {
   PENDING = "PENDING",
-  PROCESSING = "PROCESSING",
-  SUCCESS = "SUCCESS",
+  RUNNING = "RUNNING",
+  SUCCEEDED = "SUCCEEDED",
   FAILED = "FAILED",
   CANCELLED = "CANCELLED",
 }
+
+export const GenerationStatus = GenerationTaskStatus;
+export type GenerationStatus = GenerationTaskStatus;
+
+export const WORLD_GENERATION_STYLES = [
+  "史诗",
+  "克制",
+  "黑暗",
+  "奇幻",
+  "硬科幻",
+] as const;
+
+export type WorldGenerationStyle = (typeof WORLD_GENERATION_STYLES)[number];
+
+export const WORLD_GENERATION_DETAIL_LEVELS = ["简要", "标准", "详尽"] as const;
+
+export type WorldGenerationDetailLevel =
+  (typeof WORLD_GENERATION_DETAIL_LEVELS)[number];
 
 export interface User {
   id: string;
@@ -72,6 +94,7 @@ export interface Project {
   status: ProjectStatus;
   currentStep: ProjectStep;
   userId: string;
+  aiProviderId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -286,3 +309,139 @@ export interface CreatePowerSystemInput {
 }
 
 export type UpdatePowerSystemInput = Partial<CreatePowerSystemInput>;
+
+export interface WorldGenerationInput {
+  prompt: string;
+  style?: WorldGenerationStyle | string;
+  detailLevel?: WorldGenerationDetailLevel | string;
+}
+
+export interface WorldGenerationCivilization {
+  name: string;
+  type: string;
+  description: string;
+  philosophy: string;
+  society: string;
+  culture: string;
+  technology: string;
+}
+
+export interface WorldGenerationHistory {
+  title: string;
+  description: string;
+  order: number;
+}
+
+export interface WorldGenerationFaction {
+  name: string;
+  description: string;
+  civilizationName: string;
+}
+
+export interface WorldGenerationLocation {
+  name: string;
+  description: string;
+  civilizationName: string;
+}
+
+export interface WorldGenerationPowerSystem {
+  name: string;
+  description: string;
+  rules: string[];
+  levels: PowerSystemLevel[];
+}
+
+export interface WorldGenerationResult {
+  world: {
+    name: string;
+    description: string;
+    cosmicBackground: string;
+    coreConflict: string;
+  };
+  civilizations: WorldGenerationCivilization[];
+  histories: WorldGenerationHistory[];
+  factions: WorldGenerationFaction[];
+  locations: WorldGenerationLocation[];
+  powerSystems: WorldGenerationPowerSystem[];
+}
+
+export enum AIProviderKind {
+  OPENAI_COMPATIBLE = "OPENAI_COMPATIBLE",
+  OPENAI = "OPENAI",
+  DEEPSEEK = "DEEPSEEK",
+  QWEN = "QWEN",
+  GEMINI = "GEMINI",
+  CLAUDE = "CLAUDE",
+}
+
+export const AI_PROVIDER_KIND_LABELS: Record<AIProviderKind, string> = {
+  [AIProviderKind.OPENAI_COMPATIBLE]: "OpenAI Compatible",
+  [AIProviderKind.OPENAI]: "OpenAI",
+  [AIProviderKind.DEEPSEEK]: "DeepSeek",
+  [AIProviderKind.QWEN]: "Qwen",
+  [AIProviderKind.GEMINI]: "Gemini",
+  [AIProviderKind.CLAUDE]: "Claude",
+};
+
+export const SUPPORTED_AI_PROVIDER_KINDS: AIProviderKind[] = [
+  AIProviderKind.OPENAI_COMPATIBLE,
+];
+
+export const SYSTEM_AI_PROVIDER_ID = "system";
+
+export type AIProviderSource = "project" | "default" | "system";
+
+export interface AIProvider {
+  id: string;
+  name: string;
+  provider: AIProviderKind;
+  baseUrl: string;
+  model: string;
+  isDefault: boolean;
+  enabled: boolean;
+  hasApiKey: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAIProviderInput {
+  name: string;
+  provider: AIProviderKind;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  isDefault?: boolean;
+  enabled?: boolean;
+}
+
+export interface UpdateAIProviderInput {
+  name?: string;
+  provider?: AIProviderKind;
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+  isDefault?: boolean;
+  enabled?: boolean;
+}
+
+export interface AIProviderTestInput {
+  provider: AIProviderKind;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+export interface AIProviderTestResult {
+  success: boolean;
+  code?: string;
+  message?: string;
+}
+
+export interface ProjectAIProvider {
+  aiProviderId: string | null;
+  selected: AIProvider | null;
+  resolved: {
+    source: AIProviderSource;
+    provider: AIProvider;
+  } | null;
+}

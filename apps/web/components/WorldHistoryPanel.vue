@@ -33,8 +33,8 @@
 
     <AppModal :open="showForm" :title="editing ? '编辑事件' : '新增事件'" description="按时间顺序记录世界变迁。" @close="showForm = false">
       <form class="space-y-3" @submit.prevent="onSubmit">
-        <input v-model="form.title" required maxlength="120" placeholder="事件标题" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
-        <textarea v-model="form.description" rows="4" placeholder="描述" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
+        <input v-model="form.title" required maxlength="120" placeholder="事件标题" class="studio-field" />
+        <textarea v-model="form.description" rows="4" placeholder="描述" class="studio-field resize-none" />
         <div class="flex justify-end gap-2">
           <button type="button" class="text-sm text-zinc-400" @click="showForm = false">取消</button>
           <button type="submit" class="rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950">保存</button>

@@ -1,3 +1,5 @@
+import { useProjectStore } from "~/stores/project";
+
 export function useCurrentProject() {
   const route = useRoute();
   const store = useProjectStore();

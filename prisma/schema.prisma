@@ -36,6 +36,7 @@ enum AssetType {
 }
 
 enum GenerationTaskType {
+  WORLD
   SCRIPT
   IMAGE
   VIDEO
@@ -45,19 +46,29 @@ enum GenerationTaskType {
 
 enum GenerationTaskStatus {
   PENDING
-  PROCESSING
-  SUCCESS
+  RUNNING
+  SUCCEEDED
   FAILED
   CANCELLED
 }
 
+enum AiProviderKind {
+  OPENAI_COMPATIBLE
+  OPENAI
+  DEEPSEEK
+  QWEN
+  GEMINI
+  CLAUDE
+}
+
 model User {
-  id        String    @id @default(cuid())
-  name      String
-  email     String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  projects  Project[]
+  id          String       @id @default(cuid())
+  name        String
+  email       String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  projects    Project[]
+  aiProviders AiProvider[]
 }
 
 model Project {
@@ -70,6 +81,8 @@ model Project {
   currentStep     ProjectStep      @default(WORLD)
   userId          String
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiProviderId    String?
+  aiProvider      AiProvider?      @relation("ProjectSelectedProvider", fields: [aiProviderId], references: [id], onDelete: Restrict)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   episodes        Episode[]
@@ -78,6 +91,9 @@ model Project {
   assets          Asset[]
   generationTasks GenerationTask[]
   world           World?
+  ownedProviders  AiProvider[]     @relation("ProviderOwnedByProject")
+
+  @@index([aiProviderId])
 }
 
 model Episode {
@@ -137,6 +153,30 @@ model GenerationTask {
   retryCount Int                   @default(0)
   createdAt  DateTime              @default(now())
   updatedAt  DateTime              @updatedAt
+
+  @@index([projectId])
+}
+
+model AiProvider {
+  id                 String        @id @default(cuid())
+  name               String
+  provider           AiProviderKind
+  baseUrl            String
+  model              String
+  encryptedApiKey    String
+  isDefault          Boolean       @default(false)
+  enabled            Boolean       @default(true)
+  userId             String?
+  user               User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  projectId          String?
+  ownedByProject     Project?      @relation("ProviderOwnedByProject", fields: [projectId], references: [id], onDelete: SetNull)
+  selectedByProjects Project[]     @relation("ProjectSelectedProvider")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([isDefault, enabled])
 }
 
 model World {

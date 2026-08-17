@@ -1,11 +1,8 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between gap-3">
-      <div>
-        <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Overview</p>
-        <h2 class="mt-1 font-display text-3xl">世界概览</h2>
-      </div>
-      <AiSoonButton />
+    <div>
+      <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Overview</p>
+      <h2 class="mt-1 font-display text-3xl">世界概览</h2>
     </div>
     <WorldFieldEditor
       label="世界名称"

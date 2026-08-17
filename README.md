@@ -59,9 +59,9 @@ pnpm db:seed
 pnpm dev
 ```
 
-- Web: http://localhost:3000
-- API: http://localhost:3001
-- Health: http://localhost:3001/health
+- Web: http://localhost:3010
+- API: http://localhost:3011
+- Health: http://localhost:3011/health
 
 ### 4. 启动 Mobile
 
@@ -85,7 +85,7 @@ pnpm dev:tauri
 
 | 命令 | 说明 |
 | --- | --- |
-| `pnpm dev` | 同时启动 Web (3000) 与 API (3001) |
+| `pnpm dev` | 同时启动 Web (3010) 与 API (3011) |
 | `pnpm dev:web` | 仅 Web |
 | `pnpm dev:api` | 仅 API |
 | `pnpm dev:mobile` | Ionic / Vite 开发环境 |

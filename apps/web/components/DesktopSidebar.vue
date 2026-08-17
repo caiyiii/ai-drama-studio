@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { getWorkspacePath, getWorkspaceSteps } from "@ai-drama-studio/core";
+import { useCurrentProject } from "~/composables/useCurrentProject";
 
 defineProps<{
   expanded?: boolean;
@@ -61,6 +62,7 @@ const sidebarItems = computed(() => {
   return [
     { label: "首页", to: "/", current: false },
     { label: "项目", to: "/projects", current: false },
+    { label: "AI 配置", to: "/ai-providers", current: false },
   ];
 });
 

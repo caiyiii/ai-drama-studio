@@ -66,6 +66,7 @@
 
 <script setup lang="ts">
 import type { CreateProjectInput, Project } from "@ai-drama-studio/types";
+import { useProjectStore } from "~/stores/project";
 
 const store = useProjectStore();
 const showForm = ref(false);

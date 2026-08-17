@@ -22,13 +22,7 @@
     </label>
     <label class="block">
       <span class="text-xs uppercase tracking-[0.16em] text-zinc-500">类型</span>
-      <select
-        v-model="genre"
-        required
-        class="mt-2 w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm outline-none ring-gold-400/40 focus:ring-2"
-      >
-        <option v-for="item in genres" :key="item" :value="item">{{ item }}</option>
-      </select>
+      <StudioSelect v-model="genre" class="mt-2" :options="genreOptions" />
     </label>
     <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     <div class="flex justify-end gap-3">
@@ -77,7 +71,7 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
-const genres = PROJECT_GENRES;
+const genreOptions = PROJECT_GENRES.map((item) => ({ value: item, label: item }));
 const name = ref(props.initialName);
 const description = ref(props.initialDescription ?? "");
 const genre = ref(props.initialGenre || "其他");

@@ -1,0 +1,83 @@
+import { WORKSPACE_NAV, WORLD_NAV } from "@ai-drama-studio/config";
+import { getWorkspacePath } from "@ai-drama-studio/core";
+import { useCurrentProject } from "./useCurrentProject";
+import { useProjectStore } from "~/stores/project";
+
+export type BreadcrumbItem = {
+  label: string;
+  to?: string;
+};
+
+export function useWorkspaceBreadcrumbs() {
+  const route = useRoute();
+  const { project, projectId, isProjectRoute } = useCurrentProject();
+  const projectStore = useProjectStore();
+
+  const items = computed<BreadcrumbItem[]>(() => {
+    if (route.path === "/ai-providers") {
+      const current = projectStore.current;
+      const crumbs: BreadcrumbItem[] = [{ label: "项目", to: "/projects" }];
+      if (current) {
+        crumbs.push({
+          label: current.name,
+          to: `/projects/${current.id}`,
+        });
+        crumbs.push({
+          label: "设置",
+          to: `/projects/${current.id}/settings`,
+        });
+      }
+      crumbs.push({ label: "AI 配置" });
+      return crumbs;
+    }
+
+    if (!isProjectRoute.value || !projectId.value) {
+      return [{ label: "项目", to: "/projects" }];
+    }
+
+    const crumbs: BreadcrumbItem[] = [
+      { label: "项目", to: "/projects" },
+      {
+        label: project.value?.name ?? "载入中…",
+        to: getWorkspacePath(projectId.value),
+      },
+    ];
+
+    const suffix = route.path
+      .replace(`/projects/${projectId.value}`, "")
+      .replace(/^\//, "");
+    if (suffix) {
+      const nav = WORKSPACE_NAV.find((item) => item.path === suffix);
+      const section =
+        suffix === "world" && typeof route.query.section === "string"
+          ? route.query.section
+          : "";
+      const worldItem =
+        section && section !== "overview"
+          ? WORLD_NAV.find((item) => item.key === section)
+          : null;
+      crumbs.push({
+        label: nav?.label ?? suffix,
+        to: worldItem
+          ? `/projects/${projectId.value}/${suffix}`
+          : undefined,
+      });
+      if (worldItem) {
+        crumbs.push({ label: worldItem.label });
+      }
+    }
+
+    return crumbs;
+  });
+
+  const parent = computed(() => {
+    const last = items.value[items.value.length - 1];
+    const list = items.value.filter((item) => item.to);
+    if (last?.to) {
+      return list.length >= 2 ? list[list.length - 2] ?? null : null;
+    }
+    return list[list.length - 1] ?? null;
+  });
+
+  return { items, parent };
+}

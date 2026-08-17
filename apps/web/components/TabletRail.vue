@@ -69,6 +69,7 @@ const railItems = computed(() => {
   return [
     { label: "首页", short: "首", to: "/" },
     { label: "项目", short: "项", to: "/projects" },
+    { label: "AI 配置", short: "AI", to: "/ai-providers" },
   ];
 });
 

@@ -83,6 +83,7 @@ import {
   getStepProgressPercent,
   getWorkspacePath,
 } from "@ai-drama-studio/core";
+import { useCurrentProject } from "~/composables/useCurrentProject";
 
 const { project, loading, error, ensureProject } = useCurrentProject();
 const productionSteps = getProductionNavItems();

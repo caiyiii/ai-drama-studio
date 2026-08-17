@@ -1,4 +1,6 @@
-export const API_DEFAULT_BASE_URL = "http://localhost:3001";
+export const API_DEFAULT_PORT = 3011;
+export const API_DEFAULT_BASE_URL = `http://localhost:${API_DEFAULT_PORT}`;
+export const WEB_DEV_ORIGIN = "http://localhost:3010";
 
 export const BREAKPOINTS = {
   mobileMax: 767,
@@ -38,6 +40,7 @@ export const WORKSPACE_NAV = [
   { key: "voices", label: "配音", short: "音", path: "voices", step: "VOICES" },
   { key: "render", label: "成片", short: "片", path: "render", step: "RENDER" },
   { key: "assets", label: "素材", short: "材", path: "assets", step: null },
+  { key: "settings", label: "设置", short: "设", path: "settings", step: null },
 ] as const;
 
 export const MOBILE_TAB_NAV = [
@@ -77,4 +80,23 @@ export const WORLD_LOCATION_TYPES = [
   "空间站",
   "遗迹",
   "其他",
+] as const;
+
+export const WORLD_GENERATION_STYLES = [
+  "史诗",
+  "克制",
+  "黑暗",
+  "奇幻",
+  "硬科幻",
+] as const;
+
+export const WORLD_GENERATION_DETAIL_LEVELS = ["简要", "标准", "详尽"] as const;
+
+export const AI_PROVIDER_KINDS = [
+  "OPENAI_COMPATIBLE",
+  "OPENAI",
+  "DEEPSEEK",
+  "QWEN",
+  "GEMINI",
+  "CLAUDE",
 ] as const;

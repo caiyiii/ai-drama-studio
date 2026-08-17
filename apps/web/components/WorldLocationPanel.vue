@@ -28,15 +28,22 @@
 
     <AppModal :open="showForm" :title="editing ? '编辑地点' : '新增地点'" description="这个地点属于哪个文明，发生过什么。" @close="showForm = false">
       <form class="space-y-3" @submit.prevent="onSubmit">
-        <input v-model="form.name" required maxlength="120" placeholder="名称" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
-        <select v-model="form.type" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm">
-          <option v-for="item in types" :key="item" :value="item">{{ item }}</option>
-        </select>
-        <select v-model="form.civilizationId" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm">
-          <option value="">无所属文明</option>
-          <option v-for="item in civilizations" :key="item.id" :value="item.id">{{ item.name }}</option>
-        </select>
-        <textarea v-model="form.description" rows="3" placeholder="简介" class="w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm" />
+        <label class="block text-sm">
+          <span class="text-xs uppercase tracking-[0.16em] text-zinc-500">名称</span>
+          <input v-model="form.name" required maxlength="120" placeholder="名称" class="studio-field mt-2" />
+        </label>
+        <label class="block text-sm">
+          <span class="text-xs uppercase tracking-[0.16em] text-zinc-500">类型</span>
+          <StudioSelect v-model="form.type" class="mt-2" :options="typeOptions" />
+        </label>
+        <label class="block text-sm">
+          <span class="text-xs uppercase tracking-[0.16em] text-zinc-500">所属文明</span>
+          <StudioSelect v-model="form.civilizationId" class="mt-2" :options="civilizationOptions" />
+        </label>
+        <label class="block text-sm">
+          <span class="text-xs uppercase tracking-[0.16em] text-zinc-500">简介</span>
+          <textarea v-model="form.description" rows="3" placeholder="简介" class="studio-field mt-2 resize-none" />
+        </label>
         <div class="flex justify-end gap-2">
           <button type="button" class="text-sm text-zinc-400" @click="showForm = false">取消</button>
           <button type="submit" class="rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950">保存</button>
@@ -69,7 +76,11 @@ const emit = defineEmits<{
   remove: [id: string];
 }>();
 
-const types = WORLD_LOCATION_TYPES;
+const typeOptions = WORLD_LOCATION_TYPES.map((item) => ({ value: item, label: item }));
+const civilizationOptions = computed(() => [
+  { value: "", label: "无所属文明" },
+  ...props.civilizations.map((item) => ({ value: item.id, label: item.name })),
+]);
 const showForm = ref(false);
 const editing = ref<WorldLocation | null>(null);
 const pending = ref<WorldLocation | null>(null);
