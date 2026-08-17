@@ -40,6 +40,9 @@ export function getGenerationStatusLabel(status: GenerationTaskStatus): string {
 const TYPE_LABELS: Record<GenerationTaskType, string> = {
   [GenerationTaskType.WORLD]: "世界观",
   [GenerationTaskType.CHARACTER]: "人物",
+  [GenerationTaskType.STORY_BIBLE]: "故事圣经",
+  [GenerationTaskType.SEASON_OUTLINE]: "季大纲",
+  [GenerationTaskType.EPISODE_OUTLINE]: "剧集大纲",
   [GenerationTaskType.SCRIPT]: "剧本",
   [GenerationTaskType.IMAGE]: "图片",
   [GenerationTaskType.VIDEO]: "视频",

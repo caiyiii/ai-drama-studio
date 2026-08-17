@@ -2,7 +2,7 @@
   <WorkspacePlaceholder
     eyebrow="Images"
     title="图片"
-    description="尚未配置图片生成 AI。请先在项目设置中为 IMAGE 指定 Image Provider。"
+    description="将在后续阶段开放。本阶段不实现图片生成。"
     :step="ProjectStep.IMAGES"
   />
 </template>

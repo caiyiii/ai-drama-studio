@@ -12,21 +12,11 @@ export const BREAKPOINTS = {
 export const WORKSPACE_NAV = [
   { key: "overview", label: "项目概览", short: "览", path: "", step: null },
   { key: "world", label: "世界观", short: "界", path: "world", step: "WORLD" },
-  {
-    key: "characters",
-    label: "人物",
-    short: "人",
-    path: "characters",
-    step: "CHARACTERS",
-  },
-  {
-    key: "locations",
-    label: "场景",
-    short: "场",
-    path: "locations",
-    step: "LOCATIONS",
-  },
-  { key: "episodes", label: "剧集", short: "集", path: "episodes", step: "EPISODES" },
+  { key: "characters", label: "人物", short: "人", path: "characters", step: "CHARACTERS" },
+  { key: "story-bible", label: "故事圣经", short: "经", path: "story-bible", step: null },
+  { key: "locations", label: "场景", short: "场", path: "locations", step: "LOCATIONS" },
+  { key: "seasons", label: "季", short: "季", path: "seasons", step: "EPISODES" },
+  { key: "episodes", label: "剧集", short: "集", path: "episodes", step: null },
   { key: "script", label: "剧本", short: "本", path: "script", step: "SCRIPT" },
   {
     key: "storyboard",

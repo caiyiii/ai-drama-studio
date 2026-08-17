@@ -11,6 +11,7 @@ import { AssetsModule } from "./modules/assets/assets.module";
 import { WorldModule } from "./modules/world/world.module";
 import { GenerationModule } from "./modules/generation/generation.module";
 import { AiModule } from "./modules/ai/ai.module";
+import { StoryModule } from "./modules/story/story.module";
 import configuration from "./config/configuration";
 
 @Module({
@@ -30,6 +31,7 @@ import configuration from "./config/configuration";
     AiModule,
     GenerationModule,
     WorldModule,
+    StoryModule,
   ],
   controllers: [AppController],
 })

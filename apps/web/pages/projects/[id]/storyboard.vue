@@ -2,7 +2,7 @@
   <WorkspacePlaceholder
     eyebrow="Storyboard"
     title="分镜"
-    description="将剧本落成分镜序列。"
+    description="将在后续阶段开放。本阶段不实现分镜。"
     :step="ProjectStep.STORYBOARD"
   />
 </template>

@@ -43,6 +43,19 @@ import type {
   WorldLocation,
   WorldGenerationInput,
   GenerationTask,
+  Episode,
+  EpisodeGenerationInput,
+  EpisodeInput,
+  ReorderEpisodesInput,
+  Season,
+  SeasonGenerationInput,
+  SeasonInput,
+  StoryBible,
+  StoryBibleGenerationInput,
+  StoryBibleInput,
+  UpdateEpisodeInput,
+  UpdateSeasonInput,
+  UpdateStoryBibleInput,
 } from "@ai-drama-studio/types";
 
 export class ApiError extends Error {
@@ -303,10 +316,7 @@ export class ApiClient {
     projectId: string,
     id: string,
   ): Promise<GenerationTask> {
-    return this.request<GenerationTask>(
-      `/projects/${projectId}/generations/${id}/apply`,
-      { method: "POST" },
-    );
+    return this.applyGeneration(projectId, id);
   }
 
   async createCharacterGeneration(
@@ -330,7 +340,174 @@ export class ApiClient {
     projectId: string,
     id: string,
   ): Promise<GenerationTask> {
-    return this.applyWorldGeneration(projectId, id);
+    return this.applyGeneration(projectId, id);
+  }
+
+  async getStoryBible(projectId: string): Promise<StoryBible> {
+    return this.request<StoryBible>(`/projects/${projectId}/story-bible`);
+  }
+
+  async createStoryBible(
+    projectId: string,
+    data: StoryBibleInput,
+  ): Promise<StoryBible> {
+    return this.request<StoryBible>(`/projects/${projectId}/story-bible`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateStoryBible(
+    projectId: string,
+    data: UpdateStoryBibleInput,
+  ): Promise<StoryBible> {
+    return this.request<StoryBible>(`/projects/${projectId}/story-bible`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteStoryBible(projectId: string): Promise<void> {
+    await this.request<void>(`/projects/${projectId}/story-bible`, {
+      method: "DELETE",
+    });
+  }
+
+  async getSeasons(projectId: string): Promise<Season[]> {
+    return this.request<Season[]>(`/projects/${projectId}/seasons`);
+  }
+
+  async getSeason(projectId: string, seasonId: string): Promise<Season> {
+    return this.request<Season>(`/projects/${projectId}/seasons/${seasonId}`);
+  }
+
+  async createSeason(projectId: string, data: SeasonInput): Promise<Season> {
+    return this.request<Season>(`/projects/${projectId}/seasons`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSeason(
+    projectId: string,
+    seasonId: string,
+    data: UpdateSeasonInput,
+  ): Promise<Season> {
+    return this.request<Season>(`/projects/${projectId}/seasons/${seasonId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSeason(projectId: string, seasonId: string): Promise<void> {
+    await this.request<void>(`/projects/${projectId}/seasons/${seasonId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getEpisodes(projectId: string, seasonId: string): Promise<Episode[]> {
+    return this.request<Episode[]>(
+      `/projects/${projectId}/seasons/${seasonId}/episodes`,
+    );
+  }
+
+  async getProjectEpisodes(projectId: string): Promise<Episode[]> {
+    return this.request<Episode[]>(`/projects/${projectId}/episodes`);
+  }
+
+  async getEpisode(
+    projectId: string,
+    seasonId: string,
+    episodeId: string,
+  ): Promise<Episode> {
+    return this.request<Episode>(
+      `/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}`,
+    );
+  }
+
+  async createEpisode(
+    projectId: string,
+    seasonId: string,
+    data: EpisodeInput,
+  ): Promise<Episode> {
+    return this.request<Episode>(
+      `/projects/${projectId}/seasons/${seasonId}/episodes`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateEpisode(
+    projectId: string,
+    seasonId: string,
+    episodeId: string,
+    data: UpdateEpisodeInput,
+  ): Promise<Episode> {
+    return this.request<Episode>(
+      `/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteEpisode(
+    projectId: string,
+    seasonId: string,
+    episodeId: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async reorderEpisodes(
+    projectId: string,
+    seasonId: string,
+    data: ReorderEpisodesInput,
+  ): Promise<Episode[]> {
+    return this.request<Episode[]>(
+      `/projects/${projectId}/seasons/${seasonId}/episodes/reorder`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async createStoryBibleGeneration(
+    projectId: string,
+    data: StoryBibleGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/story-bible`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async createSeasonOutlineGeneration(
+    projectId: string,
+    data: SeasonGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/season-outline`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async createEpisodeOutlineGeneration(
+    projectId: string,
+    data: EpisodeGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/episode`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async applyGeneration(
+    projectId: string,
+    id: string,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/${id}/apply`,
+      { method: "POST" },
+    );
   }
 
   async getAIProviders(): Promise<AIProvider[]> {

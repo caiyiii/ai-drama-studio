@@ -38,6 +38,9 @@ enum AssetType {
 enum GenerationTaskType {
   WORLD
   CHARACTER
+  STORY_BIBLE
+  SEASON_OUTLINE
+  EPISODE_OUTLINE
   SCRIPT
   IMAGE
   VIDEO
@@ -100,6 +103,25 @@ enum AiCapability {
   EMBEDDING
 }
 
+enum SeasonStatus {
+  DRAFT
+  PLANNING
+  READY
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum EpisodeStatus {
+  DRAFT
+  OUTLINED
+  SCRIPTING
+  READY
+  IN_PRODUCTION
+  COMPLETED
+  ARCHIVED
+}
+
 model User {
   id          String       @id @default(cuid())
   name        String
@@ -130,6 +152,8 @@ model Project {
   assets                 Asset[]
   generationTasks        GenerationTask[]
   world                  World?
+  storyBible             StoryBible?
+  seasons                Season[]
   ownedProviders         AiProvider[]             @relation("ProviderOwnedByProject")
   characterRelationships CharacterRelationship[]
   aiConfigs              ProjectAiConfig[]
@@ -137,15 +161,66 @@ model Project {
   @@index([aiProviderId])
 }
 
-model Episode {
-  id        String   @id @default(cuid())
+model StoryBible {
+  id               String   @id @default(cuid())
+  projectId        String   @unique
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title            String
+  logline          String?
+  premise          String?
+  theme            String?
+  tone             String?
+  style            String?
+  audience         String?
+  storyPromise     String?
+  rules            Json?
+  timelineSummary  String?
+  continuityNotes  String?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Season {
+  id        String       @id @default(cuid())
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  number    Int
   title     String
   synopsis  String?
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  outline   String?
+  status    SeasonStatus @default(DRAFT)
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  episodes  Episode[]
+
+  @@unique([projectId, number])
+  @@index([projectId])
+}
+
+model Episode {
+  id               String        @id @default(cuid())
+  projectId        String
+  project          Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  seasonId         String
+  season           Season        @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+  number           Int
+  title            String
+  synopsis         String?
+  outline          String?
+  status           EpisodeStatus @default(DRAFT)
+  durationSeconds  Int?
+  storyState       Json?
+  continuityNotes  String?
+  metadata         Json?
+  order            Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([seasonId, number])
+  @@index([projectId])
+  @@index([seasonId])
 }
 
 model Character {

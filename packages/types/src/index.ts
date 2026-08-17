@@ -42,6 +42,9 @@ export enum AssetType {
 export enum GenerationTaskType {
   WORLD = "WORLD",
   CHARACTER = "CHARACTER",
+  STORY_BIBLE = "STORY_BIBLE",
+  SEASON_OUTLINE = "SEASON_OUTLINE",
+  EPISODE_OUTLINE = "EPISODE_OUTLINE",
   SCRIPT = "SCRIPT",
   IMAGE = "IMAGE",
   VIDEO = "VIDEO",
@@ -103,9 +106,16 @@ export interface Project {
 export interface Episode {
   id: string;
   projectId: string;
+  seasonId: string;
+  number: number;
   title: string;
   synopsis: string | null;
-  order: number;
+  outline: string | null;
+  status: EpisodeStatus;
+  durationSeconds: number | null;
+  storyState: EpisodeStoryState | null;
+  continuityNotes: string | null;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -807,4 +817,302 @@ export interface ProjectAIProvider {
     source: AIProviderSource;
     provider: AIProvider;
   } | null;
+}
+
+export enum SeasonStatus {
+  DRAFT = "DRAFT",
+  PLANNING = "PLANNING",
+  READY = "READY",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  ARCHIVED = "ARCHIVED",
+}
+
+export const SEASON_STATUS_LABELS: Record<SeasonStatus, string> = {
+  [SeasonStatus.DRAFT]: "草稿",
+  [SeasonStatus.PLANNING]: "规划中",
+  [SeasonStatus.READY]: "已就绪",
+  [SeasonStatus.IN_PROGRESS]: "制作中",
+  [SeasonStatus.COMPLETED]: "已完成",
+  [SeasonStatus.ARCHIVED]: "已归档",
+};
+
+export enum EpisodeStatus {
+  DRAFT = "DRAFT",
+  OUTLINED = "OUTLINED",
+  SCRIPTING = "SCRIPTING",
+  READY = "READY",
+  IN_PRODUCTION = "IN_PRODUCTION",
+  COMPLETED = "COMPLETED",
+  ARCHIVED = "ARCHIVED",
+}
+
+export const EPISODE_STATUS_LABELS: Record<EpisodeStatus, string> = {
+  [EpisodeStatus.DRAFT]: "草稿",
+  [EpisodeStatus.OUTLINED]: "已有大纲",
+  [EpisodeStatus.SCRIPTING]: "编剧中",
+  [EpisodeStatus.READY]: "已就绪",
+  [EpisodeStatus.IN_PRODUCTION]: "制作中",
+  [EpisodeStatus.COMPLETED]: "已完成",
+  [EpisodeStatus.ARCHIVED]: "已归档",
+};
+
+export interface StoryBibleRules {
+  worldRules: string[];
+  characterRules: string[];
+  narrativeRules: string[];
+  forbidden: string[];
+}
+
+export interface StoryBible {
+  id: string;
+  projectId: string;
+  title: string;
+  logline: string | null;
+  premise: string | null;
+  theme: string | null;
+  tone: string | null;
+  style: string | null;
+  audience: string | null;
+  storyPromise: string | null;
+  rules: StoryBibleRules | null;
+  timelineSummary: string | null;
+  continuityNotes: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoryBibleInput {
+  title: string;
+  logline?: string | null;
+  premise?: string | null;
+  theme?: string | null;
+  tone?: string | null;
+  style?: string | null;
+  audience?: string | null;
+  storyPromise?: string | null;
+  rules?: StoryBibleRules | null;
+  timelineSummary?: string | null;
+  continuityNotes?: string | null;
+}
+
+export type UpdateStoryBibleInput = Partial<StoryBibleInput>;
+
+export interface Season {
+  id: string;
+  projectId: string;
+  number: number;
+  title: string;
+  synopsis: string | null;
+  outline: string | null;
+  status: SeasonStatus;
+  metadata: Record<string, unknown> | null;
+  episodeCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeasonInput {
+  number: number;
+  title: string;
+  synopsis?: string | null;
+  outline?: string | null;
+  status?: SeasonStatus;
+}
+
+export type UpdateSeasonInput = Partial<SeasonInput>;
+
+export interface EpisodeStoryStateCharacter {
+  characterId?: string;
+  name?: string;
+  state?: string;
+  location?: string;
+  condition?: string;
+  goal?: string;
+}
+
+export interface EpisodeStoryState {
+  characters?: EpisodeStoryStateCharacter[];
+  relationships?: unknown[];
+  worldChanges?: unknown[];
+  factionChanges?: unknown[];
+  unresolvedThreads?: unknown[];
+  revealedSecrets?: unknown[];
+  foreshadowing?: unknown[];
+}
+
+export interface EpisodeInput {
+  number: number;
+  title: string;
+  synopsis?: string | null;
+  outline?: string | null;
+  status?: EpisodeStatus;
+  durationSeconds?: number | null;
+  storyState?: EpisodeStoryState | null;
+  continuityNotes?: string | null;
+}
+
+export type UpdateEpisodeInput = Partial<EpisodeInput>;
+
+export interface ReorderEpisodesInput {
+  ids: string[];
+}
+
+export interface StoryWorldSummary {
+  title: string;
+  summary: string | null;
+  cosmicBackground: string | null;
+  coreConflict: string | null;
+}
+
+export interface StoryCivilizationSummary {
+  name: string;
+  description: string | null;
+  philosophy: string | null;
+  technology: string | null;
+}
+
+export interface StoryFactionSummary {
+  name: string;
+  description: string | null;
+}
+
+export interface StoryLocationSummary {
+  name: string;
+  description: string | null;
+}
+
+export interface StoryPowerSystemSummary {
+  name: string;
+  description: string | null;
+}
+
+export interface StoryCharacterSummary {
+  id: string;
+  name: string;
+  role: string | null;
+  identity: string | null;
+  personality: string | null;
+  goal: string | null;
+  conflict: string | null;
+}
+
+export interface StoryRelationshipSummary {
+  fromName: string;
+  toName: string;
+  type: string;
+  label: string | null;
+}
+
+export interface StorySeasonSummary {
+  id: string;
+  number: number;
+  title: string;
+  synopsis: string | null;
+  outline: string | null;
+  status: SeasonStatus;
+}
+
+export interface StoryEpisodeSummary {
+  id: string;
+  number: number;
+  title: string;
+  synopsis: string | null;
+  outline: string | null;
+  status: EpisodeStatus;
+  storyState: EpisodeStoryState | null;
+}
+
+export interface StoryContext {
+  storyBible: StoryBible | null;
+  world: StoryWorldSummary | null;
+  civilizations: StoryCivilizationSummary[];
+  factions: StoryFactionSummary[];
+  locations: StoryLocationSummary[];
+  powerSystems: StoryPowerSystemSummary[];
+  characters: StoryCharacterSummary[];
+  relationships: StoryRelationshipSummary[];
+  seasons: StorySeasonSummary[];
+  episodes: StoryEpisodeSummary[];
+  season?: StorySeasonSummary | null;
+  episode?: StoryEpisodeSummary | null;
+  previousEpisode?: StoryEpisodeSummary | null;
+}
+
+export interface StoryBibleGenerationInput {
+  instruction: string;
+  tone?: string;
+  style?: string;
+  audience?: string;
+}
+
+export interface StoryBibleGenerationResult {
+  title: string;
+  logline: string;
+  premise: string;
+  theme: string;
+  tone: string;
+  style: string;
+  audience: string;
+  storyPromise: string;
+  rules: StoryBibleRules;
+  timelineSummary: string;
+  continuityNotes: string[];
+}
+
+export interface SeasonGenerationInput {
+  seasonId: string;
+  instruction?: string;
+  episodeCount?: number;
+  targetDurationSeconds?: number;
+}
+
+export interface SeasonGenerationEpisode {
+  number: number;
+  title: string;
+  synopsis: string;
+  outline: string;
+  keyCharacters: string[];
+  keyLocations: string[];
+  conflict: string;
+  cliffhanger: string;
+  storyStateChanges: EpisodeStoryState;
+}
+
+export interface SeasonGenerationResult {
+  season: {
+    title: string;
+    synopsis: string;
+    coreConflict: string;
+    beginning: string;
+    middle: string;
+    ending: string;
+  };
+  episodes: SeasonGenerationEpisode[];
+}
+
+export interface EpisodeGenerationInput {
+  episodeId: string;
+  instruction?: string;
+}
+
+export interface EpisodeGenerationResult {
+  title: string;
+  synopsis: string;
+  outline: string;
+  opening: string;
+  middle: string;
+  ending: string;
+  cliffhanger: string;
+  keyCharacters: string[];
+  keyLocations: string[];
+  conflict: string;
+  storyState: EpisodeStoryState;
+}
+
+export interface ContinuityCheckResult {
+  ok: boolean;
+  errors: string[];
+  warnings: string[];
 }

@@ -35,6 +35,12 @@
           <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${project.id}/characters`">
             进入人物
           </ion-button>
+          <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${project.id}/story-bible`">
+            查看故事圣经
+          </ion-button>
+          <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${project.id}/seasons`">
+            进入季 / 剧集
+          </ion-button>
         </div>
 
         <section class="flow">

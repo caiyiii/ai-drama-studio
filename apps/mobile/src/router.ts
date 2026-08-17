@@ -41,6 +41,22 @@ const routes: RouteRecordRaw[] = [
         component: () => import("./views/CharacterDetailPage.vue"),
       },
       {
+        path: "projects/:id/story-bible",
+        component: () => import("./views/StoryBiblePage.vue"),
+      },
+      {
+        path: "projects/:id/seasons",
+        component: () => import("./views/SeasonsPage.vue"),
+      },
+      {
+        path: "projects/:id/seasons/:seasonId",
+        component: () => import("./views/SeasonDetailPage.vue"),
+      },
+      {
+        path: "projects/:id/seasons/:seasonId/episodes/:episodeId",
+        component: () => import("./views/EpisodeDetailPage.vue"),
+      },
+      {
         path: "tasks",
         component: () => import("./views/PlaceholderPage.vue"),
         props: { title: "任务", body: "生成任务继续使用 GenerationTask。本阶段已支持按 AI Capability 记录 STRUCTURED_OUTPUT。" },

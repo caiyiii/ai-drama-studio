@@ -2,7 +2,7 @@
   <WorkspacePlaceholder
     eyebrow="Script"
     title="剧本"
-    description="撰写对白、旁白与场次剧本。"
+    description="将在后续阶段开放。本阶段不实现剧本生成。"
     :step="ProjectStep.SCRIPT"
   />
 </template>

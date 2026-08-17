@@ -26,6 +26,8 @@
       <h1>{{ activeLabel }}</h1>
       <WorldPanel v-if="current === 'world'" />
       <CharacterPanel v-else-if="current === 'characters'" />
+      <StoryBiblePanel v-else-if="current === 'story-bible'" />
+      <SeasonPanel v-else-if="current === 'seasons' || current === 'episodes'" />
       <template v-else>
         <p class="lead">
           当前阶段 Desktop 复用共享类型与 API Client。项目 AI 能力配置（Chat / Structured Output / Image / Video / TTS）请使用 Web 工作台。
@@ -43,6 +45,8 @@ import { getWorkspaceSteps } from "@ai-drama-studio/core";
 import { computed, onMounted, ref } from "vue";
 import WorldPanel from "./WorldPanel.vue";
 import CharacterPanel from "./CharacterPanel.vue";
+import StoryBiblePanel from "./StoryBiblePanel.vue";
+import SeasonPanel from "./SeasonPanel.vue";
 
 const items = getWorkspaceSteps();
 const current = ref<(typeof items)[number]["key"]>("overview");

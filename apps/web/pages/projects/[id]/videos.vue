@@ -2,7 +2,7 @@
   <WorkspacePlaceholder
     eyebrow="Videos"
     title="视频"
-    description="尚未配置视频生成 AI。VIDEO / IMAGE_TO_VIDEO 请在项目设置中配置对应 Provider。"
+    description="将在后续阶段开放。本阶段不实现视频生成。"
     :step="ProjectStep.VIDEOS"
   />
 </template>

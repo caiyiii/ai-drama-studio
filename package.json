@@ -24,6 +24,7 @@
     "db:seed": "prisma db seed",
     "db:seed:world-demo": "tsx prisma/seed-world-demo.ts",
     "db:seed:character-demo": "tsx prisma/seed-character-demo.ts",
+    "db:seed:story-demo": "tsx prisma/seed-story-demo.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
