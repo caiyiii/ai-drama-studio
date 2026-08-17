@@ -123,9 +123,9 @@ export const CHARACTER_GENERATION_DETAIL_LEVELS = [
 export const AI_CAPABILITY_DEFINITIONS = [
   { capability: "CHAT", label: "故事 / 文本生成", implemented: true },
   { capability: "STRUCTURED_OUTPUT", label: "结构化生成", implemented: true },
-  { capability: "IMAGE", label: "图片生成", implemented: false },
-  { capability: "VIDEO", label: "视频生成", implemented: false },
-  { capability: "IMAGE_TO_VIDEO", label: "图片转视频", implemented: false },
+  { capability: "IMAGE", label: "图片生成", implemented: true },
+  { capability: "VIDEO", label: "视频生成", implemented: true },
+  { capability: "IMAGE_TO_VIDEO", label: "图片转视频", implemented: true },
   { capability: "TTS", label: "语音生成", implemented: false },
   { capability: "VOICE_CLONE", label: "声音克隆", implemented: false },
   { capability: "MUSIC", label: "音乐生成", implemented: false },
@@ -141,4 +141,7 @@ export const IMPLEMENTED_AI_CAPABILITIES = AI_CAPABILITY_DEFINITIONS.filter(
 export const OPENAI_COMPATIBLE_CAPABILITIES = [
   "CHAT",
   "STRUCTURED_OUTPUT",
+  "IMAGE",
+  "VIDEO",
+  "IMAGE_TO_VIDEO",
 ] as const satisfies readonly AiCapabilityId[];

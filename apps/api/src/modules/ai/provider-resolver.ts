@@ -164,7 +164,11 @@ export class ProviderResolver {
       ErrorCodes.NO_AI_PROVIDER_CONFIGURED,
       capability === AiCapability.IMAGE
         ? "尚未配置图片生成 AI。"
-        : "尚未配置可用的 AI Provider。请前往项目设置 → AI 配置。",
+        : capability === AiCapability.VIDEO
+          ? "尚未配置视频生成 AI。"
+          : capability === AiCapability.IMAGE_TO_VIDEO
+            ? "尚未配置图生视频 AI。"
+            : "尚未配置可用的 AI Provider。请前往项目设置 → AI 配置。",
     );
   }
 

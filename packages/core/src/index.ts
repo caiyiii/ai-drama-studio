@@ -87,6 +87,35 @@ export {
   summarizeVisualProfile,
 } from "./storyboard";
 export {
+  IMAGE_ASPECT_RATIOS,
+  assertImageCount,
+  buildShotImagePrompt,
+  buildShotNegativePrompt,
+  DEFAULT_IMAGE_SIZE,
+  formatImageSize,
+  getShotImageStatus,
+  getShotImageStatusLabel,
+  isImageAspectRatio,
+  previewImageSrc,
+  resolveAssetDisplayUrl,
+  resolveImageSize,
+} from "./image";
+export {
+  buildVideoNegativePrompt,
+  buildVideoPrompt,
+  filterShotAssetsByMediaType,
+  getPrimaryShotAsset,
+  getShotVideoStatus,
+  getShotVideoStatusLabel,
+  isShotVideoStale,
+  normalizeVideoGenerationResult,
+  previewVideoSrc,
+  resolveVideoGenerationMode,
+  resolveVideoSize,
+  validateVideoGenerationInput,
+} from "./video";
+export type { ShotVideoPromptSource } from "./video";
+export {
   characterBelongsToProject,
   continuityResult,
   episodeBelongsToProject,

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { isStoryboardStale } from "@ai-drama-studio/core";
 import type { Storyboard, StoryboardShot } from "@ai-drama-studio/types";
+import { mapShotAsset } from "../assets/asset.mapper";
 
 export function asRecord(
   value: Prisma.JsonValue | null,
@@ -59,6 +60,7 @@ export function mapStoryboardShot(row: {
   metadata: Prisma.JsonValue | null;
   createdAt: Date;
   updatedAt: Date;
+  shotAssets?: Array<Parameters<typeof mapShotAsset>[0]>;
 }): StoryboardShot {
   const metadata = asRecord(row.metadata);
   const extraIds = Array.isArray(metadata?.sourceScriptBlockIds)
@@ -101,6 +103,7 @@ export function mapStoryboardShot(row: {
     continuityNotes: row.continuityNotes,
     cameraMovementParams: asRecord(row.cameraMovementParams),
     metadata,
+    assets: row.shotAssets?.map(mapShotAsset) ?? [],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

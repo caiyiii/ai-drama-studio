@@ -257,7 +257,9 @@ describe("Project AI Config", () => {
     const { service } = createService();
     const list = service.listCapabilities();
     expect(list.find((item) => item.capability === "CHAT")?.implemented).toBe(true);
-    expect(list.find((item) => item.capability === "IMAGE")?.implemented).toBe(false);
+    expect(list.find((item) => item.capability === "IMAGE")?.implemented).toBe(true);
+    expect(list.find((item) => item.capability === "VIDEO")?.implemented).toBe(true);
+    expect(list.find((item) => item.capability === "IMAGE_TO_VIDEO")?.implemented).toBe(true);
     expect(JSON.stringify(list)).not.toContain("apiKey");
   });
 

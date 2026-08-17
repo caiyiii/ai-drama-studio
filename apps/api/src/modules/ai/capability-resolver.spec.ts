@@ -461,4 +461,137 @@ describe("Capability Resolver", () => {
     });
     expect(resolved.capabilitySource).toBe("PLATFORM");
   });
+
+  it("does not use a text legacy DeepSeek provider for VIDEO", async () => {
+    const resolver = createResolver({
+      project: { id: "proj-1", aiProviderId: "legacy" },
+      providers: [makeProvider({ id: "legacy", name: "我的 DeepSeek" })],
+      env: {},
+    });
+    await expect(
+      resolver.resolveForCapability({
+        projectId: "proj-1",
+        capability: AiCapability.VIDEO,
+      }),
+    ).rejects.toMatchObject({ code: ErrorCodes.NO_AI_PROVIDER_CONFIGURED });
+  });
+
+  it("does not use a text legacy DeepSeek provider for IMAGE_TO_VIDEO", async () => {
+    const resolver = createResolver({
+      project: { id: "proj-1", aiProviderId: "legacy" },
+      providers: [makeProvider({ id: "legacy", name: "我的 DeepSeek" })],
+      env: {},
+    });
+    await expect(
+      resolver.resolveForCapability({
+        projectId: "proj-1",
+        capability: AiCapability.IMAGE_TO_VIDEO,
+      }),
+    ).rejects.toMatchObject({ code: ErrorCodes.NO_AI_PROVIDER_CONFIGURED });
+  });
+
+  it("does not use an IMAGE provider for VIDEO", async () => {
+    const imageOnly = makeProvider({
+      id: "img",
+      name: "Image Only",
+      isDefault: true,
+      capabilities: [{ capability: AiCapability.IMAGE, enabled: true }],
+      models: [
+        {
+          id: "mdl-img",
+          providerId: "img",
+          name: "flux",
+          modelId: "flux",
+          capabilities: [AiCapability.IMAGE],
+          enabled: true,
+        },
+      ],
+    });
+    const resolver = createResolver({
+      project: { id: "proj-1", aiProviderId: null },
+      providers: [imageOnly],
+    });
+    await expect(
+      resolver.resolveForCapability({
+        projectId: "proj-1",
+        capability: AiCapability.VIDEO,
+      }),
+    ).rejects.toMatchObject({ code: ErrorCodes.NO_AI_PROVIDER_CONFIGURED });
+  });
+
+  it("resolves a project VIDEO provider separately from IMAGE", async () => {
+    const image = makeProvider({
+      id: "img",
+      name: "Image Provider",
+      capabilities: [{ capability: AiCapability.IMAGE, enabled: true }],
+      models: [
+        {
+          id: "mdl-img",
+          providerId: "img",
+          name: "flux",
+          modelId: "flux",
+          capabilities: [AiCapability.IMAGE],
+          enabled: true,
+        },
+      ],
+    });
+    const video = makeProvider({
+      id: "vid",
+      name: "Video Provider",
+      model: "video-1",
+      capabilities: [
+        { capability: AiCapability.VIDEO, enabled: true },
+        { capability: AiCapability.IMAGE_TO_VIDEO, enabled: true },
+      ],
+      models: [
+        {
+          id: "mdl-vid",
+          providerId: "vid",
+          name: "video-1",
+          modelId: "video-1",
+          capabilities: [AiCapability.VIDEO, AiCapability.IMAGE_TO_VIDEO],
+          enabled: true,
+        },
+      ],
+    });
+    const resolver = createResolver({
+      project: { id: "proj-1", aiProviderId: null },
+      providers: [image, video],
+      configs: [
+        {
+          projectId: "proj-1",
+          capability: AiCapability.IMAGE,
+          providerId: "img",
+          modelId: "mdl-img",
+        },
+        {
+          projectId: "proj-1",
+          capability: AiCapability.VIDEO,
+          providerId: "vid",
+          modelId: "mdl-vid",
+        },
+        {
+          projectId: "proj-1",
+          capability: AiCapability.IMAGE_TO_VIDEO,
+          providerId: "vid",
+          modelId: "mdl-vid",
+        },
+      ],
+    });
+    const imageResolved = await resolver.resolveForCapability({
+      projectId: "proj-1",
+      capability: AiCapability.IMAGE,
+    });
+    const videoResolved = await resolver.resolveForCapability({
+      projectId: "proj-1",
+      capability: AiCapability.VIDEO,
+    });
+    const i2v = await resolver.resolveForCapability({
+      projectId: "proj-1",
+      capability: AiCapability.IMAGE_TO_VIDEO,
+    });
+    expect(imageResolved.name).toBe("Image Provider");
+    expect(videoResolved.name).toBe("Video Provider");
+    expect(i2v.name).toBe("Video Provider");
+  });
 });

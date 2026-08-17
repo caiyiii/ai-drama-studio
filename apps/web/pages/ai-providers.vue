@@ -57,11 +57,12 @@
               <dt class="mb-2">支持能力</dt>
               <dd class="flex flex-wrap gap-1.5">
                 <span
-                  v-for="cap in item.capabilities"
+                  v-for="cap in allCapabilities"
                   :key="cap"
-                  class="rounded-full border border-white/10 px-2 py-0.5 text-[11px] text-zinc-300"
+                  class="rounded-full border px-2 py-0.5 text-[11px]"
+                  :class="item.capabilities?.includes(cap) ? 'border-emerald-400/20 text-emerald-300' : 'border-white/10 text-zinc-600'"
                 >
-                  ✓ {{ capabilityLabel(cap) }}
+                  {{ item.capabilities?.includes(cap) ? "✓" : "○" }} {{ capabilityLabel(cap) }}
                 </span>
               </dd>
             </div>
@@ -142,6 +143,7 @@
 <script setup lang="ts">
 import {
   AI_PROVIDER_KIND_LABELS,
+  AI_CAPABILITIES,
   type AIProvider,
   type AIProviderKind,
   type AiCapability,
@@ -150,6 +152,7 @@ import { getAiCapabilityLabel } from "@ai-drama-studio/core";
 import { useAiProviderStore } from "~/stores/ai-provider";
 
 const store = useAiProviderStore();
+const allCapabilities = AI_CAPABILITIES;
 const showForm = ref(false);
 const editing = ref<AIProvider | null>(null);
 const pendingDelete = ref<AIProvider | null>(null);

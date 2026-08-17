@@ -218,6 +218,7 @@ export class EpisodesService {
             GenerationTaskType.STORYBOARD,
             GenerationTaskType.IMAGE,
             GenerationTaskType.VIDEO,
+            GenerationTaskType.IMAGE_TO_VIDEO,
           ],
         },
       },

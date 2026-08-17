@@ -35,6 +35,20 @@ enum AssetType {
   OTHER
 }
 
+enum AssetStatus {
+  PENDING
+  READY
+  FAILED
+  DELETED
+}
+
+enum StoryboardShotAssetRole {
+  REFERENCE
+  GENERATED
+  FINAL
+  THUMBNAIL
+}
+
 enum GenerationTaskType {
   WORLD
   CHARACTER
@@ -44,6 +58,7 @@ enum GenerationTaskType {
   SCRIPT
   IMAGE
   VIDEO
+  IMAGE_TO_VIDEO
   VOICE
   STORYBOARD
 }
@@ -473,6 +488,7 @@ model StoryboardShot {
   metadata             Json?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
+  shotAssets           StoryboardShotAsset[]
 
   @@unique([storyboardId, shotNumber])
   @@index([storyboardId])
@@ -513,15 +529,49 @@ model Location {
 }
 
 model Asset {
-  id        String    @id @default(cuid())
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  type      AssetType
-  name      String
-  url       String?
+  id               String                @id @default(cuid())
+  projectId        String
+  project          Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type             AssetType
+  status           AssetStatus           @default(READY)
+  name             String
+  mimeType         String?
+  storageKey       String?
+  url              String?
+  thumbnailUrl     String?
+  width            Int?
+  height           Int?
+  durationSeconds  Float?
+  sizeBytes        Int?
+  provider         String?
+  model            String?
+  version          Int                   @default(1)
+  generationTaskId String?
+  generationTask   GenerationTask?       @relation(fields: [generationTaskId], references: [id], onDelete: SetNull)
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  shotAssets       StoryboardShotAsset[]
+
+  @@index([projectId])
+  @@index([generationTaskId])
+}
+
+model StoryboardShotAsset {
+  id        String                   @id @default(cuid())
+  shotId    String
+  shot      StoryboardShot           @relation(fields: [shotId], references: [id], onDelete: Cascade)
+  assetId   String
+  asset     Asset                    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  role      StoryboardShotAssetRole
+  isPrimary Boolean                  @default(false)
+  sortOrder Int                      @default(0)
   metadata  Json?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime                 @default(now())
+
+  @@unique([shotId, assetId])
+  @@index([shotId])
+  @@index([assetId])
 }
 
 model GenerationTask {
@@ -541,6 +591,7 @@ model GenerationTask {
   retryCount Int                   @default(0)
   createdAt  DateTime              @default(now())
   updatedAt  DateTime              @updatedAt
+  assets     Asset[]
 
   @@index([projectId])
 }

@@ -9,7 +9,14 @@ import {
 } from "./dto/create-story-generation.dto";
 import { CreateWorldGenerationDto } from "./dto/create-world-generation.dto";
 import { CreateScriptGenerationDto } from "./dto/create-script-generation.dto";
+import { CreateImageGenerationDto } from "./dto/create-image-generation.dto";
+import {
+  CreateImageToVideoGenerationDto,
+  CreateVideoGenerationDto,
+} from "./dto/create-video-generation.dto";
 import { CreateStoryboardGenerationDto } from "./dto/create-storyboard-generation.dto";
+import { ImageGenerationService } from "./image-generation.service";
+import { VideoGenerationService } from "./video-generation.service";
 import { ScriptGenerationService } from "./script-generation.service";
 import { StoryboardGenerationService } from "./storyboard-generation.service";
 import { StoryGenerationService } from "./story-generation.service";
@@ -23,6 +30,8 @@ export class GenerationController {
     private readonly storyGeneration: StoryGenerationService,
     private readonly scriptGeneration: ScriptGenerationService,
     private readonly storyboardGeneration: StoryboardGenerationService,
+    private readonly imageGeneration: ImageGenerationService,
+    private readonly videoGeneration: VideoGenerationService,
   ) {}
 
   @Get()
@@ -86,6 +95,30 @@ export class GenerationController {
     return this.storyboardGeneration.createStoryboardGeneration(projectId, dto);
   }
 
+  @Post("image")
+  createImage(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateImageGenerationDto,
+  ) {
+    return this.imageGeneration.createImageGeneration(projectId, dto);
+  }
+
+  @Post("video")
+  createVideo(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateVideoGenerationDto,
+  ) {
+    return this.videoGeneration.createVideoGeneration(projectId, dto);
+  }
+
+  @Post("image-to-video")
+  createImageToVideo(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateImageToVideoGenerationDto,
+  ) {
+    return this.videoGeneration.createImageToVideoGeneration(projectId, dto);
+  }
+
   @Get(":id")
   getOne(@Param("projectId") projectId: string, @Param("id") id: string) {
     return this.worldGeneration.getOne(projectId, id);
@@ -109,6 +142,15 @@ export class GenerationController {
     }
     if (task.type === GenerationTaskType.STORYBOARD) {
       return this.storyboardGeneration.apply(projectId, id);
+    }
+    if (task.type === GenerationTaskType.IMAGE) {
+      return this.imageGeneration.apply(projectId, id);
+    }
+    if (
+      task.type === GenerationTaskType.VIDEO ||
+      task.type === GenerationTaskType.IMAGE_TO_VIDEO
+    ) {
+      return this.videoGeneration.apply(projectId, id);
     }
     return this.worldGeneration.apply(projectId, id);
   }

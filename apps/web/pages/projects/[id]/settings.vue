@@ -36,7 +36,13 @@
             <div>
               <h2 class="font-display text-2xl">AI 配置</h2>
               <p class="mt-1 text-sm text-zinc-500">
-                按能力指定 Provider。未配置时自动回退到项目默认、平台或系统 Provider。
+                按能力指定 Provider。图片、视频、图生视频可以分别使用不同 Provider。
+              </p>
+              <p class="mt-2 text-xs text-zinc-500">
+                默认 Provider 仅用于开发 / Demo。正式生产建议配置自己的 Provider。
+              </p>
+              <p class="mt-1 text-xs text-zinc-500">
+                视频生成将使用当前项目配置的 AI Provider，费用由该 Provider 账户承担。
               </p>
             </div>
             <NuxtLink
@@ -50,8 +56,10 @@
           <div class="mt-5 space-y-3">
             <article
               v-for="item in aiStore.capabilities"
+              :id="item.capability"
               :key="item.capability"
               class="rounded-xl border border-white/5 bg-ink-900/50 p-4"
+              :class="highlightCapability === item.capability ? 'ring-1 ring-gold-400/50' : ''"
             >
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -71,9 +79,11 @@
                 <StudioSelect
                   v-model="capabilitySelection[item.capability]"
                   class="w-full tablet:max-w-sm"
+                  :disabled="!item.implemented"
                   :options="capabilityProviderOptions(item.capability)"
                 />
                 <button
+                  v-if="item.implemented"
                   type="button"
                   :disabled="aiStore.saving"
                   class="rounded-xl border border-white/10 px-3 py-1.5 text-sm disabled:opacity-40"
@@ -81,6 +91,7 @@
                 >
                   {{ capabilityConfigured(item.capability) ? "更新" : "配置" }}
                 </button>
+                <span v-else class="text-xs text-zinc-500">Coming Soon</span>
               </div>
             </article>
           </div>
@@ -150,9 +161,11 @@ import { useAiProviderStore } from "~/stores/ai-provider";
 
 const { store, project, loading, error, ensureProject, projectId } = useCurrentProject();
 const aiStore = useAiProviderStore();
+const route = useRoute();
 const pendingDelete = ref(false);
 const selectedId = ref("");
 const capabilitySelection = reactive<Record<string, string>>({});
+const highlightCapability = ref("");
 const providerOptions = computed(() => [
   { value: "", label: "使用默认 / 系统 Provider" },
   ...aiStore.providers.map((item) => ({
@@ -190,6 +203,12 @@ onMounted(async () => {
   ]);
   selectedId.value = aiStore.projectConfig?.aiProviderId ?? "";
   syncCapabilitySelection();
+  const hash = String(route.hash || "").replace("#", "");
+  if (hash) {
+    highlightCapability.value = hash;
+    await nextTick();
+    document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 });
 
 function syncCapabilitySelection() {
@@ -211,9 +230,13 @@ function capabilityConfigured(capability: AiCapability) {
 function capabilitySummary(capability: AiCapability) {
   const summary = aiStore.projectAiConfig?.[capability];
   if (!summary?.configured) {
-    return capability === AiCapability.IMAGE
-      ? "尚未配置图片生成 AI"
-      : "未配置，将使用自动回退";
+    if (capability === AiCapability.IMAGE) {
+      return "尚未配置图片生成 AI";
+    }
+    if (capability === AiCapability.VIDEO || capability === AiCapability.IMAGE_TO_VIDEO) {
+      return "尚未配置视频生成 AI。平台默认 Provider 不支持视频生成，请配置自己的 Video Provider。";
+    }
+    return "未配置，将使用自动回退";
   }
   const source =
     summary.source === "PROJECT"

@@ -27,6 +27,8 @@
     "db:seed:story-demo": "tsx prisma/seed-story-demo.ts",
     "db:seed:script-demo": "tsx prisma/seed-script-demo.ts",
     "db:seed:storyboard-demo": "tsx prisma/seed-storyboard-demo.ts",
+    "db:seed:image-demo": "tsx prisma/seed-image-demo.ts",
+    "db:seed:video-demo": "tsx prisma/seed-video-demo.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

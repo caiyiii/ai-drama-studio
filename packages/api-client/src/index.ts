@@ -1,4 +1,5 @@
 import { API_DEFAULT_BASE_URL } from "@ai-drama-studio/config";
+import { AssetType } from "@ai-drama-studio/types";
 import type {
   AIProvider,
   AIProviderTestInput,
@@ -70,7 +71,12 @@ import type {
   StoryboardInput,
   StoryboardShot,
   StoryboardShotInput,
+  StoryboardShotAsset,
   ReorderStoryboardShotsInput,
+  ImageGenerationInput,
+  VideoGenerationInput,
+  ImageToVideoGenerationInput,
+  Asset,
   UpdateSceneInput,
   UpdateScriptBlockInput,
   UpdateScriptInput,
@@ -693,6 +699,106 @@ export class ApiClient {
       `/projects/${projectId}/generations/storyboard`,
       { method: "POST", body: JSON.stringify(data) },
     );
+  }
+
+  async createImageGeneration(
+    projectId: string,
+    data: ImageGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/image`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async createVideoGeneration(
+    projectId: string,
+    data: VideoGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/video`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async createImageToVideoGeneration(
+    projectId: string,
+    data: ImageToVideoGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/image-to-video`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getVideoGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.getGeneration(projectId, id);
+  }
+
+  async applyVideoGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.applyGeneration(projectId, id);
+  }
+
+  async getVideoAssets(projectId: string): Promise<Asset[]> {
+    return this.listAssets(projectId, AssetType.VIDEO);
+  }
+
+  async getImageGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.getGeneration(projectId, id);
+  }
+
+  async applyImageGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.applyGeneration(projectId, id);
+  }
+
+  async listAssets(projectId: string, type?: AssetType): Promise<Asset[]> {
+    const query = type ? `?type=${encodeURIComponent(type)}` : "";
+    return this.request<Asset[]>(`/projects/${projectId}/assets${query}`);
+  }
+
+  async getAsset(projectId: string, assetId: string): Promise<Asset> {
+    return this.request<Asset>(`/projects/${projectId}/assets/${assetId}`);
+  }
+
+  async getShotAssets(
+    projectId: string,
+    episodeId: string,
+    shotId: string,
+    type?: AssetType,
+  ): Promise<StoryboardShotAsset[]> {
+    const query = type ? `?type=${encodeURIComponent(type)}` : "";
+    return this.request<StoryboardShotAsset[]>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard/shots/${shotId}/assets${query}`,
+    );
+  }
+
+  async getShotVideoAssets(
+    projectId: string,
+    episodeId: string,
+    shotId: string,
+  ): Promise<StoryboardShotAsset[]> {
+    return this.getShotAssets(projectId, episodeId, shotId, AssetType.VIDEO);
+  }
+
+  async setPrimaryShotAsset(
+    projectId: string,
+    episodeId: string,
+    shotId: string,
+    assetId: string,
+  ): Promise<StoryboardShotAsset[]> {
+    return this.request<StoryboardShotAsset[]>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard/shots/${shotId}/assets/${assetId}/primary`,
+      { method: "POST" },
+    );
+  }
+
+  async setPrimaryVideoAsset(
+    projectId: string,
+    episodeId: string,
+    shotId: string,
+    assetId: string,
+  ): Promise<StoryboardShotAsset[]> {
+    return this.setPrimaryShotAsset(projectId, episodeId, shotId, assetId);
   }
 
   async getEpisodeStoryboard(

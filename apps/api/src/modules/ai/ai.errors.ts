@@ -7,6 +7,8 @@ export class AiProviderError extends Error {
     | "SCHEMA_INVALID"
     | "NO_AI_PROVIDER_CONFIGURED"
     | "CAPABILITY_NOT_IMPLEMENTED"
+    | "CAPABILITY_NOT_SUPPORTED"
+    | "TIMEOUT"
     | "UNKNOWN";
 
   constructor(

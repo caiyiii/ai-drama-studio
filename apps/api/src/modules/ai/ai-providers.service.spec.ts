@@ -1,6 +1,8 @@
 import { AiProviderKind } from "@prisma/client";
 import { ConfigService } from "@nestjs/config";
 import { describe, expect, it } from "vitest";
+import { AiCapability } from "@ai-drama-studio/types";
+import { kindAllowsCapability } from "@ai-drama-studio/core";
 import { AppError, ErrorCodes } from "../../common/app-error";
 import { AiProvidersService } from "./ai-providers.service";
 import { CryptoService } from "./crypto/crypto.service";
@@ -309,7 +311,16 @@ describe("AI Provider CRUD", () => {
     await expect(service.testSaved("p1")).resolves.toEqual({ success: true });
   });
 
-  it("rejects IMAGE capability on OpenAI Compatible providers", async () => {
+  it("allows IMAGE capability on OpenAI Compatible providers", async () => {
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.IMAGE)).toBe(true);
+  });
+
+  it("allows VIDEO and IMAGE_TO_VIDEO capability on OpenAI Compatible providers", async () => {
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.VIDEO)).toBe(true);
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.IMAGE_TO_VIDEO)).toBe(true);
+  });
+
+  it("rejects TTS capability on OpenAI Compatible providers", async () => {
     const { service } = createService({ providers: [], projects: [] });
     await expect(
       service.create({
@@ -318,7 +329,7 @@ describe("AI Provider CRUD", () => {
         baseUrl: "https://api.deepseek.com/v1",
         apiKey: "sk-secret",
         model: "deepseek-chat",
-        capabilities: ["IMAGE"] as never,
+        capabilities: ["TTS"] as never,
       }),
     ).rejects.toMatchObject({
       code: ErrorCodes.PROVIDER_CAPABILITY_NOT_SUPPORTED,

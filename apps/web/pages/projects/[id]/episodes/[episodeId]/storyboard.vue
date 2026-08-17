@@ -118,6 +118,8 @@
                 <p class="text-xs text-gold-300">Shot {{ String(shot.shotNumber).padStart(3, "0") }}</p>
                 <p class="mt-1 text-sm">{{ sizeLabel(shot.shotSize) }}</p>
                 <p class="mt-1 text-xs text-zinc-500">{{ shot.durationSeconds }}s · {{ movementLabel(shot.cameraMovement) }}</p>
+                <p class="mt-1 text-[11px]" :class="shotImageTone(shot)">{{ shotImageLabel(shot) }}</p>
+                <p class="mt-1 text-[11px]" :class="shotVideoTone(shot)">🎬 {{ shotVideoLabel(shot) }}</p>
                 <p class="mt-2 line-clamp-3 text-xs text-zinc-400">{{ shot.visualDescription }}</p>
               </button>
             </div>
@@ -161,6 +163,23 @@
               <input v-model="inspector.mood" class="studio-field" placeholder="情绪" :disabled="store.locked" @change="onSaveShot" />
               <input v-model="inspector.visualStyle" class="studio-field" placeholder="视觉风格" :disabled="store.locked" @change="onSaveShot" />
               <textarea v-model="inspector.imagePrompt" rows="2" class="studio-field resize-none" placeholder="Image Prompt" :disabled="store.locked" @change="onSaveShot" />
+              <ShotImagePanel
+                v-if="store.selectedShot"
+                :project-id="projectId"
+                :episode-id="episodeId"
+                :shot="store.selectedShot"
+                :image-configured="imageConfigured"
+                :storyboard-stale="store.storyboard?.stale"
+              />
+              <ShotVideoPanel
+                v-if="store.selectedShot"
+                :project-id="projectId"
+                :episode-id="episodeId"
+                :shot="store.selectedShot"
+                :video-configured="videoConfigured"
+                :image-to-video-configured="imageToVideoConfigured"
+                :storyboard-version="store.storyboard?.version"
+              />
               <textarea v-model="inspector.videoPrompt" rows="2" class="studio-field resize-none" placeholder="Video Prompt" :disabled="store.locked" @change="onSaveShot" />
               <textarea v-model="inspector.negativePrompt" rows="2" class="studio-field resize-none" placeholder="Negative Prompt" :disabled="store.locked" @change="onSaveShot" />
               <textarea v-model="inspector.continuityNotes" rows="2" class="studio-field resize-none" placeholder="连续性备注" :disabled="store.locked" @change="onSaveShot" />
@@ -175,6 +194,8 @@
               </button>
             </div>
             <p v-else class="mt-3 text-zinc-500">选择一个镜头查看详情。</p>
+            <WorldGenerationHistory class="mt-6" :items="store.videoGenerations" />
+            <WorldGenerationHistory class="mt-6" :items="store.imageGenerations" :type="GenerationTaskType.IMAGE" />
             <WorldGenerationHistory class="mt-6" :items="store.storyboardGenerations" :type="GenerationTaskType.STORYBOARD" />
           </aside>
         </div>
@@ -196,22 +217,33 @@
 import {
   getCameraAngleLabel,
   getCameraMovementLabel,
+  filterShotAssetsByMediaType,
+  getPrimaryShotAsset,
+  getShotImageStatus,
+  getShotImageStatusLabel,
+  getShotVideoStatus,
+  getShotVideoStatusLabel,
+  isShotVideoStale,
   getStoryboardShotSizeLabel,
   getStoryboardShotTypeLabel,
   getStoryboardStatusLabel,
   getStoryboardTransitionLabel,
 } from "@ai-drama-studio/core";
 import {
+  AssetType,
   CameraAngle,
   CameraMovement,
+  GenerationTaskStatus,
   GenerationTaskType,
   StoryboardShotSize,
   StoryboardShotType,
   StoryboardStatus,
   StoryboardTransition,
+  type StoryboardShot,
   type StoryboardStatus as StoryboardStatusType,
 } from "@ai-drama-studio/types";
 import { useCurrentProject } from "~/composables/useCurrentProject";
+import { useAiProviderStore } from "~/stores/ai-provider";
 import { useCharacterStore } from "~/stores/character";
 import { useScriptStore } from "~/stores/script";
 import { useStoryboardStore } from "~/stores/storyboard";
@@ -224,6 +256,7 @@ const store = useStoryboardStore();
 const script = useScriptStore();
 const story = useStoryStore();
 const characters = useCharacterStore();
+const aiStore = useAiProviderStore();
 const confirmLock = ref(false);
 const dragShotId = ref<string | null>(null);
 
@@ -262,6 +295,78 @@ const episodeLabel = computed(() => {
   const current = episode.value;
   return current ? `E${String(current.number).padStart(2, "0")} · 分镜工作台` : "分镜工作台";
 });
+
+const imageConfigured = computed(
+  () => Boolean(aiStore.projectAiConfig?.IMAGE?.configured),
+);
+const videoConfigured = computed(
+  () => Boolean(aiStore.projectAiConfig?.VIDEO?.configured),
+);
+const imageToVideoConfigured = computed(
+  () => Boolean(aiStore.projectAiConfig?.IMAGE_TO_VIDEO?.configured),
+);
+
+function shotImageLabel(shot: StoryboardShot) {
+  return getShotImageStatusLabel(shotImageStatus(shot));
+}
+
+function shotImageStatus(shot: StoryboardShot) {
+  const generating = store.imageGeneratingShotId === shot.id;
+  const preview = store.previewByShotId[shot.id];
+  const hasUnappliedPreview =
+    preview?.status === GenerationTaskStatus.SUCCEEDED && !preview.appliedAt;
+  return getShotImageStatus({
+    assets: filterShotAssetsByMediaType(shot.assets, AssetType.IMAGE),
+    generating,
+    hasUnappliedPreview,
+    storyboardStale: store.storyboard?.stale,
+  });
+}
+
+function shotVideoLabel(shot: StoryboardShot) {
+  return getShotVideoStatusLabel(shotVideoStatus(shot));
+}
+
+function shotVideoStatus(shot: StoryboardShot) {
+  const generating = store.videoGeneratingShotId === shot.id;
+  const preview = store.videoPreviewByShotId[shot.id];
+  const hasUnappliedPreview =
+    preview?.status === GenerationTaskStatus.SUCCEEDED && !preview.appliedAt;
+  const primary = getPrimaryShotAsset(shot.assets, AssetType.VIDEO)?.asset;
+  const stale = isShotVideoStale({
+    storyboardVersion: store.storyboard?.version,
+    generatedFromStoryboardVersion:
+      typeof primary?.metadata?.storyboardVersion === "number"
+        ? primary.metadata.storyboardVersion
+        : null,
+    shotUpdatedAt: shot.updatedAt,
+    videoCreatedAt: primary?.createdAt,
+  });
+  return getShotVideoStatus({
+    assets: shot.assets,
+    generating,
+    hasUnappliedPreview,
+    stale,
+  });
+}
+
+function shotVideoTone(shot: StoryboardShot) {
+  const status = shotVideoStatus(shot);
+  if (status === "READY") return "text-emerald-300";
+  if (status === "GENERATING") return "text-gold-300";
+  if (status === "CANDIDATE") return "text-sky-300";
+  if (status === "STALE") return "text-amber-200";
+  return "text-zinc-500";
+}
+
+function shotImageTone(shot: StoryboardShot) {
+  const status = shotImageStatus(shot);
+  if (status === "READY") return "text-emerald-300";
+  if (status === "GENERATING") return "text-gold-300";
+  if (status === "CANDIDATE") return "text-sky-300";
+  if (status === "STALE") return "text-amber-200";
+  return "text-zinc-500";
+}
 
 function statusLabel(status: StoryboardStatusType) {
   return getStoryboardStatusLabel(status);
@@ -343,6 +448,8 @@ async function reload() {
     script.load(projectId.value, episodeId.value),
     story.loadProjectEpisodes(projectId.value),
     characters.load(projectId.value),
+    aiStore.loadProjectAiConfig(projectId.value),
+    aiStore.loadCapabilities(),
   ]);
   syncInspector();
 }

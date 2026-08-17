@@ -51,9 +51,12 @@ describe("AiCapability", () => {
     expect(modelSupportsCapability([], AiCapability.STRUCTURED_OUTPUT)).toBe(true);
   });
 
-  it("only allows OpenAI Compatible text capabilities", () => {
-    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.CHAT)).toBe(true);
-    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.IMAGE)).toBe(false);
+  it("allows IMAGE on OpenAI Compatible kinds", () => {
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.IMAGE)).toBe(true);
+    expect(kindAllowsCapability("OPENAI", AiCapability.IMAGE)).toBe(true);
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.VIDEO)).toBe(true);
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.IMAGE_TO_VIDEO)).toBe(true);
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.TTS)).toBe(false);
   });
 
   it("defaults new providers to text capabilities", () => {

@@ -9,6 +9,10 @@ import {
   type StoryboardShotInput,
   type UpdateStoryboardInput,
   type UpdateStoryboardShotInput,
+  type ImageGenerationInput,
+  type VideoGenerationInput,
+  type ImageToVideoGenerationInput,
+  type StoryboardShotAsset,
 } from "@ai-drama-studio/types";
 
 export const useStoryboardStore = defineStore("storyboard", () => {
@@ -21,6 +25,10 @@ export const useStoryboardStore = defineStore("storyboard", () => {
   const loading = ref(false);
   const saving = ref(false);
   const generating = ref(false);
+  const imageGeneratingShotId = ref<string | null>(null);
+  const videoGeneratingShotId = ref<string | null>(null);
+  const previewByShotId = ref<Record<string, GenerationTask>>({});
+  const videoPreviewByShotId = ref<Record<string, GenerationTask>>({});
   const error = ref<string | null>(null);
   const actionError = ref<string | null>(null);
 
@@ -42,6 +50,16 @@ export const useStoryboardStore = defineStore("storyboard", () => {
   const storyboardGenerations = computed(() =>
     generations.value.filter((item) => item.type === GenerationTaskType.STORYBOARD),
   );
+  const imageGenerations = computed(() =>
+    generations.value.filter((item) => item.type === GenerationTaskType.IMAGE),
+  );
+  const videoGenerations = computed(() =>
+    generations.value.filter(
+      (item) =>
+        item.type === GenerationTaskType.VIDEO ||
+        item.type === GenerationTaskType.IMAGE_TO_VIDEO,
+    ),
+  );
   const locked = computed(() => storyboard.value?.status === StoryboardStatus.LOCKED);
   const totalDuration = computed(
     () =>
@@ -58,10 +76,25 @@ export const useStoryboardStore = defineStore("storyboard", () => {
         $api.getEpisodeStoryboard(projectId, episodeId),
         $api.getProjectGenerations(projectId).catch(() => [] as GenerationTask[]),
       ]);
+      const keepShotId = selectedShotId.value;
+      const keepSceneId = selectedSceneId.value;
       storyboard.value = current;
-      generations.value = tasks.filter((item) => item.type === GenerationTaskType.STORYBOARD);
-      selectedSceneId.value = current.shots?.[0]?.sceneId ?? null;
-      selectedShotId.value = current.shots?.[0]?.id ?? null;
+      generations.value = tasks.filter(
+        (item) =>
+          item.type === GenerationTaskType.STORYBOARD ||
+          item.type === GenerationTaskType.IMAGE ||
+          item.type === GenerationTaskType.VIDEO ||
+          item.type === GenerationTaskType.IMAGE_TO_VIDEO,
+      );
+      const shotIds = new Set((current.shots ?? []).map((item) => item.id));
+      selectedSceneId.value =
+        keepSceneId && (current.shots ?? []).some((item) => item.sceneId === keepSceneId)
+          ? keepSceneId
+          : current.shots?.[0]?.sceneId ?? null;
+      selectedShotId.value =
+        keepShotId && shotIds.has(keepShotId)
+          ? keepShotId
+          : current.shots?.[0]?.id ?? null;
     } catch (err) {
       if (
         err instanceof ApiError &&
@@ -72,7 +105,13 @@ export const useStoryboardStore = defineStore("storyboard", () => {
         selectedShotId.value = null;
         try {
           const tasks = await $api.getProjectGenerations(projectId);
-          generations.value = tasks.filter((item) => item.type === GenerationTaskType.STORYBOARD);
+          generations.value = tasks.filter(
+            (item) =>
+              item.type === GenerationTaskType.STORYBOARD ||
+              item.type === GenerationTaskType.IMAGE ||
+              item.type === GenerationTaskType.VIDEO ||
+              item.type === GenerationTaskType.IMAGE_TO_VIDEO,
+          );
         } catch {
           generations.value = [];
         }
@@ -200,6 +239,99 @@ export const useStoryboardStore = defineStore("storyboard", () => {
     }
   }
 
+  async function createImageGeneration(projectId: string, data: ImageGenerationInput) {
+    imageGeneratingShotId.value = data.shotId;
+    actionError.value = null;
+    try {
+      const task = await $api.createImageGeneration(projectId, data);
+      generations.value = [task, ...generations.value.filter((item) => item.id !== task.id)];
+      previewByShotId.value = { ...previewByShotId.value, [data.shotId]: task };
+      return task;
+    } catch (err) {
+      actionError.value = err instanceof Error ? err.message : "图片生成失败";
+      return null;
+    } finally {
+      imageGeneratingShotId.value = null;
+    }
+  }
+
+  async function applyImageGeneration(projectId: string, episodeId: string, id: string) {
+    const task = await applyGeneration(projectId, id);
+    if (task) {
+      await load(projectId, episodeId);
+    }
+    return task;
+  }
+
+  async function setPrimaryShotAsset(
+    projectId: string,
+    episodeId: string,
+    shotId: string,
+    assetId: string,
+  ): Promise<StoryboardShotAsset[] | null> {
+    actionError.value = null;
+    try {
+      const rows = await $api.setPrimaryShotAsset(projectId, episodeId, shotId, assetId);
+      await load(projectId, episodeId);
+      return rows;
+    } catch (err) {
+      actionError.value = err instanceof Error ? err.message : "设置最终资源失败";
+      return null;
+    }
+  }
+
+  async function createVideoGeneration(projectId: string, data: VideoGenerationInput) {
+    videoGeneratingShotId.value = data.shotId;
+    actionError.value = null;
+    try {
+      const task = await $api.createVideoGeneration(projectId, data);
+      generations.value = [task, ...generations.value.filter((item) => item.id !== task.id)];
+      videoPreviewByShotId.value = { ...videoPreviewByShotId.value, [data.shotId]: task };
+      return task;
+    } catch (err) {
+      actionError.value = err instanceof Error ? err.message : "视频生成失败";
+      return null;
+    } finally {
+      videoGeneratingShotId.value = null;
+    }
+  }
+
+  async function createImageToVideoGeneration(
+    projectId: string,
+    data: ImageToVideoGenerationInput,
+  ) {
+    videoGeneratingShotId.value = data.shotId;
+    actionError.value = null;
+    try {
+      const task = await $api.createImageToVideoGeneration(projectId, data);
+      generations.value = [task, ...generations.value.filter((item) => item.id !== task.id)];
+      videoPreviewByShotId.value = { ...videoPreviewByShotId.value, [data.shotId]: task };
+      return task;
+    } catch (err) {
+      actionError.value = err instanceof Error ? err.message : "图生视频失败";
+      return null;
+    } finally {
+      videoGeneratingShotId.value = null;
+    }
+  }
+
+  async function applyVideoGeneration(projectId: string, episodeId: string, id: string) {
+    const task = await applyGeneration(projectId, id);
+    if (task) {
+      await load(projectId, episodeId);
+    }
+    return task;
+  }
+
+  async function setPrimaryVideoAsset(
+    projectId: string,
+    episodeId: string,
+    shotId: string,
+    assetId: string,
+  ) {
+    return setPrimaryShotAsset(projectId, episodeId, shotId, assetId);
+  }
+
   return {
     storyboard,
     shots,
@@ -210,6 +342,12 @@ export const useStoryboardStore = defineStore("storyboard", () => {
     selectedShot,
     generations,
     storyboardGenerations,
+    imageGenerations,
+    videoGenerations,
+    imageGeneratingShotId,
+    videoGeneratingShotId,
+    previewByShotId,
+    videoPreviewByShotId,
     missing,
     locked,
     loading,
@@ -227,5 +365,12 @@ export const useStoryboardStore = defineStore("storyboard", () => {
     reorder,
     createStoryboardGeneration,
     applyGeneration,
+    createImageGeneration,
+    applyImageGeneration,
+    setPrimaryShotAsset,
+    createVideoGeneration,
+    createImageToVideoGeneration,
+    applyVideoGeneration,
+    setPrimaryVideoAsset,
   };
 });

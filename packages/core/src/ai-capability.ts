@@ -69,11 +69,25 @@ export function modelSupportsCapability(
   return capabilities.includes(capability);
 }
 
+const KINDS_ALLOWING_MEDIA = new Set(["OPENAI_COMPATIBLE", "OPENAI"]);
+
+const MEDIA_CAPABILITIES = new Set([
+  AiCapability.IMAGE,
+  AiCapability.VIDEO,
+  AiCapability.IMAGE_TO_VIDEO,
+]);
+
 export function kindAllowsCapability(
-  _kind: string,
+  kind: string,
   capability: string,
 ): boolean {
-  return isLegacyTextCapability(capability);
+  if (isLegacyTextCapability(capability)) {
+    return true;
+  }
+  if (MEDIA_CAPABILITIES.has(capability as AiCapability)) {
+    return KINDS_ALLOWING_MEDIA.has(kind);
+  }
+  return false;
 }
 
 export type CapabilityProviderSource = "PROJECT" | "USER" | "PLATFORM" | "SYSTEM";

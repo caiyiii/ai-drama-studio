@@ -31,3 +31,7 @@ apps/desktop/src-tauri/gen
 
 # OS
 desktop.ini
+
+# Local asset storage (Phase 9)
+storage/**
+!storage/.gitkeep

@@ -39,6 +39,20 @@ export enum AssetType {
   OTHER = "OTHER",
 }
 
+export enum AssetStatus {
+  PENDING = "PENDING",
+  READY = "READY",
+  FAILED = "FAILED",
+  DELETED = "DELETED",
+}
+
+export enum StoryboardShotAssetRole {
+  REFERENCE = "REFERENCE",
+  GENERATED = "GENERATED",
+  FINAL = "FINAL",
+  THUMBNAIL = "THUMBNAIL",
+}
+
 export enum GenerationTaskType {
   WORLD = "WORLD",
   CHARACTER = "CHARACTER",
@@ -48,6 +62,7 @@ export enum GenerationTaskType {
   SCRIPT = "SCRIPT",
   IMAGE = "IMAGE",
   VIDEO = "VIDEO",
+  IMAGE_TO_VIDEO = "IMAGE_TO_VIDEO",
   VOICE = "VOICE",
   STORYBOARD = "STORYBOARD",
 }
@@ -350,11 +365,35 @@ export interface Asset {
   id: string;
   projectId: string;
   type: AssetType;
+  status: AssetStatus;
   name: string;
+  mimeType: string | null;
+  storageKey: string | null;
   url: string | null;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+  durationSeconds: number | null;
+  sizeBytes: number | null;
+  provider: string | null;
+  model: string | null;
+  version: number;
+  generationTaskId: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StoryboardShotAsset {
+  id: string;
+  shotId: string;
+  assetId: string;
+  role: StoryboardShotAssetRole;
+  isPrimary: boolean;
+  sortOrder: number;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  asset?: Asset;
 }
 
 export interface GenerationTaskUsage {
@@ -365,6 +404,10 @@ export interface GenerationTaskUsage {
   estimatedCost?: number;
   shotCount?: number;
   sceneCount?: number;
+  imageCount?: number;
+  sourceShotId?: string;
+  sourceAssetId?: string;
+  outputAssetCount?: number;
 }
 
 export interface GenerationTask {
@@ -1486,6 +1529,7 @@ export interface StoryboardShot {
   continuityNotes: string | null;
   cameraMovementParams: Record<string, unknown> | null;
   metadata: Record<string, unknown> | null;
+  assets?: StoryboardShotAsset[];
   createdAt: string;
   updatedAt: string;
 }
@@ -1594,3 +1638,133 @@ export interface StoryboardGenerationResult {
   };
   shots: StoryboardGenerationShot[];
 }
+
+export const IMAGE_ASPECT_RATIOS = [
+  "1:1",
+  "4:3",
+  "3:4",
+  "16:9",
+  "9:16",
+  "21:9",
+] as const;
+
+export type ImageAspectRatio = (typeof IMAGE_ASPECT_RATIOS)[number];
+
+export const IMAGE_GENERATION_MIN_COUNT = 1;
+export const IMAGE_GENERATION_MAX_COUNT = 4;
+
+export interface ImageGenerationInput {
+  shotId: string;
+  promptOverride?: string;
+  negativePromptOverride?: string;
+  aspectRatio?: ImageAspectRatio;
+  width?: number;
+  height?: number;
+  count?: number;
+  seed?: number;
+  style?: string;
+  referenceAssetIds?: string[];
+}
+
+export interface ImageGenerationImage {
+  url?: string;
+  base64?: string;
+  mimeType: string;
+  width?: number;
+  height?: number;
+  seed?: number;
+  revisedPrompt?: string;
+  providerAssetId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ImageGenerationResult {
+  images: ImageGenerationImage[];
+  provider?: string;
+  model?: string;
+  requestedCount?: number;
+  durationMs?: number;
+}
+
+export interface ImageGenerationMetadata {
+  requestedWidth?: number;
+  requestedHeight?: number;
+  actualWidth?: number;
+  actualHeight?: number;
+  aspectRatio?: string;
+  seed?: number;
+  prompt?: string;
+  negativePrompt?: string;
+  source?: string;
+  shotId?: string;
+}
+
+export type ShotImageUiStatus =
+  | "EMPTY"
+  | "GENERATING"
+  | "CANDIDATE"
+  | "READY"
+  | "STALE";
+
+export type VideoGenerationMode = "TEXT_TO_VIDEO" | "IMAGE_TO_VIDEO";
+
+export const VIDEO_ASPECT_RATIOS = IMAGE_ASPECT_RATIOS;
+export type VideoAspectRatio = ImageAspectRatio;
+
+export interface VideoGenerationInput {
+  shotId: string;
+  prompt?: string;
+  negativePrompt?: string;
+  durationSeconds?: number;
+  width?: number;
+  height?: number;
+  aspectRatio?: VideoAspectRatio;
+  fps?: number;
+  seed?: number;
+}
+
+export interface ImageToVideoGenerationInput extends VideoGenerationInput {
+  sourceAssetId?: string;
+}
+
+export interface VideoGenerationResult {
+  url?: string;
+  base64?: string;
+  mimeType: string;
+  durationSeconds?: number;
+  width?: number;
+  height?: number;
+  provider?: string;
+  model?: string;
+  providerRequestId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface VideoGenerationPreview {
+  taskId: string;
+  status: string;
+  provider: string | null;
+  model: string | null;
+  capability: string | null;
+  durationSeconds?: number;
+  width?: number;
+  height?: number;
+  previewUrl?: string;
+  sourceImage?: { id: string; url: string | null } | null;
+  usage?: GenerationTaskUsage | null;
+  error?: string | null;
+}
+
+export interface VideoGenerationUsage {
+  durationMs?: number;
+  sourceShotId?: string;
+  sourceAssetId?: string;
+  outputAssetCount?: number;
+}
+
+export type ShotVideoUiStatus =
+  | "EMPTY"
+  | "GENERATING"
+  | "CANDIDATE"
+  | "READY"
+  | "STALE";

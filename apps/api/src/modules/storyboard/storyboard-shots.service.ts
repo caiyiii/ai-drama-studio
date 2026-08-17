@@ -26,13 +26,35 @@ export class StoryboardShotsService {
       orderBy: { shotNumber: "asc" },
       skip,
       take,
+      include: {
+        shotAssets: {
+          orderBy: [
+            { isPrimary: "desc" as const },
+            { sortOrder: "asc" as const },
+            { createdAt: "asc" as const },
+          ],
+          include: { asset: true },
+        },
+      },
     });
     return rows.map(mapStoryboardShot);
   }
 
   async get(projectId: string, episodeId: string, shotId: string) {
     const board = await this.storyboards.get(projectId, episodeId);
-    const row = await this.prisma.storyboardShot.findUnique({ where: { id: shotId } });
+    const row = await this.prisma.storyboardShot.findUnique({
+      where: { id: shotId },
+      include: {
+        shotAssets: {
+          include: { asset: true },
+          orderBy: [
+            { isPrimary: "desc" as const },
+            { sortOrder: "asc" as const },
+            { createdAt: "asc" as const },
+          ],
+        },
+      },
+    });
     if (!row || row.storyboardId !== board.id) {
       throw new AppError(
         HttpStatus.NOT_FOUND,

@@ -5,6 +5,16 @@ import { CreateStoryboardDto, UpdateStoryboardDto } from "./dto/storyboard.dto";
 import { emptyToNull, mapStoryboard } from "./storyboard.mapper";
 
 const SHOT_ORDER = { shotNumber: "asc" as const };
+const SHOT_ASSET_INCLUDE = {
+  shotAssets: {
+    orderBy: [
+      { isPrimary: "desc" as const },
+      { sortOrder: "asc" as const },
+      { createdAt: "asc" as const },
+    ],
+    include: { asset: true },
+  },
+};
 
 @Injectable()
 export class StoryboardsService {
@@ -15,7 +25,7 @@ export class StoryboardsService {
     const [row, script] = await Promise.all([
       this.prisma.storyboard.findUnique({
         where: { episodeId },
-        include: { shots: { orderBy: SHOT_ORDER } },
+        include: { shots: { orderBy: SHOT_ORDER, include: SHOT_ASSET_INCLUDE } },
       }),
       this.prisma.script.findUnique({
         where: { episodeId },
@@ -53,7 +63,7 @@ export class StoryboardsService {
         status: dto.status ?? "DRAFT",
         sourceScriptVersion: script.version,
       },
-      include: { shots: { orderBy: SHOT_ORDER } },
+      include: { shots: { orderBy: SHOT_ORDER, include: SHOT_ASSET_INCLUDE } },
     });
     return mapStoryboard(row, script.version);
   }
@@ -88,7 +98,7 @@ export class StoryboardsService {
           : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
       },
-      include: { shots: { orderBy: SHOT_ORDER } },
+      include: { shots: { orderBy: SHOT_ORDER, include: SHOT_ASSET_INCLUDE } },
     });
     return mapStoryboard(row, script?.version);
   }
