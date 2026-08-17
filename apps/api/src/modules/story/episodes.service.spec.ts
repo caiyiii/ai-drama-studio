@@ -148,6 +148,12 @@ function createService() {
     generationTask: {
       findMany: async () => store.tasks,
     },
+    script: {
+      findUnique: async () => null,
+    },
+    storyboard: {
+      findUnique: async () => null,
+    },
     $transaction: async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
   };
 

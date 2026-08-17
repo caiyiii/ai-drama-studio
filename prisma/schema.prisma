@@ -122,6 +122,92 @@ enum EpisodeStatus {
   ARCHIVED
 }
 
+enum ScriptStatus {
+  DRAFT
+  GENERATING
+  READY
+  LOCKED
+}
+
+enum ScriptBlockType {
+  DIALOGUE
+  ACTION
+  NARRATION
+  DIRECTION
+}
+
+enum StoryboardStatus {
+  DRAFT
+  GENERATING
+  READY
+  LOCKED
+  STALE
+}
+
+enum StoryboardShotType {
+  ESTABLISHING
+  WIDE
+  FULL
+  MEDIUM
+  MEDIUM_CLOSE_UP
+  CLOSE_UP
+  EXTREME_CLOSE_UP
+  OVER_SHOULDER
+  POV
+  TWO_SHOT
+  INSERT
+  AERIAL
+  DYNAMIC
+}
+
+enum StoryboardShotSize {
+  EXTREME_WIDE
+  WIDE
+  FULL
+  MEDIUM
+  MEDIUM_CLOSE_UP
+  CLOSE_UP
+  EXTREME_CLOSE_UP
+}
+
+enum CameraMovement {
+  STATIC
+  PAN
+  TILT
+  DOLLY_IN
+  DOLLY_OUT
+  TRUCK_LEFT
+  TRUCK_RIGHT
+  CRANE_UP
+  CRANE_DOWN
+  ZOOM_IN
+  ZOOM_OUT
+  HANDHELD
+  ORBIT
+  FOLLOW
+  TRACKING
+}
+
+enum CameraAngle {
+  EYE_LEVEL
+  LOW_ANGLE
+  HIGH_ANGLE
+  BIRDS_EYE
+  WORMS_EYE
+  DUTCH_ANGLE
+  OVERHEAD
+}
+
+enum StoryboardTransition {
+  CUT
+  FADE_IN
+  FADE_OUT
+  DISSOLVE
+  WIPE
+  MATCH_CUT
+  SMASH_CUT
+}
+
 model User {
   id          String       @id @default(cuid())
   name        String
@@ -154,6 +240,8 @@ model Project {
   world                  World?
   storyBible             StoryBible?
   seasons                Season[]
+  scripts                Script[]
+  storyboards            Storyboard[]
   ownedProviders         AiProvider[]             @relation("ProviderOwnedByProject")
   characterRelationships CharacterRelationship[]
   aiConfigs              ProjectAiConfig[]
@@ -217,6 +305,8 @@ model Episode {
   order            Int           @default(0)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+  script           Script?
+  storyboard       Storyboard?
 
   @@unique([seasonId, number])
   @@index([projectId])
@@ -259,12 +349,135 @@ model Character {
   updatedAt           DateTime                 @updatedAt
   outgoingRelations   CharacterRelationship[]  @relation("CharacterRelationFrom")
   incomingRelations   CharacterRelationship[]  @relation("CharacterRelationTo")
+  scriptBlocks        ScriptBlock[]
 
   @@index([projectId])
   @@index([worldId])
   @@index([civilizationId])
   @@index([factionId])
   @@index([projectId, name])
+}
+
+model Script {
+  id                       String       @id @default(cuid())
+  episodeId                String       @unique
+  episode                  Episode      @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  projectId                String
+  project                  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title                    String
+  version                  Int          @default(1)
+  status                   ScriptStatus @default(DRAFT)
+  logline                  String?
+  summary                  String?
+  estimatedDurationSeconds Int?
+  metadata                 Json?
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+  scenes                   Scene[]
+
+  @@index([projectId])
+}
+
+model Scene {
+  id                       String        @id @default(cuid())
+  scriptId                 String
+  script                   Script        @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  number                   Int
+  title                    String
+  location                 String?
+  timeOfDay                String?
+  summary                  String?
+  purpose                  String?
+  conflict                 String?
+  estimatedDurationSeconds Int?
+  metadata                 Json?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+  blocks                   ScriptBlock[]
+  storyboardShots          StoryboardShot[]
+
+  @@unique([scriptId, number])
+  @@index([scriptId])
+}
+
+model ScriptBlock {
+  id          String          @id @default(cuid())
+  sceneId     String
+  scene       Scene           @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  order       Int
+  type        ScriptBlockType
+  content     String
+  characterId String?
+  character   Character?      @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  storyboardShots StoryboardShot[]
+
+  @@unique([sceneId, order])
+  @@index([sceneId])
+  @@index([characterId])
+}
+
+model Storyboard {
+  id                   String           @id @default(cuid())
+  episodeId            String           @unique
+  episode              Episode          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  projectId            String
+  project              Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version              Int              @default(1)
+  status               StoryboardStatus @default(DRAFT)
+  title                String
+  description          String?
+  totalDurationSeconds Int?
+  sourceScriptVersion  Int              @default(1)
+  metadata             Json?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  shots                StoryboardShot[]
+
+  @@index([projectId])
+}
+
+model StoryboardShot {
+  id                   String              @id @default(cuid())
+  storyboardId         String
+  storyboard           Storyboard          @relation(fields: [storyboardId], references: [id], onDelete: Cascade)
+  sceneId              String?
+  scene                Scene?              @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  scriptBlockId        String?
+  scriptBlock          ScriptBlock?        @relation(fields: [scriptBlockId], references: [id], onDelete: SetNull)
+  shotNumber           Int
+  shotType             StoryboardShotType
+  shotSize             StoryboardShotSize
+  cameraMovement       CameraMovement
+  cameraAngle          CameraAngle
+  composition          String?
+  visualDescription    String
+  characterIds         Json?
+  location             String?
+  action               String?
+  dialogue             String?
+  narration            String?
+  direction            String?
+  durationSeconds      Int
+  transition           StoryboardTransition @default(CUT)
+  lighting             String?
+  mood                 String?
+  visualStyle          String?
+  imagePrompt          String?
+  videoPrompt          String?
+  negativePrompt       String?
+  continuityNotes      String?
+  cameraMovementParams Json?
+  metadata             Json?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@unique([storyboardId, shotNumber])
+  @@index([storyboardId])
+  @@index([sceneId])
+  @@index([scriptBlockId])
 }
 
 model CharacterRelationship {

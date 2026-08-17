@@ -56,6 +56,26 @@ import type {
   UpdateEpisodeInput,
   UpdateSeasonInput,
   UpdateStoryBibleInput,
+  ReorderScenesInput,
+  ReorderScriptBlocksInput,
+  Scene,
+  SceneInput,
+  Script,
+  ScriptBlock,
+  ScriptBlockInput,
+  ScriptGenerationInput,
+  ScriptInput,
+  Storyboard,
+  StoryboardGenerationInput,
+  StoryboardInput,
+  StoryboardShot,
+  StoryboardShotInput,
+  ReorderStoryboardShotsInput,
+  UpdateSceneInput,
+  UpdateScriptBlockInput,
+  UpdateScriptInput,
+  UpdateStoryboardInput,
+  UpdateStoryboardShotInput,
 } from "@ai-drama-studio/types";
 
 export class ApiError extends Error {
@@ -500,6 +520,161 @@ export class ApiClient {
     );
   }
 
+  async createScriptGeneration(
+    projectId: string,
+    data: ScriptGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/script`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getScript(projectId: string, episodeId: string): Promise<Script> {
+    return this.request<Script>(
+      `/projects/${projectId}/episodes/${episodeId}/script`,
+    );
+  }
+
+  async createScript(
+    projectId: string,
+    episodeId: string,
+    data: ScriptInput,
+  ): Promise<Script> {
+    return this.request<Script>(
+      `/projects/${projectId}/episodes/${episodeId}/script`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateScript(
+    projectId: string,
+    episodeId: string,
+    data: UpdateScriptInput,
+  ): Promise<Script> {
+    return this.request<Script>(
+      `/projects/${projectId}/episodes/${episodeId}/script`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteScript(projectId: string, episodeId: string): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/episodes/${episodeId}/script`,
+      { method: "DELETE" },
+    );
+  }
+
+  async getScenes(projectId: string, episodeId: string): Promise<Scene[]> {
+    return this.request<Scene[]>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes`,
+    );
+  }
+
+  async createScene(
+    projectId: string,
+    episodeId: string,
+    data: SceneInput,
+  ): Promise<Scene> {
+    return this.request<Scene>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateScene(
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    data: UpdateSceneInput,
+  ): Promise<Scene> {
+    return this.request<Scene>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes/${sceneId}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteScene(
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes/${sceneId}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async reorderScenes(
+    projectId: string,
+    episodeId: string,
+    data: ReorderScenesInput,
+  ): Promise<Scene[]> {
+    return this.request<Scene[]>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes/reorder`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getScriptBlocks(
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+  ): Promise<ScriptBlock[]> {
+    return this.request<ScriptBlock[]>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes/${sceneId}/blocks`,
+    );
+  }
+
+  async createScriptBlock(
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    data: ScriptBlockInput,
+  ): Promise<ScriptBlock> {
+    return this.request<ScriptBlock>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes/${sceneId}/blocks`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateScriptBlock(
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    blockId: string,
+    data: UpdateScriptBlockInput,
+  ): Promise<ScriptBlock> {
+    return this.request<ScriptBlock>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes/${sceneId}/blocks/${blockId}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteScriptBlock(
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    blockId: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes/${sceneId}/blocks/${blockId}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async reorderScriptBlocks(
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    data: ReorderScriptBlocksInput,
+  ): Promise<ScriptBlock[]> {
+    return this.request<ScriptBlock[]>(
+      `/projects/${projectId}/episodes/${episodeId}/script/scenes/${sceneId}/blocks/reorder`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
   async applyGeneration(
     projectId: string,
     id: string,
@@ -507,6 +682,110 @@ export class ApiClient {
     return this.request<GenerationTask>(
       `/projects/${projectId}/generations/${id}/apply`,
       { method: "POST" },
+    );
+  }
+
+  async createStoryboardGeneration(
+    projectId: string,
+    data: StoryboardGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/storyboard`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getEpisodeStoryboard(
+    projectId: string,
+    episodeId: string,
+  ): Promise<Storyboard> {
+    return this.request<Storyboard>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard`,
+    );
+  }
+
+  async createStoryboard(
+    projectId: string,
+    episodeId: string,
+    data: StoryboardInput,
+  ): Promise<Storyboard> {
+    return this.request<Storyboard>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateStoryboard(
+    projectId: string,
+    episodeId: string,
+    data: UpdateStoryboardInput,
+  ): Promise<Storyboard> {
+    return this.request<Storyboard>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteStoryboard(projectId: string, episodeId: string): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard`,
+      { method: "DELETE" },
+    );
+  }
+
+  async getStoryboardShots(
+    projectId: string,
+    episodeId: string,
+    page = 1,
+    pageSize = 100,
+  ): Promise<StoryboardShot[]> {
+    return this.request<StoryboardShot[]>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard/shots?page=${page}&pageSize=${pageSize}`,
+    );
+  }
+
+  async createStoryboardShot(
+    projectId: string,
+    episodeId: string,
+    data: StoryboardShotInput,
+  ): Promise<StoryboardShot> {
+    return this.request<StoryboardShot>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard/shots`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateStoryboardShot(
+    projectId: string,
+    episodeId: string,
+    shotId: string,
+    data: UpdateStoryboardShotInput,
+  ): Promise<StoryboardShot> {
+    return this.request<StoryboardShot>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard/shots/${shotId}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteStoryboardShot(
+    projectId: string,
+    episodeId: string,
+    shotId: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard/shots/${shotId}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async reorderStoryboardShots(
+    projectId: string,
+    episodeId: string,
+    data: ReorderStoryboardShotsInput,
+  ): Promise<StoryboardShot[]> {
+    return this.request<StoryboardShot[]>(
+      `/projects/${projectId}/episodes/${episodeId}/storyboard/shots/reorder`,
+      { method: "POST", body: JSON.stringify(data) },
     );
   }
 

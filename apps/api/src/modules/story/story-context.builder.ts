@@ -1,6 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import { summarizeCharacterForStory } from "@ai-drama-studio/core";
+import {
+  summarizeCharacterForStory,
+  summarizeCharacterForStoryboard,
+} from "@ai-drama-studio/core";
 import type {
+  ScriptStatus,
+  StoryboardScriptContext,
   StoryCharacterSummary,
   StoryContext,
   StoryEpisodeSummary,
@@ -191,6 +196,79 @@ export class StoryContextBuilder {
       episodes: episodes.map(mapEpisodeSummary),
     };
   }
+
+  async buildScriptContext(projectId: string, episodeId: string): Promise<StoryContext> {
+    const [project, context] = await Promise.all([
+      this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { name: true, description: true, genre: true },
+      }),
+      this.buildEpisodeContext(projectId, episodeId),
+    ]);
+    return {
+      ...context,
+      project: project
+        ? {
+            name: project.name,
+            description: project.description,
+            genre: project.genre,
+          }
+        : null,
+    };
+  }
+
+  async buildStoryboardContext(projectId: string, episodeId: string): Promise<StoryContext> {
+    const context = await this.buildScriptContext(projectId, episodeId);
+    const [script, characters] = await Promise.all([
+      this.prisma.script.findUnique({
+        where: { episodeId },
+        include: {
+          scenes: {
+            orderBy: { number: "asc" },
+            take: 20,
+            include: {
+              blocks: {
+                orderBy: { order: "asc" },
+                take: 40,
+                include: {
+                  character: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.character.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "asc" },
+        include: {
+          civilization: { select: { name: true } },
+          faction: { select: { name: true } },
+        },
+      }),
+    ]);
+    return {
+      ...context,
+      characters: characters.map((item) =>
+        summarizeCharacterForStoryboard({
+          id: item.id,
+          name: item.name,
+          role: item.role,
+          identity: item.identity,
+          personality: item.personality,
+          goal: item.goal,
+          conflict: item.conflict,
+          appearance: item.appearance,
+          appearanceProfile: item.appearanceProfile,
+          imageProfile: item.imageProfile,
+          abilities: item.ability,
+          civilization: item.civilization?.name ?? null,
+          faction: item.faction?.name ?? null,
+        }),
+      ),
+      script: script && script.projectId === projectId ? mapScriptContext(script) : null,
+    };
+  }
 }
 
 function mapEpisodeSummary(row: {
@@ -201,6 +279,7 @@ function mapEpisodeSummary(row: {
   outline: string | null;
   status: string;
   storyState: PrismaJson;
+  continuityNotes?: string | null;
 }): StoryEpisodeSummary {
   return {
     id: row.id,
@@ -210,7 +289,62 @@ function mapEpisodeSummary(row: {
     outline: row.outline,
     status: row.status as StoryEpisodeSummary["status"],
     storyState: asStoryState(row.storyState),
+    continuityNotes: row.continuityNotes ?? null,
   };
+}
+
+function mapScriptContext(script: {
+  id: string;
+  version: number;
+  status: string;
+  title: string;
+  scenes: Array<{
+    id: string;
+    number: number;
+    title: string;
+    location: string | null;
+    timeOfDay: string | null;
+    summary: string | null;
+    blocks: Array<{
+      id: string;
+      order: number;
+      type: string;
+      content: string;
+      characterId: string | null;
+      character: { name: string } | null;
+    }>;
+  }>;
+}): StoryboardScriptContext {
+  return {
+    id: script.id,
+    version: script.version,
+    status: script.status as ScriptStatus,
+    title: script.title,
+    scenes: script.scenes.map((scene) => ({
+      id: scene.id,
+      number: scene.number,
+      title: scene.title,
+      location: scene.location,
+      timeOfDay: scene.timeOfDay,
+      summary: scene.summary,
+      blocks: scene.blocks.map((block) => ({
+        id: block.id,
+        order: block.order,
+        type: block.type as StoryboardScriptContext["scenes"][number]["blocks"][number]["type"],
+        characterId: block.characterId,
+        characterName: block.character?.name ?? null,
+        content: truncate(block.content, 280),
+      })),
+    })),
+  };
+}
+
+function truncate(value: string, max: number): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= max) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, max)}…`;
 }
 
 type PrismaJson = Parameters<typeof asStoryState>[0];

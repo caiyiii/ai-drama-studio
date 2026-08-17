@@ -28,6 +28,8 @@
       <CharacterPanel v-else-if="current === 'characters'" />
       <StoryBiblePanel v-else-if="current === 'story-bible'" />
       <SeasonPanel v-else-if="current === 'seasons' || current === 'episodes'" />
+      <ScriptPanel v-else-if="current === 'script'" />
+      <StoryboardPanel v-else-if="current === 'storyboard'" />
       <template v-else>
         <p class="lead">
           当前阶段 Desktop 复用共享类型与 API Client。项目 AI 能力配置（Chat / Structured Output / Image / Video / TTS）请使用 Web 工作台。
@@ -47,6 +49,8 @@ import WorldPanel from "./WorldPanel.vue";
 import CharacterPanel from "./CharacterPanel.vue";
 import StoryBiblePanel from "./StoryBiblePanel.vue";
 import SeasonPanel from "./SeasonPanel.vue";
+import ScriptPanel from "./ScriptPanel.vue";
+import StoryboardPanel from "./StoryboardPanel.vue";
 
 const items = getWorkspaceSteps();
 const current = ref<(typeof items)[number]["key"]>("overview");

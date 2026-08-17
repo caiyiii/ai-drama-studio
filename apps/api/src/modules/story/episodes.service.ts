@@ -193,6 +193,22 @@ export class EpisodesService {
   }
 
   private async assertDeletable(projectId: string, episodeId: string) {
+    const storyboard = await this.prisma.storyboard.findUnique({ where: { episodeId } });
+    if (storyboard) {
+      throw new AppError(
+        HttpStatus.CONFLICT,
+        ErrorCodes.EPISODE_HAS_DEPENDENCIES,
+        "该剧集已有分镜，无法删除",
+      );
+    }
+    const script = await this.prisma.script.findUnique({ where: { episodeId } });
+    if (script) {
+      throw new AppError(
+        HttpStatus.CONFLICT,
+        ErrorCodes.EPISODE_HAS_DEPENDENCIES,
+        "该剧集已有剧本，无法删除",
+      );
+    }
     const tasks = await this.prisma.generationTask.findMany({
       where: {
         projectId,

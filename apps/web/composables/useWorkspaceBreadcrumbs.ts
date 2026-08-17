@@ -69,6 +69,12 @@ export function useWorkspaceBreadcrumbs() {
         crumbs.push({ label: worldItem.label });
       } else if (page === "characters" && parts[1]) {
         crumbs.push({ label: "详情" });
+      } else if (page === "episodes" && parts[1]) {
+        crumbs.push({
+          label: "剧集",
+          to: `/projects/${projectId.value}/episodes`,
+        });
+        crumbs.push({ label: parts[2] === "storyboard" ? "分镜" : "剧本" });
       } else if (page === "seasons" && parts[1]) {
         crumbs.push({
           label: "季详情",

@@ -57,6 +57,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import("./views/EpisodeDetailPage.vue"),
       },
       {
+        path: "projects/:id/seasons/:seasonId/episodes/:episodeId/script",
+        component: () => import("./views/ScriptPage.vue"),
+      },
+      {
+        path: "projects/:id/seasons/:seasonId/episodes/:episodeId/storyboard",
+        component: () => import("./views/StoryboardPage.vue"),
+      },
+      {
+        path: "projects/:id/seasons/:seasonId/episodes/:episodeId/storyboard/:shotId",
+        component: () => import("./views/StoryboardShotPage.vue"),
+      },
+      {
         path: "tasks",
         component: () => import("./views/PlaceholderPage.vue"),
         props: { title: "任务", body: "生成任务继续使用 GenerationTask。本阶段已支持按 AI Capability 记录 STRUCTURED_OUTPUT。" },

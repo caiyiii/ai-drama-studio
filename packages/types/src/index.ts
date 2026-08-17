@@ -363,6 +363,8 @@ export interface GenerationTaskUsage {
   totalTokens?: number;
   durationMs?: number;
   estimatedCost?: number;
+  shotCount?: number;
+  sceneCount?: number;
 }
 
 export interface GenerationTask {
@@ -996,6 +998,11 @@ export interface StoryCharacterSummary {
   personality: string | null;
   goal: string | null;
   conflict: string | null;
+  appearance?: string | null;
+  visualSummary?: string | null;
+  abilities?: string | null;
+  civilization?: string | null;
+  faction?: string | null;
 }
 
 export interface StoryRelationshipSummary {
@@ -1022,9 +1029,15 @@ export interface StoryEpisodeSummary {
   outline: string | null;
   status: EpisodeStatus;
   storyState: EpisodeStoryState | null;
+  continuityNotes?: string | null;
 }
 
 export interface StoryContext {
+  project?: {
+    name: string;
+    description: string | null;
+    genre: string | null;
+  } | null;
   storyBible: StoryBible | null;
   world: StoryWorldSummary | null;
   civilizations: StoryCivilizationSummary[];
@@ -1038,6 +1051,7 @@ export interface StoryContext {
   season?: StorySeasonSummary | null;
   episode?: StoryEpisodeSummary | null;
   previousEpisode?: StoryEpisodeSummary | null;
+  script?: StoryboardScriptContext | null;
 }
 
 export interface StoryBibleGenerationInput {
@@ -1115,4 +1129,468 @@ export interface ContinuityCheckResult {
   ok: boolean;
   errors: string[];
   warnings: string[];
+}
+
+export enum ScriptStatus {
+  DRAFT = "DRAFT",
+  GENERATING = "GENERATING",
+  READY = "READY",
+  LOCKED = "LOCKED",
+}
+
+export const SCRIPT_STATUS_LABELS: Record<ScriptStatus, string> = {
+  [ScriptStatus.DRAFT]: "草稿",
+  [ScriptStatus.GENERATING]: "生成中",
+  [ScriptStatus.READY]: "已就绪",
+  [ScriptStatus.LOCKED]: "已锁定",
+};
+
+export enum ScriptBlockType {
+  DIALOGUE = "DIALOGUE",
+  ACTION = "ACTION",
+  NARRATION = "NARRATION",
+  DIRECTION = "DIRECTION",
+}
+
+export const SCRIPT_BLOCK_TYPE_LABELS: Record<ScriptBlockType, string> = {
+  [ScriptBlockType.DIALOGUE]: "对白",
+  [ScriptBlockType.ACTION]: "动作",
+  [ScriptBlockType.NARRATION]: "旁白",
+  [ScriptBlockType.DIRECTION]: "指示",
+};
+
+export interface ScriptBlock {
+  id: string;
+  sceneId: string;
+  order: number;
+  type: ScriptBlockType;
+  content: string;
+  characterId: string | null;
+  character?: CharacterRef | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Scene {
+  id: string;
+  scriptId: string;
+  number: number;
+  title: string;
+  location: string | null;
+  timeOfDay: string | null;
+  summary: string | null;
+  purpose: string | null;
+  conflict: string | null;
+  estimatedDurationSeconds: number | null;
+  metadata: Record<string, unknown> | null;
+  blocks?: ScriptBlock[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Script {
+  id: string;
+  episodeId: string;
+  projectId: string;
+  title: string;
+  version: number;
+  status: ScriptStatus;
+  logline: string | null;
+  summary: string | null;
+  estimatedDurationSeconds: number | null;
+  metadata: Record<string, unknown> | null;
+  scenes?: Scene[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScriptInput {
+  title: string;
+  logline?: string | null;
+  summary?: string | null;
+  estimatedDurationSeconds?: number | null;
+  status?: ScriptStatus;
+}
+
+export type UpdateScriptInput = Partial<ScriptInput>;
+
+export interface SceneInput {
+  number: number;
+  title: string;
+  location?: string | null;
+  timeOfDay?: string | null;
+  summary?: string | null;
+  purpose?: string | null;
+  conflict?: string | null;
+  estimatedDurationSeconds?: number | null;
+}
+
+export type UpdateSceneInput = Partial<SceneInput>;
+
+export interface ScriptBlockInput {
+  order: number;
+  type: ScriptBlockType;
+  content: string;
+  characterId?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export type UpdateScriptBlockInput = Partial<ScriptBlockInput>;
+
+export interface ReorderScenesInput {
+  ids: string[];
+}
+
+export interface ReorderScriptBlocksInput {
+  ids: string[];
+}
+
+export interface ScriptGenerationInput {
+  episodeId: string;
+  prompt?: string;
+  tone?: string;
+  style?: string;
+  targetDurationSeconds?: number;
+  additionalInstructions?: string;
+}
+
+export interface ScriptGenerationBlock {
+  order: number;
+  type: ScriptBlockType;
+  characterName: string;
+  content: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface ScriptGenerationScene {
+  number: number;
+  title: string;
+  location: string;
+  timeOfDay: string;
+  summary: string;
+  purpose: string;
+  conflict: string;
+  estimatedDurationSeconds: number;
+  blocks: ScriptGenerationBlock[];
+}
+
+export interface ScriptGenerationResult {
+  script: {
+    title: string;
+    logline: string;
+    summary: string;
+    estimatedDurationSeconds: number;
+  };
+  scenes: ScriptGenerationScene[];
+}
+
+export enum StoryboardStatus {
+  DRAFT = "DRAFT",
+  GENERATING = "GENERATING",
+  READY = "READY",
+  LOCKED = "LOCKED",
+  STALE = "STALE",
+}
+
+export const STORYBOARD_STATUS_LABELS: Record<StoryboardStatus, string> = {
+  [StoryboardStatus.DRAFT]: "草稿",
+  [StoryboardStatus.GENERATING]: "生成中",
+  [StoryboardStatus.READY]: "已就绪",
+  [StoryboardStatus.LOCKED]: "已锁定",
+  [StoryboardStatus.STALE]: "已过期",
+};
+
+export enum StoryboardShotType {
+  ESTABLISHING = "ESTABLISHING",
+  WIDE = "WIDE",
+  FULL = "FULL",
+  MEDIUM = "MEDIUM",
+  MEDIUM_CLOSE_UP = "MEDIUM_CLOSE_UP",
+  CLOSE_UP = "CLOSE_UP",
+  EXTREME_CLOSE_UP = "EXTREME_CLOSE_UP",
+  OVER_SHOULDER = "OVER_SHOULDER",
+  POV = "POV",
+  TWO_SHOT = "TWO_SHOT",
+  INSERT = "INSERT",
+  AERIAL = "AERIAL",
+  DYNAMIC = "DYNAMIC",
+}
+
+export const STORYBOARD_SHOT_TYPE_LABELS: Record<StoryboardShotType, string> = {
+  [StoryboardShotType.ESTABLISHING]: "建立镜头",
+  [StoryboardShotType.WIDE]: "远景",
+  [StoryboardShotType.FULL]: "全景",
+  [StoryboardShotType.MEDIUM]: "中景",
+  [StoryboardShotType.MEDIUM_CLOSE_UP]: "中近景",
+  [StoryboardShotType.CLOSE_UP]: "特写",
+  [StoryboardShotType.EXTREME_CLOSE_UP]: "大特写",
+  [StoryboardShotType.OVER_SHOULDER]: "过肩",
+  [StoryboardShotType.POV]: "主观",
+  [StoryboardShotType.TWO_SHOT]: "双人",
+  [StoryboardShotType.INSERT]: "插入",
+  [StoryboardShotType.AERIAL]: "航拍",
+  [StoryboardShotType.DYNAMIC]: "动态",
+};
+
+export enum StoryboardShotSize {
+  EXTREME_WIDE = "EXTREME_WIDE",
+  WIDE = "WIDE",
+  FULL = "FULL",
+  MEDIUM = "MEDIUM",
+  MEDIUM_CLOSE_UP = "MEDIUM_CLOSE_UP",
+  CLOSE_UP = "CLOSE_UP",
+  EXTREME_CLOSE_UP = "EXTREME_CLOSE_UP",
+}
+
+export const STORYBOARD_SHOT_SIZE_LABELS: Record<StoryboardShotSize, string> = {
+  [StoryboardShotSize.EXTREME_WIDE]: "大远景",
+  [StoryboardShotSize.WIDE]: "远景",
+  [StoryboardShotSize.FULL]: "全景",
+  [StoryboardShotSize.MEDIUM]: "中景",
+  [StoryboardShotSize.MEDIUM_CLOSE_UP]: "中近景",
+  [StoryboardShotSize.CLOSE_UP]: "特写",
+  [StoryboardShotSize.EXTREME_CLOSE_UP]: "大特写",
+};
+
+export enum CameraMovement {
+  STATIC = "STATIC",
+  PAN = "PAN",
+  TILT = "TILT",
+  DOLLY_IN = "DOLLY_IN",
+  DOLLY_OUT = "DOLLY_OUT",
+  TRUCK_LEFT = "TRUCK_LEFT",
+  TRUCK_RIGHT = "TRUCK_RIGHT",
+  CRANE_UP = "CRANE_UP",
+  CRANE_DOWN = "CRANE_DOWN",
+  ZOOM_IN = "ZOOM_IN",
+  ZOOM_OUT = "ZOOM_OUT",
+  HANDHELD = "HANDHELD",
+  ORBIT = "ORBIT",
+  FOLLOW = "FOLLOW",
+  TRACKING = "TRACKING",
+}
+
+export const CAMERA_MOVEMENT_LABELS: Record<CameraMovement, string> = {
+  [CameraMovement.STATIC]: "固定",
+  [CameraMovement.PAN]: "横摇",
+  [CameraMovement.TILT]: "俯仰",
+  [CameraMovement.DOLLY_IN]: "推进",
+  [CameraMovement.DOLLY_OUT]: "拉远",
+  [CameraMovement.TRUCK_LEFT]: "左移",
+  [CameraMovement.TRUCK_RIGHT]: "右移",
+  [CameraMovement.CRANE_UP]: "升",
+  [CameraMovement.CRANE_DOWN]: "降",
+  [CameraMovement.ZOOM_IN]: "变焦推",
+  [CameraMovement.ZOOM_OUT]: "变焦拉",
+  [CameraMovement.HANDHELD]: "手持",
+  [CameraMovement.ORBIT]: "环绕",
+  [CameraMovement.FOLLOW]: "跟随",
+  [CameraMovement.TRACKING]: "跟踪",
+};
+
+export enum CameraAngle {
+  EYE_LEVEL = "EYE_LEVEL",
+  LOW_ANGLE = "LOW_ANGLE",
+  HIGH_ANGLE = "HIGH_ANGLE",
+  BIRDS_EYE = "BIRDS_EYE",
+  WORMS_EYE = "WORMS_EYE",
+  DUTCH_ANGLE = "DUTCH_ANGLE",
+  OVERHEAD = "OVERHEAD",
+}
+
+export const CAMERA_ANGLE_LABELS: Record<CameraAngle, string> = {
+  [CameraAngle.EYE_LEVEL]: "平视",
+  [CameraAngle.LOW_ANGLE]: "仰拍",
+  [CameraAngle.HIGH_ANGLE]: "俯拍",
+  [CameraAngle.BIRDS_EYE]: "鸟瞰",
+  [CameraAngle.WORMS_EYE]: "虫视",
+  [CameraAngle.DUTCH_ANGLE]: "荷兰角",
+  [CameraAngle.OVERHEAD]: "顶拍",
+};
+
+export enum StoryboardTransition {
+  CUT = "CUT",
+  FADE_IN = "FADE_IN",
+  FADE_OUT = "FADE_OUT",
+  DISSOLVE = "DISSOLVE",
+  WIPE = "WIPE",
+  MATCH_CUT = "MATCH_CUT",
+  SMASH_CUT = "SMASH_CUT",
+}
+
+export const STORYBOARD_TRANSITION_LABELS: Record<StoryboardTransition, string> = {
+  [StoryboardTransition.CUT]: "切",
+  [StoryboardTransition.FADE_IN]: "淡入",
+  [StoryboardTransition.FADE_OUT]: "淡出",
+  [StoryboardTransition.DISSOLVE]: "叠化",
+  [StoryboardTransition.WIPE]: "划变",
+  [StoryboardTransition.MATCH_CUT]: "匹配切",
+  [StoryboardTransition.SMASH_CUT]: "硬切",
+};
+
+export interface StoryboardScriptBlockContext {
+  id: string;
+  order: number;
+  type: ScriptBlockType;
+  characterId: string | null;
+  characterName: string | null;
+  content: string;
+}
+
+export interface StoryboardSceneContext {
+  id: string;
+  number: number;
+  title: string;
+  location: string | null;
+  timeOfDay: string | null;
+  summary: string | null;
+  blocks: StoryboardScriptBlockContext[];
+}
+
+export interface StoryboardScriptContext {
+  id: string;
+  version: number;
+  status: ScriptStatus;
+  title: string;
+  scenes: StoryboardSceneContext[];
+}
+
+export interface StoryboardShot {
+  id: string;
+  storyboardId: string;
+  sceneId: string | null;
+  scriptBlockId: string | null;
+  scriptBlockIds: string[];
+  shotNumber: number;
+  shotType: StoryboardShotType;
+  shotSize: StoryboardShotSize;
+  cameraMovement: CameraMovement;
+  cameraAngle: CameraAngle;
+  composition: string | null;
+  visualDescription: string;
+  characterIds: string[];
+  location: string | null;
+  action: string | null;
+  dialogue: string | null;
+  narration: string | null;
+  direction: string | null;
+  durationSeconds: number;
+  transition: StoryboardTransition;
+  lighting: string | null;
+  mood: string | null;
+  visualStyle: string | null;
+  imagePrompt: string | null;
+  videoPrompt: string | null;
+  negativePrompt: string | null;
+  continuityNotes: string | null;
+  cameraMovementParams: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Storyboard {
+  id: string;
+  episodeId: string;
+  projectId: string;
+  version: number;
+  status: StoryboardStatus;
+  title: string;
+  description: string | null;
+  totalDurationSeconds: number | null;
+  sourceScriptVersion: number;
+  stale: boolean;
+  metadata: Record<string, unknown> | null;
+  shots?: StoryboardShot[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoryboardInput {
+  title: string;
+  description?: string | null;
+  status?: StoryboardStatus;
+  totalDurationSeconds?: number | null;
+}
+
+export type UpdateStoryboardInput = Partial<StoryboardInput>;
+
+export interface StoryboardShotInput {
+  shotNumber: number;
+  sceneId: string;
+  scriptBlockId?: string | null;
+  scriptBlockIds?: string[];
+  shotType: StoryboardShotType;
+  shotSize: StoryboardShotSize;
+  cameraMovement: CameraMovement;
+  cameraAngle: CameraAngle;
+  composition?: string | null;
+  visualDescription: string;
+  characterIds?: string[];
+  location?: string | null;
+  action?: string | null;
+  dialogue?: string | null;
+  narration?: string | null;
+  direction?: string | null;
+  durationSeconds: number;
+  transition?: StoryboardTransition;
+  lighting?: string | null;
+  mood?: string | null;
+  visualStyle?: string | null;
+  imagePrompt?: string | null;
+  videoPrompt?: string | null;
+  negativePrompt?: string | null;
+  continuityNotes?: string | null;
+  cameraMovementParams?: Record<string, unknown> | null;
+}
+
+export type UpdateStoryboardShotInput = Partial<
+  Omit<StoryboardShotInput, "sceneId" | "scriptBlockId" | "scriptBlockIds">
+>;
+
+export interface ReorderStoryboardShotsInput {
+  ids: string[];
+}
+
+export interface StoryboardGenerationInput {
+  episodeId: string;
+  prompt?: string;
+  additionalInstructions?: string;
+}
+
+export interface StoryboardGenerationShot {
+  shotNumber: number;
+  sceneNumber: number;
+  scriptBlockIds: string[];
+  shotType: StoryboardShotType;
+  shotSize: StoryboardShotSize;
+  cameraMovement: CameraMovement;
+  cameraAngle: CameraAngle;
+  composition: string;
+  visualDescription: string;
+  characterIds: string[];
+  location: string;
+  action: string;
+  dialogue: string;
+  narration: string;
+  direction: string;
+  durationSeconds: number;
+  transition: StoryboardTransition;
+  lighting: string;
+  mood: string;
+  visualStyle: string;
+  imagePrompt: string;
+  videoPrompt: string;
+  negativePrompt: string;
+  continuityNotes: string;
+}
+
+export interface StoryboardGenerationResult {
+  storyboard: {
+    title: string;
+    description: string;
+    totalDurationSeconds: number;
+  };
+  shots: StoryboardGenerationShot[];
 }

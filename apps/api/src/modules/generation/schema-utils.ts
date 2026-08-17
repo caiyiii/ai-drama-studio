@@ -88,6 +88,14 @@ export function asInteger(value: unknown, path: string, errors: string[]): numbe
   return value;
 }
 
+export function asPositiveInteger(value: unknown, path: string, errors: string[]): number {
+  const parsed = asInteger(value, path, errors);
+  if (parsed <= 0) {
+    errors.push(`${path} 必须大于 0`);
+  }
+  return parsed;
+}
+
 export function asStoryState(
   value: unknown,
   path: string,

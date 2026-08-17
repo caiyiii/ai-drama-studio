@@ -1,0 +1,189 @@
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  AiCapability,
+  GenerationTaskStatus,
+  GenerationTaskType,
+  Prisma,
+} from "@prisma/client";
+import { AppError, ErrorCodes } from "../../common/app-error";
+import { PrismaService } from "../../prisma/prisma.service";
+import { AiService } from "../ai/ai.service";
+import { StoryContextBuilder } from "../story/story-context.builder";
+import { StoryContinuityService } from "../story/story-continuity.service";
+import { GenerationExecutor } from "./generation.executor";
+import { CreateStoryboardGenerationDto } from "./dto/create-storyboard-generation.dto";
+import { buildStoryboardGenerationPrompt } from "./prompts/storyboard-generation.prompt";
+import { applyStoryboardGeneration } from "./storyboard/apply-storyboard-generation";
+import { validateStoryboardGenerationResult } from "./storyboard/storyboard-generation.schema";
+
+@Injectable()
+export class StoryboardGenerationService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ai: AiService,
+    private readonly executor: GenerationExecutor,
+    private readonly contextBuilder: StoryContextBuilder,
+    private readonly continuity: StoryContinuityService,
+  ) {}
+
+  async createStoryboardGeneration(
+    projectId: string,
+    dto: CreateStoryboardGenerationDto,
+  ) {
+    await this.ensureProject(projectId);
+    const episode = await this.prisma.episode.findFirst({
+      where: { id: dto.episodeId, projectId },
+    });
+    if (!episode) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.PROJECT_EPISODE_MISMATCH,
+        "剧集不属于当前项目",
+      );
+    }
+    await this.continuity.validateStoryboardContinuity(projectId, dto.episodeId);
+    const resolved = await this.ai.resolveForCapability(
+      projectId,
+      AiCapability.STRUCTURED_OUTPUT,
+    );
+    const context = await this.contextBuilder.buildStoryboardContext(
+      projectId,
+      dto.episodeId,
+    );
+    const input = {
+      episodeId: dto.episodeId,
+      prompt: dto.prompt?.trim() || undefined,
+      additionalInstructions: dto.additionalInstructions?.trim() || undefined,
+    };
+    const task = await this.prisma.generationTask.create({
+      data: {
+        projectId,
+        type: GenerationTaskType.STORYBOARD,
+        status: GenerationTaskStatus.PENDING,
+        capability: AiCapability.STRUCTURED_OUTPUT,
+        provider: resolved.source === "system" ? resolved.kind : resolved.name,
+        model: resolved.model || null,
+        input: input as Prisma.InputJsonValue,
+      },
+    });
+    try {
+      await this.executor.run(
+        task.id,
+        async () => {
+          const prompt = buildStoryboardGenerationPrompt({ ...input, context });
+          const raw = await this.ai.generateWith(resolved, {
+            system: prompt.system,
+            prompt: prompt.prompt,
+          });
+          return validateStoryboardGenerationResult(raw);
+        },
+        resolved.apiKey,
+      );
+      await this.attachUsage(task.id);
+    } catch {
+      // FAILED already recorded
+    }
+    return this.executor.getTask(projectId, task.id);
+  }
+
+  async apply(projectId: string, id: string) {
+    await this.ensureProject(projectId);
+    const task = await this.getOwnedTask(projectId, id);
+    if (task.type !== GenerationTaskType.STORYBOARD) {
+      throw new BadRequestException("只能应用分镜生成结果");
+    }
+    if (task.status !== GenerationTaskStatus.SUCCEEDED) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.GENERATION_NOT_SUCCEEDED,
+        "只能应用已成功的生成结果",
+      );
+    }
+    if (task.appliedAt) {
+      throw new BadRequestException("该生成结果已经应用过");
+    }
+    const input = asInput(task.input);
+    const episodeId = String(input.episodeId || "");
+    try {
+      const result = validateStoryboardGenerationResult(task.output);
+      await this.prisma.$transaction(async (tx) => {
+        await applyStoryboardGeneration(tx, projectId, episodeId, id, result);
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.STORYBOARD_APPLY_FAILED,
+        error instanceof Error ? `分镜写入失败：${error.message}` : "分镜写入失败",
+      );
+    }
+    return this.getOwnedTask(projectId, id);
+  }
+
+  private async attachUsage(taskId: string) {
+    const task = await this.prisma.generationTask.findUnique({ where: { id: taskId } });
+    if (!task || task.status !== GenerationTaskStatus.SUCCEEDED) {
+      return;
+    }
+    const output = asInput(task.output);
+    const shots = Array.isArray(output.shots) ? output.shots : [];
+    const sceneCount = new Set(
+      shots
+        .map((item) =>
+          item && typeof item === "object" && !Array.isArray(item)
+            ? (item as { sceneNumber?: number }).sceneNumber
+            : undefined,
+        )
+        .filter((item): item is number => typeof item === "number"),
+    ).size;
+    const usage = asInput(task.usage);
+    await this.prisma.generationTask.update({
+      where: { id: taskId },
+      data: {
+        usage: {
+          ...(typeof usage.durationMs === "number" ? { durationMs: usage.durationMs } : {}),
+          shotCount: shots.length,
+          sceneCount,
+        } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  private async getOwnedTask(projectId: string, id: string) {
+    try {
+      return await this.executor.getTask(projectId, id);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new AppError(
+          HttpStatus.NOT_FOUND,
+          ErrorCodes.GENERATION_NOT_FOUND,
+          "生成任务不存在",
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async ensureProject(projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new NotFoundException("Project not found");
+    }
+  }
+}
+
+function asInput(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}

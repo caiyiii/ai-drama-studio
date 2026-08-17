@@ -12,6 +12,7 @@ import { WorldModule } from "./modules/world/world.module";
 import { GenerationModule } from "./modules/generation/generation.module";
 import { AiModule } from "./modules/ai/ai.module";
 import { StoryModule } from "./modules/story/story.module";
+import { ScriptModule } from "./modules/script/script.module";
 import configuration from "./config/configuration";
 
 @Module({
@@ -32,6 +33,7 @@ import configuration from "./config/configuration";
     GenerationModule,
     WorldModule,
     StoryModule,
+    ScriptModule,
   ],
   controllers: [AppController],
 })

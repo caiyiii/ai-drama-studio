@@ -112,4 +112,73 @@ export class StoryContinuityService {
     }
     return continuityResult(errors, warnings);
   }
+
+  async validateStoryboardContinuity(projectId: string, episodeId: string) {
+    const episode = await this.prisma.episode.findUnique({ where: { id: episodeId } });
+    if (!episode) {
+      throw new AppError(HttpStatus.NOT_FOUND, ErrorCodes.EPISODE_NOT_FOUND, "剧集不存在");
+    }
+    if (episode.projectId !== projectId) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.PROJECT_EPISODE_MISMATCH,
+        "剧集不属于当前项目",
+      );
+    }
+    const continuity = await this.validateEpisodeContinuity(
+      projectId,
+      episode.seasonId,
+      episodeId,
+    );
+    if (!continuity.ok) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.PROJECT_EPISODE_MISMATCH,
+        continuity.errors.join("；") || "连续性校验失败",
+      );
+    }
+    const script = await this.prisma.script.findUnique({
+      where: { episodeId },
+      include: {
+        scenes: {
+          include: { blocks: { select: { id: true, sceneId: true } } },
+        },
+      },
+    });
+    if (!script || script.projectId !== projectId) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.SCRIPT_REQUIRED_FOR_STORYBOARD,
+        "生成分镜前必须先有剧本",
+      );
+    }
+    if (script.scenes.some((scene) => scene.scriptId && scene.scriptId !== script.id)) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.STORYBOARD_INVALID_SCENE,
+        "存在不属于当前剧本的场景",
+      );
+    }
+    for (const scene of script.scenes) {
+      if (scene.blocks.some((block) => block.sceneId !== scene.id)) {
+        throw new AppError(
+          HttpStatus.BAD_REQUEST,
+          ErrorCodes.STORYBOARD_INVALID_SCRIPT_BLOCK,
+          "存在不属于当前场景的剧本段落",
+        );
+      }
+    }
+    const characters = await this.prisma.character.findMany({
+      where: { projectId },
+      select: { id: true, projectId: true },
+    });
+    if (characters.some((item) => item.projectId !== projectId)) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.STORYBOARD_INVALID_CHARACTER,
+        "存在不属于当前项目的人物",
+      );
+    }
+    return { episode, script, continuity };
+  }
 }

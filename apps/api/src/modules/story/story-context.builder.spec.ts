@@ -4,6 +4,12 @@ import { StoryContextBuilder } from "./story-context.builder";
 function createBuilder() {
   const now = new Date();
   const prisma = {
+    project: {
+      findUnique: async ({ where: { id } }: { where: { id: string } }) =>
+        id === "proj-a"
+          ? { name: "星河碰撞", description: "两星系被迫靠近", genre: "科幻修仙" }
+          : null,
+    },
     storyBible: {
       findUnique: async ({ where: { projectId } }: { where: { projectId: string } }) =>
         projectId === "proj-a"
@@ -119,6 +125,43 @@ function createBuilder() {
             }
           : null,
     },
+    script: {
+      findUnique: async ({
+        where: { episodeId },
+      }: {
+        where: { episodeId: string };
+      }) =>
+        episodeId === "ep-1"
+          ? {
+              id: "script-1",
+              projectId: "proj-a",
+              episodeId: "ep-1",
+              version: 1,
+              status: "READY",
+              title: "星系碰撞",
+              scenes: [
+                {
+                  id: "scene-1",
+                  number: 1,
+                  title: "问天宗夜课",
+                  location: "问天宗外门",
+                  timeOfDay: "夜",
+                  summary: "星图失效",
+                  blocks: [
+                    {
+                      id: "block-1",
+                      order: 1,
+                      type: "ACTION",
+                      content: "沈星河抬头望向天空。",
+                      characterId: "char-1",
+                      character: { name: "沈星河" },
+                    },
+                  ],
+                },
+              ],
+            }
+          : null,
+    },
     episode: {
       findMany: async ({
         where,
@@ -157,6 +200,19 @@ function createBuilder() {
       }) => {
         if (where.projectId !== "proj-a") {
           return null;
+        }
+        if (where.id === "ep-1") {
+          return {
+            id: "ep-1",
+            projectId: "proj-a",
+            seasonId: "season-a",
+            number: 1,
+            title: "星系碰撞",
+            synopsis: "星图失效",
+            outline: "碰撞开始",
+            status: "OUTLINED",
+            storyState: { unresolvedThreads: ["星图"] },
+          };
         }
         if (where.id === "ep-2") {
           return {
@@ -219,5 +275,28 @@ describe("StoryContextBuilder", () => {
     expect(other.world).toBeNull();
     expect(other.characters).toHaveLength(0);
     expect(other.seasons).toHaveLength(0);
+  });
+
+  it("builds script context with project summary, bible and characters", async () => {
+    const builder = createBuilder();
+    const context = await builder.buildScriptContext("proj-a", "ep-1");
+    expect(context.project?.name).toBe("星河碰撞");
+    expect(context.storyBible?.logline).toContain("两星系");
+    expect(context.characters[0]?.name).toBe("沈星河");
+    expect(context.episode?.outline).toBe("碰撞开始");
+    expect(JSON.stringify(context)).not.toContain("imageProfile");
+    expect(JSON.stringify(context)).not.toContain("voiceProfile");
+    expect(JSON.stringify(context)).not.toContain("API Key");
+  });
+
+  it("builds storyboard context with script ids and visual summary without dumping profiles", async () => {
+    const builder = createBuilder();
+    const context = await builder.buildStoryboardContext("proj-a", "ep-1");
+    expect(context.script?.id).toBe("script-1");
+    expect(context.script?.scenes[0]?.blocks[0]?.id).toBe("block-1");
+    expect(context.characters[0]?.name).toBe("沈星河");
+    expect(JSON.stringify(context)).not.toContain("imageProfile");
+    expect(JSON.stringify(context)).not.toContain("voiceProfile");
+    expect(JSON.stringify(context)).not.toContain('"secret"');
   });
 });

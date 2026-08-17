@@ -19,6 +19,18 @@
             </p>
           </div>
           <div class="flex gap-2">
+            <NuxtLink
+              :to="`/projects/${projectId}/episodes/${episodeId}/script`"
+              class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-sm text-gold-300"
+            >
+              进入剧本
+            </NuxtLink>
+            <NuxtLink
+              :to="`/projects/${projectId}/episodes/${episodeId}/storyboard`"
+              class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
+            >
+              进入分镜
+            </NuxtLink>
             <EpisodeOutlineGenerateModal
               :project-id="projectId"
               :episode-id="episodeId"

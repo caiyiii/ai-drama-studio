@@ -15,7 +15,7 @@
       </div>
       <p v-else-if="loading || !episode" class="state">正在载入…</p>
       <div v-else>
-        <p class="hint">AI 生成本集大纲请使用 Web 工作台。</p>
+        <p class="hint">AI 生成本集大纲与完整剧本请使用 Web 工作台。</p>
         <p class="meta">E{{ String(episode.number).padStart(2, "0") }} · {{ episode.durationSeconds || 0 }} 秒</p>
         <ion-item>
           <ion-input v-model="title" label="标题" label-placement="stacked" />
@@ -26,6 +26,12 @@
         <ion-item>
           <ion-textarea v-model="outline" label="大纲" label-placement="stacked" auto-grow />
         </ion-item>
+        <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}/script`">
+          查看剧本
+        </ion-button>
+        <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}/storyboard`">
+          查看分镜
+        </ion-button>
         <ion-button expand="block" class="ion-margin-top" :disabled="saving" @click="onSave">保存</ion-button>
         <section v-if="episode.storyState" class="block">
           <p class="eyebrow">Story State</p>

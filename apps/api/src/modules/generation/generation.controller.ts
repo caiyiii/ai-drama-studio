@@ -8,6 +8,10 @@ import {
   CreateStoryBibleGenerationDto,
 } from "./dto/create-story-generation.dto";
 import { CreateWorldGenerationDto } from "./dto/create-world-generation.dto";
+import { CreateScriptGenerationDto } from "./dto/create-script-generation.dto";
+import { CreateStoryboardGenerationDto } from "./dto/create-storyboard-generation.dto";
+import { ScriptGenerationService } from "./script-generation.service";
+import { StoryboardGenerationService } from "./storyboard-generation.service";
 import { StoryGenerationService } from "./story-generation.service";
 import { WorldGenerationService } from "./world-generation.service";
 
@@ -17,6 +21,8 @@ export class GenerationController {
     private readonly worldGeneration: WorldGenerationService,
     private readonly characterGeneration: CharacterGenerationService,
     private readonly storyGeneration: StoryGenerationService,
+    private readonly scriptGeneration: ScriptGenerationService,
+    private readonly storyboardGeneration: StoryboardGenerationService,
   ) {}
 
   @Get()
@@ -64,6 +70,22 @@ export class GenerationController {
     return this.storyGeneration.createEpisodeOutlineGeneration(projectId, dto);
   }
 
+  @Post("script")
+  createScript(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateScriptGenerationDto,
+  ) {
+    return this.scriptGeneration.createScriptGeneration(projectId, dto);
+  }
+
+  @Post("storyboard")
+  createStoryboard(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateStoryboardGenerationDto,
+  ) {
+    return this.storyboardGeneration.createStoryboardGeneration(projectId, dto);
+  }
+
   @Get(":id")
   getOne(@Param("projectId") projectId: string, @Param("id") id: string) {
     return this.worldGeneration.getOne(projectId, id);
@@ -81,6 +103,12 @@ export class GenerationController {
       task.type === GenerationTaskType.EPISODE_OUTLINE
     ) {
       return this.storyGeneration.apply(projectId, id);
+    }
+    if (task.type === GenerationTaskType.SCRIPT) {
+      return this.scriptGeneration.apply(projectId, id);
+    }
+    if (task.type === GenerationTaskType.STORYBOARD) {
+      return this.storyboardGeneration.apply(projectId, id);
     }
     return this.worldGeneration.apply(projectId, id);
   }

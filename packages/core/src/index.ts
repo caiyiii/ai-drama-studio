@@ -69,6 +69,24 @@ export {
   summarizeCharacterForStory,
 } from "./story";
 export {
+  getScriptBlockTypeLabel,
+  getScriptStatusLabel,
+  isScriptBlockType,
+  matchCharacterByName,
+} from "./script";
+export {
+  getCameraAngleLabel,
+  getCameraMovementLabel,
+  getStoryboardShotSizeLabel,
+  getStoryboardShotTypeLabel,
+  getStoryboardStatusLabel,
+  getStoryboardTransitionLabel,
+  isConsecutiveShotNumbers,
+  isStoryboardStale,
+  summarizeCharacterForStoryboard,
+  summarizeVisualProfile,
+} from "./storyboard";
+export {
   characterBelongsToProject,
   continuityResult,
   episodeBelongsToProject,
