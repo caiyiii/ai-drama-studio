@@ -23,6 +23,7 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:seed:world-demo": "tsx prisma/seed-world-demo.ts",
+    "db:seed:character-demo": "tsx prisma/seed-character-demo.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

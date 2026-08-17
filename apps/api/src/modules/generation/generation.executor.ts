@@ -20,6 +20,7 @@ export class GenerationExecutor {
     });
 
     try {
+      const started = Date.now();
       const output = await work();
       await this.prisma.generationTask.update({
         where: { id: taskId },
@@ -27,6 +28,9 @@ export class GenerationExecutor {
           status: GenerationTaskStatus.SUCCEEDED,
           output: output as unknown as Prisma.InputJsonValue,
           error: null,
+          usage: {
+            durationMs: Date.now() - started,
+          } as Prisma.InputJsonValue,
         },
       });
       return output;

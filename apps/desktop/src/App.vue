@@ -25,9 +25,10 @@
       <p class="eyebrow">Desktop Shell</p>
       <h1>{{ activeLabel }}</h1>
       <WorldPanel v-if="current === 'world'" />
+      <CharacterPanel v-else-if="current === 'characters'" />
       <template v-else>
         <p class="lead">
-          当前阶段 Desktop 复用共享类型与 API Client。完整世界观编辑请使用 Web 工作台，或在此进入「世界观」。
+          当前阶段 Desktop 复用共享类型与 API Client。项目 AI 能力配置（Chat / Structured Output / Image / Video / TTS）请使用 Web 工作台。
         </p>
         <p class="health">API：{{ health }}</p>
       </template>
@@ -41,6 +42,7 @@ import { createApiClient } from "@ai-drama-studio/api-client";
 import { getWorkspaceSteps } from "@ai-drama-studio/core";
 import { computed, onMounted, ref } from "vue";
 import WorldPanel from "./WorldPanel.vue";
+import CharacterPanel from "./CharacterPanel.vue";
 
 const items = getWorkspaceSteps();
 const current = ref<(typeof items)[number]["key"]>("overview");

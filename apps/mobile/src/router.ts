@@ -33,9 +33,17 @@ const routes: RouteRecordRaw[] = [
         component: () => import("./views/WorldSectionPage.vue"),
       },
       {
+        path: "projects/:id/characters",
+        component: () => import("./views/CharactersPage.vue"),
+      },
+      {
+        path: "projects/:id/characters/:characterId",
+        component: () => import("./views/CharacterDetailPage.vue"),
+      },
+      {
         path: "tasks",
         component: () => import("./views/PlaceholderPage.vue"),
-        props: { title: "任务", body: "生成任务将在后续阶段接入 GenerationTask。" },
+        props: { title: "任务", body: "生成任务继续使用 GenerationTask。本阶段已支持按 AI Capability 记录 STRUCTURED_OUTPUT。" },
       },
       {
         path: "assets",
@@ -45,7 +53,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "me",
         component: () => import("./views/PlaceholderPage.vue"),
-        props: { title: "我的", body: "当前阶段不实现登录与账户系统。" },
+        props: { title: "我的", body: "当前阶段不实现登录。用户 AI Provider（BYOK）已在数据库预留 userId。" },
       },
     ],
   },

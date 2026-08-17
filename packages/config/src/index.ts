@@ -100,3 +100,55 @@ export const AI_PROVIDER_KINDS = [
   "GEMINI",
   "CLAUDE",
 ] as const;
+
+export const CHARACTER_GENDERS = ["男", "女", "非二元", "未知"] as const;
+
+export const CHARACTER_ROLES = [
+  "主角",
+  "第二主角",
+  "配角",
+  "反派",
+  "导师",
+  "盟友",
+  "神秘人物",
+  "其他",
+] as const;
+
+export const CHARACTER_RELATION_STRENGTHS = [1, 2, 3, 4, 5] as const;
+
+export const CHARACTER_GENERATION_STYLES = [
+  "东方玄幻",
+  "赛博朋克",
+  "科幻",
+  "现代",
+  "其他",
+] as const;
+
+export const CHARACTER_GENERATION_DETAIL_LEVELS = [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+] as const;
+
+export const AI_CAPABILITY_DEFINITIONS = [
+  { capability: "CHAT", label: "故事 / 文本生成", implemented: true },
+  { capability: "STRUCTURED_OUTPUT", label: "结构化生成", implemented: true },
+  { capability: "IMAGE", label: "图片生成", implemented: false },
+  { capability: "VIDEO", label: "视频生成", implemented: false },
+  { capability: "IMAGE_TO_VIDEO", label: "图片转视频", implemented: false },
+  { capability: "TTS", label: "语音生成", implemented: false },
+  { capability: "VOICE_CLONE", label: "声音克隆", implemented: false },
+  { capability: "MUSIC", label: "音乐生成", implemented: false },
+  { capability: "EMBEDDING", label: "向量 Embedding", implemented: false },
+] as const;
+
+export type AiCapabilityId = (typeof AI_CAPABILITY_DEFINITIONS)[number]["capability"];
+
+export const IMPLEMENTED_AI_CAPABILITIES = AI_CAPABILITY_DEFINITIONS.filter(
+  (item) => item.implemented,
+).map((item) => item.capability);
+
+export const OPENAI_COMPATIBLE_CAPABILITIES = [
+  "CHAT",
+  "STRUCTURED_OUTPUT",
+] as const satisfies readonly AiCapabilityId[];

@@ -41,6 +41,7 @@ export enum AssetType {
 
 export enum GenerationTaskType {
   WORLD = "WORLD",
+  CHARACTER = "CHARACTER",
   SCRIPT = "SCRIPT",
   IMAGE = "IMAGE",
   VIDEO = "VIDEO",
@@ -109,13 +110,221 @@ export interface Episode {
   updatedAt: string;
 }
 
+export interface CharacterRef {
+  id: string;
+  name: string;
+  alias: string | null;
+  role: string | null;
+}
+
+export interface CharacterCivilizationRef {
+  id: string;
+  name: string;
+}
+
+export interface CharacterFactionRef {
+  id: string;
+  name: string;
+}
+
+export enum CharacterStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  ARCHIVED = "ARCHIVED",
+}
+
+export enum CharacterRelationType {
+  FRIEND = "FRIEND",
+  ENEMY = "ENEMY",
+  ALLY = "ALLY",
+  RIVAL = "RIVAL",
+  MASTER = "MASTER",
+  DISCIPLE = "DISCIPLE",
+  FAMILY = "FAMILY",
+  LOVER = "LOVER",
+  COLLEAGUE = "COLLEAGUE",
+  TEACHER = "TEACHER",
+  STUDENT = "STUDENT",
+  PARTNER = "PARTNER",
+  UNKNOWN = "UNKNOWN",
+  MASTER_STUDENT = "MASTER_STUDENT",
+  SUPERIOR_SUBORDINATE = "SUPERIOR_SUBORDINATE",
+  ACQUAINTANCE = "ACQUAINTANCE",
+  OTHER = "OTHER",
+}
+
+export const RelationshipType = CharacterRelationType;
+export type RelationshipType = CharacterRelationType;
+
+export const CHARACTER_STATUS_LABELS: Record<CharacterStatus, string> = {
+  [CharacterStatus.ACTIVE]: "活跃",
+  [CharacterStatus.INACTIVE]: "停用",
+  [CharacterStatus.ARCHIVED]: "归档",
+};
+
+export const CHARACTER_RELATION_TYPE_LABELS: Record<CharacterRelationType, string> = {
+  [CharacterRelationType.FRIEND]: "朋友",
+  [CharacterRelationType.ENEMY]: "敌对",
+  [CharacterRelationType.ALLY]: "盟友",
+  [CharacterRelationType.RIVAL]: "竞争对手",
+  [CharacterRelationType.MASTER]: "师父",
+  [CharacterRelationType.DISCIPLE]: "弟子",
+  [CharacterRelationType.FAMILY]: "家人",
+  [CharacterRelationType.LOVER]: "恋人",
+  [CharacterRelationType.COLLEAGUE]: "同事",
+  [CharacterRelationType.TEACHER]: "老师",
+  [CharacterRelationType.STUDENT]: "学生",
+  [CharacterRelationType.PARTNER]: "搭档",
+  [CharacterRelationType.UNKNOWN]: "未知",
+  [CharacterRelationType.MASTER_STUDENT]: "师徒",
+  [CharacterRelationType.SUPERIOR_SUBORDINATE]: "上下级",
+  [CharacterRelationType.ACQUAINTANCE]: "相识",
+  [CharacterRelationType.OTHER]: "其他",
+};
+
+export interface CharacterVoiceProfile {
+  voiceId?: string | null;
+  providerId?: string | null;
+  modelId?: string | null;
+  language?: string | null;
+  gender?: string | null;
+  style?: string | null;
+}
+
+export interface CharacterImageProfile {
+  visualStyle?: string | null;
+  referencePrompt?: string | null;
+  negativePrompt?: string | null;
+  identityPrompt?: string | null;
+  seed?: string | number | null;
+  referenceAssetId?: string | null;
+  consistencyConfig?: Record<string, unknown> | null;
+}
+
 export interface Character {
   id: string;
   projectId: string;
+  worldId: string | null;
+  civilizationId: string | null;
+  factionId: string | null;
   name: string;
+  alias: string | null;
+  gender: string | null;
+  age: number | null;
+  race: string | null;
+  identity: string | null;
+  role: string | null;
   description: string | null;
+  personality: string | null;
+  appearance: string | null;
+  background: string | null;
+  motivation: string | null;
+  goal: string | null;
+  conflict: string | null;
+  ability: string | null;
+  personalityProfile: Record<string, unknown> | null;
+  appearanceProfile: Record<string, unknown> | null;
+  abilities: unknown[] | null;
+  voiceProfile: CharacterVoiceProfile | null;
+  imageProfile: CharacterImageProfile | null;
+  metadata: Record<string, unknown> | null;
+  status: CharacterStatus;
   createdAt: string;
   updatedAt: string;
+  civilization: CharacterCivilizationRef | null;
+  faction: CharacterFactionRef | null;
+}
+
+export interface CharacterInput {
+  name: string;
+  alias?: string | null;
+  gender?: string | null;
+  age?: number | null;
+  race?: string | null;
+  identity?: string | null;
+  role?: string | null;
+  civilizationId?: string | null;
+  factionId?: string | null;
+  description?: string | null;
+  personality?: string | null;
+  appearance?: string | null;
+  background?: string | null;
+  motivation?: string | null;
+  goal?: string | null;
+  conflict?: string | null;
+  ability?: string | null;
+  status?: CharacterStatus;
+}
+
+export type CharacterUpdateInput = Partial<CharacterInput>;
+export type UpdateCharacterInput = CharacterUpdateInput;
+
+export interface CharacterListQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  role?: string;
+  civilizationId?: string;
+  factionId?: string;
+}
+
+export interface CharacterListResult {
+  items: Character[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface CharacterRelationship {
+  id: string;
+  projectId: string;
+  fromCharacterId: string;
+  toCharacterId: string;
+  type: CharacterRelationType;
+  label: string | null;
+  description: string | null;
+  strength: number;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  fromCharacter: CharacterRef;
+  toCharacter: CharacterRef;
+}
+
+export interface CharacterRelationshipInput {
+  fromCharacterId: string;
+  toCharacterId: string;
+  type: CharacterRelationType;
+  label?: string | null;
+  description?: string | null;
+  strength?: number;
+}
+
+export interface CharacterRelationshipUpdateInput {
+  type?: CharacterRelationType;
+  label?: string | null;
+  description?: string | null;
+  strength?: number;
+}
+
+export type UpdateCharacterRelationshipInput = CharacterRelationshipUpdateInput;
+
+export interface CharacterContext {
+  name: string;
+  alias: string | null;
+  gender: string | null;
+  age: number | null;
+  role: string | null;
+  status: CharacterStatus;
+  civilization: string | null;
+  faction: string | null;
+  description: string | null;
+  personality: string | null;
+  appearance: string | null;
+  background: string | null;
+  motivation: string | null;
+  goal: string | null;
+  ability: string | null;
 }
 
 export interface Location {
@@ -138,16 +347,27 @@ export interface Asset {
   updatedAt: string;
 }
 
+export interface GenerationTaskUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  durationMs?: number;
+  estimatedCost?: number;
+}
+
 export interface GenerationTask {
   id: string;
   projectId: string;
   type: GenerationTaskType;
   status: GenerationTaskStatus;
+  capability?: AiCapability | null;
   provider: string | null;
   model: string | null;
   input: Record<string, unknown> | null;
   output: Record<string, unknown> | null;
   error: string | null;
+  usage?: GenerationTaskUsage | null;
+  appliedAt?: string | null;
   retryCount: number;
   createdAt: string;
   updatedAt: string;
@@ -316,6 +536,76 @@ export interface WorldGenerationInput {
   detailLevel?: WorldGenerationDetailLevel | string;
 }
 
+export const CHARACTER_GENERATION_STYLES = [
+  "东方玄幻",
+  "赛博朋克",
+  "科幻",
+  "现代",
+  "其他",
+] as const;
+
+export type CharacterGenerationStyle =
+  (typeof CHARACTER_GENERATION_STYLES)[number];
+
+export const CHARACTER_GENERATION_DETAIL_LEVELS = [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+] as const;
+
+export type CharacterGenerationDetailLevel =
+  (typeof CHARACTER_GENERATION_DETAIL_LEVELS)[number];
+
+export interface CharacterGenerationInput {
+  prompt: string;
+  style?: CharacterGenerationStyle | string;
+  detailLevel?: CharacterGenerationDetailLevel | string;
+  name?: string;
+  role?: string;
+  gender?: string;
+  age?: number | string;
+  civilizationId?: string | null;
+  factionId?: string | null;
+  personality?: string;
+  appearance?: string;
+  background?: string;
+  goal?: string;
+  motivation?: string;
+  conflict?: string;
+}
+
+export interface CharacterGenerationCharacter {
+  name: string;
+  alias: string;
+  gender: string;
+  age: string;
+  race: string;
+  identity: string;
+  role: string;
+  personality: Record<string, unknown>;
+  appearance: Record<string, unknown>;
+  background: string;
+  goal: string;
+  motivation: string;
+  conflict: string;
+  abilities: unknown[];
+  civilizationName?: string;
+  factionName?: string;
+}
+
+export interface CharacterGenerationRelationship {
+  targetName: string;
+  type: string;
+  label?: string;
+  description?: string;
+  strength?: number;
+}
+
+export interface CharacterGenerationResult {
+  character: CharacterGenerationCharacter;
+  relationships: CharacterGenerationRelationship[];
+}
+
 export interface WorldGenerationCivilization {
   name: string;
   type: string;
@@ -389,7 +679,33 @@ export const SUPPORTED_AI_PROVIDER_KINDS: AIProviderKind[] = [
 
 export const SYSTEM_AI_PROVIDER_ID = "system";
 
-export type AIProviderSource = "project" | "default" | "system";
+export type AIProviderSource = "project" | "user" | "default" | "system";
+
+export type CapabilityProviderSource = "PROJECT" | "USER" | "PLATFORM" | "SYSTEM";
+
+export enum AiCapability {
+  CHAT = "CHAT",
+  STRUCTURED_OUTPUT = "STRUCTURED_OUTPUT",
+  IMAGE = "IMAGE",
+  VIDEO = "VIDEO",
+  IMAGE_TO_VIDEO = "IMAGE_TO_VIDEO",
+  TTS = "TTS",
+  VOICE_CLONE = "VOICE_CLONE",
+  MUSIC = "MUSIC",
+  EMBEDDING = "EMBEDDING",
+}
+
+export const AI_CAPABILITIES = [
+  AiCapability.CHAT,
+  AiCapability.STRUCTURED_OUTPUT,
+  AiCapability.IMAGE,
+  AiCapability.VIDEO,
+  AiCapability.IMAGE_TO_VIDEO,
+  AiCapability.TTS,
+  AiCapability.VOICE_CLONE,
+  AiCapability.MUSIC,
+  AiCapability.EMBEDDING,
+] as const;
 
 export interface AIProvider {
   id: string;
@@ -400,6 +716,7 @@ export interface AIProvider {
   isDefault: boolean;
   enabled: boolean;
   hasApiKey: boolean;
+  capabilities: AiCapability[];
   createdAt: string;
   updatedAt: string;
 }
@@ -412,6 +729,7 @@ export interface CreateAIProviderInput {
   model: string;
   isDefault?: boolean;
   enabled?: boolean;
+  capabilities?: AiCapability[];
 }
 
 export interface UpdateAIProviderInput {
@@ -422,6 +740,51 @@ export interface UpdateAIProviderInput {
   model?: string;
   isDefault?: boolean;
   enabled?: boolean;
+  capabilities?: AiCapability[];
+}
+
+export interface AiCapabilityDefinition {
+  capability: AiCapability;
+  label: string;
+  implemented: boolean;
+}
+
+export interface ProjectAiCapabilitySummary {
+  providerId?: string | null;
+  providerName?: string | null;
+  model?: string | null;
+  source?: CapabilityProviderSource;
+  configured: boolean;
+  implemented?: boolean;
+  code?: string;
+}
+
+export type ProjectAiConfigMap = Record<AiCapability, ProjectAiCapabilitySummary>;
+
+export interface SetProjectAiConfigInput {
+  providerId?: string | null;
+  modelId?: string | null;
+}
+
+export interface AiModel {
+  id: string;
+  providerId: string;
+  name: string;
+  modelId: string;
+  capabilities: AiCapability[];
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectAiConfig {
+  id: string;
+  projectId: string;
+  capability: AiCapability;
+  providerId: string | null;
+  modelId: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AIProviderTestInput {

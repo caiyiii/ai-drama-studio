@@ -3,8 +3,11 @@ import type {
   AIProvider,
   AIProviderTestInput,
   AIProviderTestResult,
+  AiCapability,
+  AiCapabilityDefinition,
   CreateAIProviderInput,
   ProjectAIProvider,
+  ProjectAiConfigMap,
   UpdateAIProviderInput,
 } from "@ai-drama-studio/types";
 
@@ -12,6 +15,8 @@ export const useAiProviderStore = defineStore("ai-provider", () => {
   const { $api } = useNuxtApp();
   const providers = ref<AIProvider[]>([]);
   const projectConfig = ref<ProjectAIProvider | null>(null);
+  const capabilities = ref<AiCapabilityDefinition[]>([]);
+  const projectAiConfig = ref<ProjectAiConfigMap | null>(null);
   const loading = ref(false);
   const saving = ref(false);
   const testing = ref(false);
@@ -143,9 +148,65 @@ export const useAiProviderStore = defineStore("ai-provider", () => {
     }
   }
 
+  async function loadCapabilities() {
+    try {
+      capabilities.value = await $api.getAiCapabilities();
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "加载 AI 能力失败";
+    }
+  }
+
+  async function loadProjectAiConfig(projectId: string) {
+    try {
+      projectAiConfig.value = await $api.getProjectAiConfig(projectId);
+      return projectAiConfig.value;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "加载项目 AI 能力配置失败";
+      return null;
+    }
+  }
+
+  async function setProjectAiCapability(
+    projectId: string,
+    capability: AiCapability,
+    providerId: string | null,
+    modelId?: string | null,
+  ) {
+    saving.value = true;
+    error.value = null;
+    try {
+      projectAiConfig.value = await $api.setProjectAiConfig(projectId, capability, {
+        providerId,
+        modelId,
+      });
+      return projectAiConfig.value;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "更新项目 AI 能力配置失败";
+      return null;
+    } finally {
+      saving.value = false;
+    }
+  }
+
+  async function clearProjectAiCapability(projectId: string, capability: AiCapability) {
+    saving.value = true;
+    error.value = null;
+    try {
+      projectAiConfig.value = await $api.deleteProjectAiConfig(projectId, capability);
+      return projectAiConfig.value;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "清除项目 AI 能力配置失败";
+      return null;
+    } finally {
+      saving.value = false;
+    }
+  }
+
   return {
     providers,
     projectConfig,
+    capabilities,
+    projectAiConfig,
     loading,
     saving,
     testing,
@@ -159,5 +220,9 @@ export const useAiProviderStore = defineStore("ai-provider", () => {
     testProviderConfig,
     loadProjectConfig,
     setProjectProvider,
+    loadCapabilities,
+    loadProjectAiConfig,
+    setProjectAiCapability,
+    clearProjectAiCapability,
   };
 });

@@ -8,7 +8,9 @@ export {
 } from "./workflow";
 export {
   canRetryTask,
+  getGenerationDurationLabel,
   getGenerationStatusLabel,
+  getGenerationTypeLabel,
   isTaskInProgress,
   isTaskTerminal,
 } from "./generation";
@@ -22,4 +24,35 @@ export {
   getStepProgressPercent,
 } from "./project";
 export type { ProductionStepState } from "./project";
-export { getWorldNav, parsePowerLevels, parsePowerRules } from "./world";
+export {
+  getWorldNav,
+  parsePowerLevels,
+  parsePowerRules,
+} from "./world";
+export {
+  DEFAULT_RELATION_STRENGTH,
+  buildCharacterContext,
+  canLinkCharacters,
+  clampRelationStrength,
+  filterFactionsByCivilization,
+  getCharacterRelationTypeLabel,
+  getCharacterStatusLabel,
+  isActiveCharacter,
+  isSelfRelationship,
+  relationshipsForCharacter,
+  serializeCharacterContext,
+} from "./character";
+export {
+  LEGACY_TEXT_CAPABILITIES,
+  defaultProviderCapabilities,
+  getAiCapabilityDefinitions,
+  getAiCapabilityLabel,
+  isAiCapability,
+  isAiCapabilityImplemented,
+  isLegacyTextCapability,
+  kindAllowsCapability,
+  modelSupportsCapability,
+  providerSupportsCapability,
+  toLegacyProviderSource,
+} from "./ai-capability";
+export type { CapabilityProviderSource } from "./ai-capability";

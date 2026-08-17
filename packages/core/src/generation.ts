@@ -1,5 +1,6 @@
 import {
   GenerationTaskStatus,
+  GenerationTaskType,
   type GenerationTask,
 } from "@ai-drama-studio/types";
 
@@ -34,4 +35,28 @@ const STATUS_LABELS: Record<GenerationTaskStatus, string> = {
 
 export function getGenerationStatusLabel(status: GenerationTaskStatus): string {
   return STATUS_LABELS[status] ?? status;
+}
+
+const TYPE_LABELS: Record<GenerationTaskType, string> = {
+  [GenerationTaskType.WORLD]: "世界观",
+  [GenerationTaskType.CHARACTER]: "人物",
+  [GenerationTaskType.SCRIPT]: "剧本",
+  [GenerationTaskType.IMAGE]: "图片",
+  [GenerationTaskType.VIDEO]: "视频",
+  [GenerationTaskType.VOICE]: "配音",
+  [GenerationTaskType.STORYBOARD]: "分镜",
+};
+
+export function getGenerationTypeLabel(type: GenerationTaskType): string {
+  return TYPE_LABELS[type] ?? type;
+}
+
+export function getGenerationDurationLabel(
+  usage: GenerationTask["usage"] | null | undefined,
+): string | null {
+  const ms = usage?.durationMs;
+  if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) {
+    return null;
+  }
+  return `${(ms / 1000).toFixed(1)}s`;
 }

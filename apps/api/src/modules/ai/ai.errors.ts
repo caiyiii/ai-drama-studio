@@ -6,6 +6,7 @@ export class AiProviderError extends Error {
     | "INVALID_JSON"
     | "SCHEMA_INVALID"
     | "NO_AI_PROVIDER_CONFIGURED"
+    | "CAPABILITY_NOT_IMPLEMENTED"
     | "UNKNOWN";
 
   constructor(

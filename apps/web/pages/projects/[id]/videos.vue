@@ -2,7 +2,7 @@
   <WorkspacePlaceholder
     eyebrow="Videos"
     title="视频"
-    description="镜头与成片生成将通过 GenerationTask 接入，客户端不直连 Provider。"
+    description="尚未配置视频生成 AI。VIDEO / IMAGE_TO_VIDEO 请在项目设置中配置对应 Provider。"
     :step="ProjectStep.VIDEOS"
   />
 </template>

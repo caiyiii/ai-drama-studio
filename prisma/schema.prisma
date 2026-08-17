@@ -37,6 +37,7 @@ enum AssetType {
 
 enum GenerationTaskType {
   WORLD
+  CHARACTER
   SCRIPT
   IMAGE
   VIDEO
@@ -61,6 +62,44 @@ enum AiProviderKind {
   CLAUDE
 }
 
+enum CharacterStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CharacterRelationType {
+  FRIEND
+  ENEMY
+  ALLY
+  RIVAL
+  MASTER
+  DISCIPLE
+  FAMILY
+  LOVER
+  COLLEAGUE
+  TEACHER
+  STUDENT
+  PARTNER
+  UNKNOWN
+  MASTER_STUDENT
+  SUPERIOR_SUBORDINATE
+  ACQUAINTANCE
+  OTHER
+}
+
+enum AiCapability {
+  CHAT
+  STRUCTURED_OUTPUT
+  IMAGE
+  VIDEO
+  IMAGE_TO_VIDEO
+  TTS
+  VOICE_CLONE
+  MUSIC
+  EMBEDDING
+}
+
 model User {
   id          String       @id @default(cuid())
   name        String
@@ -72,26 +111,28 @@ model User {
 }
 
 model Project {
-  id              String           @id @default(cuid())
-  name            String
-  description     String?
-  genre           String?
-  cover           String?
-  status          ProjectStatus    @default(DRAFT)
-  currentStep     ProjectStep      @default(WORLD)
-  userId          String
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiProviderId    String?
-  aiProvider      AiProvider?      @relation("ProjectSelectedProvider", fields: [aiProviderId], references: [id], onDelete: Restrict)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  episodes        Episode[]
-  characters      Character[]
-  locations       Location[]
-  assets          Asset[]
-  generationTasks GenerationTask[]
-  world           World?
-  ownedProviders  AiProvider[]     @relation("ProviderOwnedByProject")
+  id                     String                   @id @default(cuid())
+  name                   String
+  description            String?
+  genre                  String?
+  cover                  String?
+  status                 ProjectStatus            @default(DRAFT)
+  currentStep            ProjectStep              @default(WORLD)
+  userId                 String
+  user                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiProviderId           String?
+  aiProvider             AiProvider?              @relation("ProjectSelectedProvider", fields: [aiProviderId], references: [id], onDelete: Restrict)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  episodes               Episode[]
+  characters             Character[]
+  locations              Location[]
+  assets                 Asset[]
+  generationTasks        GenerationTask[]
+  world                  World?
+  ownedProviders         AiProvider[]             @relation("ProviderOwnedByProject")
+  characterRelationships CharacterRelationship[]
+  aiConfigs              ProjectAiConfig[]
 
   @@index([aiProviderId])
 }
@@ -108,13 +149,69 @@ model Episode {
 }
 
 model Character {
-  id          String   @id @default(cuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  String                   @id @default(cuid())
+  projectId           String
+  project             Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  worldId             String?
+  world               World?                   @relation(fields: [worldId], references: [id], onDelete: SetNull)
+  civilizationId      String?
+  civilization        Civilization?            @relation(fields: [civilizationId], references: [id], onDelete: SetNull)
+  factionId           String?
+  faction             Faction?                 @relation(fields: [factionId], references: [id], onDelete: SetNull)
+  name                String
+  alias               String?
+  gender              String?
+  age                 Int?
+  race                String?
+  identity            String?
+  role                String?
+  description         String?
+  personality         String?
+  appearance          String?
+  background          String?
+  motivation          String?
+  goal                String?
+  conflict            String?
+  ability             String?
+  personalityProfile  Json?
+  appearanceProfile   Json?
+  abilities           Json?
+  voiceProfile        Json?
+  imageProfile        Json?
+  metadata            Json?
+  status              CharacterStatus          @default(ACTIVE)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  outgoingRelations   CharacterRelationship[]  @relation("CharacterRelationFrom")
+  incomingRelations   CharacterRelationship[]  @relation("CharacterRelationTo")
+
+  @@index([projectId])
+  @@index([worldId])
+  @@index([civilizationId])
+  @@index([factionId])
+  @@index([projectId, name])
+}
+
+model CharacterRelationship {
+  id              String                 @id @default(cuid())
+  projectId       String
+  project         Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromCharacterId String
+  fromCharacter   Character              @relation("CharacterRelationFrom", fields: [fromCharacterId], references: [id], onDelete: Cascade)
+  toCharacterId   String
+  toCharacter     Character              @relation("CharacterRelationTo", fields: [toCharacterId], references: [id], onDelete: Cascade)
+  type            CharacterRelationType
+  label           String?
+  description     String?
+  strength        Int                    @default(3)
+  metadata        Json?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@unique([fromCharacterId, toCharacterId, type])
+  @@index([projectId])
+  @@index([fromCharacterId])
+  @@index([toCharacterId])
 }
 
 model Location {
@@ -145,11 +242,14 @@ model GenerationTask {
   project    Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
   type       GenerationTaskType
   status     GenerationTaskStatus  @default(PENDING)
+  capability AiCapability?
   provider   String?
   model      String?
   input      Json?
   output     Json?
   error      String?
+  usage      Json?
+  appliedAt  DateTime?
   retryCount Int                   @default(0)
   createdAt  DateTime              @default(now())
   updatedAt  DateTime              @updatedAt
@@ -158,25 +258,74 @@ model GenerationTask {
 }
 
 model AiProvider {
-  id                 String        @id @default(cuid())
+  id                 String                 @id @default(cuid())
   name               String
   provider           AiProviderKind
   baseUrl            String
   model              String
   encryptedApiKey    String
-  isDefault          Boolean       @default(false)
-  enabled            Boolean       @default(true)
+  isDefault          Boolean                @default(false)
+  enabled            Boolean                @default(true)
   userId             String?
-  user               User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user               User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   projectId          String?
-  ownedByProject     Project?      @relation("ProviderOwnedByProject", fields: [projectId], references: [id], onDelete: SetNull)
-  selectedByProjects Project[]     @relation("ProjectSelectedProvider")
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  ownedByProject     Project?               @relation("ProviderOwnedByProject", fields: [projectId], references: [id], onDelete: SetNull)
+  selectedByProjects Project[]              @relation("ProjectSelectedProvider")
+  capabilities       AiProviderCapability[]
+  models             AiModel[]
+  projectAiConfigs   ProjectAiConfig[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
 
   @@index([userId])
   @@index([projectId])
   @@index([isDefault, enabled])
+}
+
+model AiProviderCapability {
+  id         String       @id @default(cuid())
+  providerId String
+  provider   AiProvider   @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  capability AiCapability
+  enabled    Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([providerId, capability])
+  @@index([providerId])
+}
+
+model AiModel {
+  id               String            @id @default(cuid())
+  providerId       String
+  provider         AiProvider        @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  name             String
+  modelId          String
+  capabilities     AiCapability[]
+  enabled          Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  projectAiConfigs ProjectAiConfig[]
+
+  @@unique([providerId, modelId])
+  @@index([providerId])
+}
+
+model ProjectAiConfig {
+  id         String       @id @default(cuid())
+  projectId  String
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  capability AiCapability
+  providerId String?
+  provider   AiProvider?  @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  modelId    String?
+  model      AiModel?     @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([projectId, capability])
+  @@index([projectId])
+  @@index([providerId])
 }
 
 model World {
@@ -194,6 +343,7 @@ model World {
   factions         Faction[]
   worldLocations   WorldLocation[]
   powerSystems     PowerSystem[]
+  characters       Character[]
 }
 
 model Civilization {
@@ -211,6 +361,7 @@ model Civilization {
   updatedAt      DateTime        @updatedAt
   factions       Faction[]
   worldLocations WorldLocation[]
+  characters     Character[]
 
   @@index([worldId])
 }
@@ -239,6 +390,7 @@ model Faction {
   type           String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  characters     Character[]
 
   @@index([worldId])
 }

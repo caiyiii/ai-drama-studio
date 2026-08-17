@@ -16,7 +16,12 @@ describe("World generation uses ProviderResolver", () => {
       },
     };
     const ai = {
-      resolveForProject: async () => ({
+      resolveForCapability: async (
+        _projectId: string,
+        capability: string,
+      ) => {
+        expect(capability).toBe("STRUCTURED_OUTPUT");
+        return {
         source: "project",
         id: "prov-1",
         name: "我的 DeepSeek",
@@ -26,7 +31,8 @@ describe("World generation uses ProviderResolver", () => {
         apiKey: "sk-project",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      }),
+      };
+      },
       generateWith: async () => ({
         world: {
           name: "星河碰撞",
@@ -55,6 +61,7 @@ describe("World generation uses ProviderResolver", () => {
     });
     expect(created[0]?.provider).toBe("我的 DeepSeek");
     expect(created[0]?.model).toBe("deepseek-chat");
+    expect(created[0]?.capability).toBe("STRUCTURED_OUTPUT");
   });
 
   it("uses the default provider when the project has none", async () => {
@@ -69,7 +76,7 @@ describe("World generation uses ProviderResolver", () => {
       },
     };
     const ai = {
-      resolveForProject: async () => ({
+      resolveForCapability: async () => ({
         source: "default",
         id: "prov-default",
         name: "默认 Provider",
@@ -109,7 +116,7 @@ describe("World generation uses ProviderResolver", () => {
       },
     };
     const ai = {
-      resolveForProject: async () => ({
+      resolveForCapability: async () => ({
         source: "system",
         id: "system",
         name: "DeepSeek（系统）",
@@ -145,7 +152,7 @@ describe("World generation uses ProviderResolver", () => {
       generationTask: { create: async () => ({ id: "should-not" }) },
     };
     const ai = {
-      resolveForProject: async () => {
+      resolveForCapability: async () => {
         throw new AppError(
           HttpStatus.BAD_REQUEST,
           ErrorCodes.NO_AI_PROVIDER_CONFIGURED,

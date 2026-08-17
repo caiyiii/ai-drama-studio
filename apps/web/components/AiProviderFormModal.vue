@@ -53,6 +53,14 @@
           placeholder="deepseek-chat"
         />
       </label>
+      <div>
+        <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">Capabilities</p>
+        <div class="mt-2 space-y-2">
+          <StudioCheckbox v-model="form.chat" label="Chat" />
+          <StudioCheckbox v-model="form.structured" label="Structured Output" />
+          <p class="text-xs text-zinc-600">OpenAI Compatible 当前仅支持文本能力。Image / Video / TTS 请等待对应 Provider。</p>
+        </div>
+      </div>
       <StudioCheckbox v-model="form.isDefault" label="设为默认" />
 
       <p v-if="localError" class="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -90,6 +98,7 @@
 import {
   AIProviderKind,
   AI_PROVIDER_KIND_LABELS,
+  AiCapability,
   SUPPORTED_AI_PROVIDER_KINDS,
   type AIProvider,
 } from "@ai-drama-studio/types";
@@ -115,6 +124,8 @@ const form = reactive({
   apiKey: "",
   model: "",
   isDefault: false,
+  chat: true,
+  structured: true,
 });
 const verifiedSnapshot = ref<string | null>(null);
 const testOk = ref(false);
@@ -180,6 +191,9 @@ watch(
     form.apiKey = "";
     form.model = editing?.model ?? "";
     form.isDefault = editing?.isDefault ?? false;
+    form.chat = editing?.capabilities?.includes(AiCapability.CHAT) ?? true;
+    form.structured =
+      editing?.capabilities?.includes(AiCapability.STRUCTURED_OUTPUT) ?? true;
     verifiedSnapshot.value = editing ? connectionSnapshot() : null;
   },
 );
@@ -225,6 +239,14 @@ async function onSave() {
     localError.value = saveHint.value || "请先测试连接成功后再保存。";
     return;
   }
+  if (!form.chat && !form.structured) {
+    localError.value = "请至少选择一项文本能力。";
+    return;
+  }
+  const capabilities = [
+    ...(form.chat ? [AiCapability.CHAT] : []),
+    ...(form.structured ? [AiCapability.STRUCTURED_OUTPUT] : []),
+  ];
   localError.value = null;
   if (props.editing) {
     const updated = await store.updateProvider(props.editing.id, {
@@ -233,6 +255,7 @@ async function onSave() {
       baseUrl: form.baseUrl.trim(),
       model: form.model.trim(),
       isDefault: form.isDefault,
+      capabilities,
       ...(form.apiKey.trim() ? { apiKey: form.apiKey.trim() } : {}),
     });
     if (updated) {
@@ -250,6 +273,7 @@ async function onSave() {
     apiKey: form.apiKey.trim(),
     model: form.model.trim(),
     isDefault: form.isDefault,
+    capabilities,
   });
   if (created) {
     emit("saved");

@@ -3,6 +3,17 @@ import type {
   AIProvider,
   AIProviderTestInput,
   AIProviderTestResult,
+  AiCapability,
+  AiCapabilityDefinition,
+  Character,
+  CharacterInput,
+  CharacterListQuery,
+  CharacterListResult,
+  CharacterRelationship,
+  CharacterRelationshipInput,
+  CharacterRelationshipUpdateInput,
+  CharacterUpdateInput,
+  CharacterGenerationInput,
   Civilization,
   CreateAIProviderInput,
   CreateCivilizationInput,
@@ -17,6 +28,8 @@ import type {
   PowerSystem,
   Project,
   ProjectAIProvider,
+  ProjectAiConfigMap,
+  SetProjectAiConfigInput,
   UpdateAIProviderInput,
   UpdateCivilizationInput,
   UpdateFactionInput,
@@ -296,6 +309,30 @@ export class ApiClient {
     );
   }
 
+  async createCharacterGeneration(
+    projectId: string,
+    data: CharacterGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/character`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getCharacterGeneration(
+    projectId: string,
+    id: string,
+  ): Promise<GenerationTask> {
+    return this.getGeneration(projectId, id);
+  }
+
+  async applyCharacterGeneration(
+    projectId: string,
+    id: string,
+  ): Promise<GenerationTask> {
+    return this.applyWorldGeneration(projectId, id);
+  }
+
   async getAIProviders(): Promise<AIProvider[]> {
     return this.request<AIProvider[]>("/ai/providers");
   }
@@ -356,6 +393,145 @@ export class ApiClient {
         method: "PATCH",
         body: JSON.stringify({ aiProviderId }),
       },
+    );
+  }
+
+  async getAiCapabilities(): Promise<AiCapabilityDefinition[]> {
+    return this.request<AiCapabilityDefinition[]>("/ai/capabilities");
+  }
+
+  async getProjectAiConfig(projectId: string): Promise<ProjectAiConfigMap> {
+    return this.request<ProjectAiConfigMap>(`/projects/${projectId}/ai-config`);
+  }
+
+  async setProjectAiConfig(
+    projectId: string,
+    capability: AiCapability,
+    input: SetProjectAiConfigInput,
+  ): Promise<ProjectAiConfigMap> {
+    return this.request<ProjectAiConfigMap>(
+      `/projects/${projectId}/ai-config/${capability}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      },
+    );
+  }
+
+  async deleteProjectAiConfig(
+    projectId: string,
+    capability: AiCapability,
+  ): Promise<ProjectAiConfigMap> {
+    return this.request<ProjectAiConfigMap>(
+      `/projects/${projectId}/ai-config/${capability}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async getCharacters(
+    projectId: string,
+    query: CharacterListQuery = {},
+  ): Promise<Character[]> {
+    const result = await this.listCharacters(projectId, query);
+    return result.items;
+  }
+
+  async listCharacters(
+    projectId: string,
+    query: CharacterListQuery = {},
+  ): Promise<CharacterListResult> {
+    const params = new URLSearchParams();
+    if (query.page) params.set("page", String(query.page));
+    if (query.pageSize) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.role) params.set("role", query.role);
+    if (query.civilizationId) params.set("civilizationId", query.civilizationId);
+    if (query.factionId) params.set("factionId", query.factionId);
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    return this.request<CharacterListResult>(
+      `/projects/${projectId}/characters${suffix}`,
+    );
+  }
+
+  async getCharacter(projectId: string, characterId: string): Promise<Character> {
+    return this.request<Character>(
+      `/projects/${projectId}/characters/${characterId}`,
+    );
+  }
+
+  async createCharacter(
+    projectId: string,
+    input: CharacterInput,
+  ): Promise<Character> {
+    return this.request<Character>(`/projects/${projectId}/characters`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateCharacter(
+    projectId: string,
+    characterId: string,
+    input: CharacterUpdateInput,
+  ): Promise<Character> {
+    return this.request<Character>(
+      `/projects/${projectId}/characters/${characterId}`,
+      { method: "PATCH", body: JSON.stringify(input) },
+    );
+  }
+
+  async deleteCharacter(projectId: string, characterId: string): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/characters/${characterId}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async getCharacterRelationships(
+    projectId: string,
+  ): Promise<CharacterRelationship[]> {
+    return this.request<CharacterRelationship[]>(
+      `/projects/${projectId}/character-relationships`,
+    );
+  }
+
+  async getCharacterRelationship(
+    projectId: string,
+    relationshipId: string,
+  ): Promise<CharacterRelationship> {
+    return this.request<CharacterRelationship>(
+      `/projects/${projectId}/character-relationships/${relationshipId}`,
+    );
+  }
+
+  async createCharacterRelationship(
+    projectId: string,
+    input: CharacterRelationshipInput,
+  ): Promise<CharacterRelationship> {
+    return this.request<CharacterRelationship>(
+      `/projects/${projectId}/character-relationships`,
+      { method: "POST", body: JSON.stringify(input) },
+    );
+  }
+
+  async updateCharacterRelationship(
+    projectId: string,
+    relationshipId: string,
+    input: CharacterRelationshipUpdateInput,
+  ): Promise<CharacterRelationship> {
+    return this.request<CharacterRelationship>(
+      `/projects/${projectId}/character-relationships/${relationshipId}`,
+      { method: "PATCH", body: JSON.stringify(input) },
+    );
+  }
+
+  async deleteCharacterRelationship(
+    projectId: string,
+    relationshipId: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/character-relationships/${relationshipId}`,
+      { method: "DELETE" },
     );
   }
 

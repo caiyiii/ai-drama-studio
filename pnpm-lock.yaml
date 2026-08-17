@@ -45,6 +45,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@ai-drama-studio/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@ai-drama-studio/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@ai-drama-studio/types':
         specifier: workspace:*
         version: link:../../packages/types

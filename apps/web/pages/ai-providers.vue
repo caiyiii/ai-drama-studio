@@ -53,9 +53,21 @@
               <dt>Model</dt>
               <dd class="text-zinc-200">{{ item.model }}</dd>
             </div>
+            <div>
+              <dt class="mb-2">支持能力</dt>
+              <dd class="flex flex-wrap gap-1.5">
+                <span
+                  v-for="cap in item.capabilities"
+                  :key="cap"
+                  class="rounded-full border border-white/10 px-2 py-0.5 text-[11px] text-zinc-300"
+                >
+                  ✓ {{ capabilityLabel(cap) }}
+                </span>
+              </dd>
+            </div>
             <div class="flex justify-between gap-3">
               <dt>API Key</dt>
-              <dd>{{ item.hasApiKey ? "••••••••••••••" : "未配置" }}</dd>
+              <dd>{{ item.hasApiKey ? "已配置" : "未配置" }}</dd>
             </div>
             <div class="flex items-center justify-between gap-3">
               <dt>状态</dt>
@@ -132,7 +144,9 @@ import {
   AI_PROVIDER_KIND_LABELS,
   type AIProvider,
   type AIProviderKind,
+  type AiCapability,
 } from "@ai-drama-studio/types";
+import { getAiCapabilityLabel } from "@ai-drama-studio/core";
 import { useAiProviderStore } from "~/stores/ai-provider";
 
 const store = useAiProviderStore();
@@ -146,6 +160,10 @@ onMounted(() => {
 
 function kindLabel(kind: AIProviderKind) {
   return AI_PROVIDER_KIND_LABELS[kind] ?? kind;
+}
+
+function capabilityLabel(capability: AiCapability) {
+  return getAiCapabilityLabel(capability);
 }
 
 function statusLabel(item: AIProvider) {

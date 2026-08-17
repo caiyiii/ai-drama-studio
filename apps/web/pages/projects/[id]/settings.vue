@@ -35,7 +35,9 @@
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 class="font-display text-2xl">AI 配置</h2>
-              <p class="mt-1 text-sm text-zinc-500">当前项目 AI Provider。未指定时使用默认或系统 Provider。</p>
+              <p class="mt-1 text-sm text-zinc-500">
+                按能力指定 Provider。未配置时自动回退到项目默认、平台或系统 Provider。
+              </p>
             </div>
             <NuxtLink
               to="/ai-providers"
@@ -45,48 +47,76 @@
             </NuxtLink>
           </div>
 
-          <dl class="mt-5 space-y-2 text-sm text-zinc-400">
-            <div class="flex justify-between gap-3">
-              <dt>Provider</dt>
-              <dd class="text-zinc-100">{{ currentName }}</dd>
-            </div>
-            <div class="flex justify-between gap-3">
-              <dt>类型</dt>
-              <dd class="text-zinc-100">{{ currentKind }}</dd>
-            </div>
-            <div class="flex justify-between gap-3">
-              <dt>Model</dt>
-              <dd class="text-zinc-100">{{ currentModel }}</dd>
-            </div>
-            <div class="flex items-center justify-between gap-3">
-              <dt>Status</dt>
-              <dd class="flex items-center gap-2 text-zinc-100">
-                <span class="h-2 w-2 rounded-full" :class="statusClass" />
-                {{ currentStatus }}
-              </dd>
-            </div>
-            <div class="flex justify-between gap-3">
-              <dt>来源</dt>
-              <dd>{{ sourceLabel }}</dd>
-            </div>
-          </dl>
+          <div class="mt-5 space-y-3">
+            <article
+              v-for="item in aiStore.capabilities"
+              :key="item.capability"
+              class="rounded-xl border border-white/5 bg-ink-900/50 p-4"
+            >
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-medium text-zinc-100">{{ item.label }}</h3>
+                  <p class="mt-1 text-xs text-zinc-500">
+                    {{ capabilitySummary(item.capability) }}
+                  </p>
+                </div>
+                <span
+                  class="rounded-full px-2 py-0.5 text-[11px]"
+                  :class="item.implemented ? 'border border-emerald-400/20 text-emerald-300' : 'border border-white/10 text-zinc-500'"
+                >
+                  {{ item.implemented ? "已实现" : "架构预留" }}
+                </span>
+              </div>
+              <div class="mt-3 flex flex-col gap-2 tablet:flex-row tablet:items-center">
+                <StudioSelect
+                  v-model="capabilitySelection[item.capability]"
+                  class="w-full tablet:max-w-sm"
+                  :options="capabilityProviderOptions(item.capability)"
+                />
+                <button
+                  type="button"
+                  :disabled="aiStore.saving"
+                  class="rounded-xl border border-white/10 px-3 py-1.5 text-sm disabled:opacity-40"
+                  @click="onSaveCapability(item.capability)"
+                >
+                  {{ capabilityConfigured(item.capability) ? "更新" : "配置" }}
+                </button>
+              </div>
+            </article>
+          </div>
 
           <p v-if="aiStore.error" class="mt-4 text-sm text-red-300">{{ aiStore.error }}</p>
 
-          <div class="mt-5 flex flex-col gap-3 tablet:flex-row tablet:items-center">
-            <StudioSelect
-              v-model="selectedId"
-              class="w-full tablet:max-w-sm"
-              :options="providerOptions"
-            />
-            <button
-              type="button"
-              :disabled="aiStore.saving"
-              class="rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950 disabled:opacity-40"
-              @click="onChangeProvider"
-            >
-              {{ aiStore.saving ? "保存中…" : "更换 Provider" }}
-            </button>
+          <div class="mt-6 border-t border-white/5 pt-5">
+            <h3 class="text-sm font-medium text-zinc-200">兼容：项目默认文本 Provider</h3>
+            <p class="mt-1 text-xs text-zinc-500">
+              用于 CHAT / STRUCTURED_OUTPUT 的旧版回退。未单独配置能力时仍会使用它。
+            </p>
+            <dl class="mt-3 space-y-2 text-sm text-zinc-400">
+              <div class="flex justify-between gap-3">
+                <dt>当前</dt>
+                <dd class="text-zinc-100">{{ currentName }} · {{ currentModel }}</dd>
+              </div>
+              <div class="flex justify-between gap-3">
+                <dt>来源</dt>
+                <dd>{{ sourceLabel }}</dd>
+              </div>
+            </dl>
+            <div class="mt-3 flex flex-col gap-3 tablet:flex-row tablet:items-center">
+              <StudioSelect
+                v-model="selectedId"
+                class="w-full tablet:max-w-sm"
+                :options="providerOptions"
+              />
+              <button
+                type="button"
+                :disabled="aiStore.saving"
+                class="rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950 disabled:opacity-40"
+                @click="onChangeProvider"
+              >
+                {{ aiStore.saving ? "保存中…" : "更换 Provider" }}
+              </button>
+            </div>
           </div>
         </article>
 
@@ -112,7 +142,7 @@
 
 <script setup lang="ts">
 import {
-  AI_PROVIDER_KIND_LABELS,
+  AiCapability,
   type CreateProjectInput,
 } from "@ai-drama-studio/types";
 import { useCurrentProject } from "~/composables/useCurrentProject";
@@ -122,6 +152,7 @@ const { store, project, loading, error, ensureProject, projectId } = useCurrentP
 const aiStore = useAiProviderStore();
 const pendingDelete = ref(false);
 const selectedId = ref("");
+const capabilitySelection = reactive<Record<string, string>>({});
 const providerOptions = computed(() => [
   { value: "", label: "使用默认 / 系统 Provider" },
   ...aiStore.providers.map((item) => ({
@@ -136,23 +167,11 @@ const deleteTitle = computed(() =>
 
 const resolved = computed(() => aiStore.projectConfig?.resolved ?? null);
 const currentName = computed(() => resolved.value?.provider.name ?? "未配置");
-const currentKind = computed(() => {
-  const kind = resolved.value?.provider.provider;
-  return kind ? AI_PROVIDER_KIND_LABELS[kind] ?? kind : "—";
-});
 const currentModel = computed(() => resolved.value?.provider.model ?? "—");
-const currentStatus = computed(() => {
-  if (!resolved.value) {
-    return "未配置";
-  }
-  return resolved.value.provider.hasApiKey ? "已配置" : "缺少 API Key";
-});
-const statusClass = computed(() =>
-  resolved.value?.provider.hasApiKey ? "bg-emerald-400" : "bg-zinc-600",
-);
 const sourceLabel = computed(() => {
   const source = resolved.value?.source;
   if (source === "project") return "项目指定";
+  if (source === "user") return "用户 Provider";
   if (source === "default") return "默认 Provider";
   if (source === "system") return "系统 .env";
   return "无";
@@ -166,9 +185,59 @@ onMounted(async () => {
   await Promise.all([
     aiStore.loadProviders(),
     aiStore.loadProjectConfig(projectId.value),
+    aiStore.loadCapabilities(),
+    aiStore.loadProjectAiConfig(projectId.value),
   ]);
   selectedId.value = aiStore.projectConfig?.aiProviderId ?? "";
+  syncCapabilitySelection();
 });
+
+function syncCapabilitySelection() {
+  const config = aiStore.projectAiConfig;
+  if (!config) {
+    return;
+  }
+  for (const item of aiStore.capabilities) {
+    const summary = config[item.capability];
+    capabilitySelection[item.capability] =
+      summary?.source === "PROJECT" ? summary.providerId ?? "" : "";
+  }
+}
+
+function capabilityConfigured(capability: AiCapability) {
+  return Boolean(aiStore.projectAiConfig?.[capability]?.configured);
+}
+
+function capabilitySummary(capability: AiCapability) {
+  const summary = aiStore.projectAiConfig?.[capability];
+  if (!summary?.configured) {
+    return capability === AiCapability.IMAGE
+      ? "尚未配置图片生成 AI"
+      : "未配置，将使用自动回退";
+  }
+  const source =
+    summary.source === "PROJECT"
+      ? "项目配置"
+      : summary.source === "USER"
+        ? "用户 Provider"
+        : summary.source === "PLATFORM"
+          ? "平台默认"
+          : "系统 .env";
+  return `${summary.providerName ?? "未命名"} · ${summary.model ?? "—"} · ${source}`;
+}
+
+function capabilityProviderOptions(capability: AiCapability) {
+  const compatible = aiStore.providers.filter((item) =>
+    item.capabilities?.includes(capability),
+  );
+  return [
+    { value: "", label: "自动回退" },
+    ...compatible.map((item) => ({
+      value: item.id,
+      label: `${item.name} · ${item.model}`,
+    })),
+  ];
+}
 
 async function onUpdate(payload: CreateProjectInput) {
   if (!projectId.value) {
@@ -186,7 +255,28 @@ async function onChangeProvider() {
   if (result) {
     selectedId.value = result.aiProviderId ?? "";
     await store.fetchProject(projectId.value);
+    await aiStore.loadProjectAiConfig(projectId.value);
+    syncCapabilitySelection();
   }
+}
+
+async function onSaveCapability(capability: AiCapability) {
+  if (!projectId.value) {
+    return;
+  }
+  const next = capabilitySelection[capability]?.trim() || "";
+  if (!next) {
+    await aiStore.clearProjectAiCapability(projectId.value, capability);
+  } else {
+    const provider = aiStore.providers.find((item) => item.id === next);
+    await aiStore.setProjectAiCapability(
+      projectId.value,
+      capability,
+      next,
+      provider?.model ?? null,
+    );
+  }
+  syncCapabilitySelection();
 }
 
 async function onDelete() {

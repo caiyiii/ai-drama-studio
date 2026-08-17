@@ -73,34 +73,49 @@ function createService(store: {
       findFirst: async () =>
         store.providers.find((item) => item.isDefault && item.enabled) ?? null,
     },
-    project: {
-      findUnique: async ({ where: { id } }: { where: { id: string } }) => {
-        const project = store.projects.find((item) => item.id === id);
-        if (!project) {
-          return null;
-        }
-        return {
-          ...project,
-          aiProvider:
-            store.providers.find((item) => item.id === project.aiProviderId) ?? null,
-        };
+      project: {
+        findUnique: async ({ where: { id } }: { where: { id: string } }) => {
+          const project = store.projects.find((item) => item.id === id);
+          if (!project) {
+            return null;
+          }
+          return {
+            ...project,
+            aiProvider:
+              store.providers.find((item) => item.id === project.aiProviderId) ?? null,
+          };
+        },
+        count: async ({ where: { aiProviderId } }: { where: { aiProviderId: string } }) =>
+          store.projects.filter((item) => item.aiProviderId === aiProviderId).length,
+        update: async ({
+          where: { id },
+          data,
+        }: {
+          where: { id: string };
+          data: { aiProviderId: string | null };
+        }) => {
+          const project = store.projects.find((item) => item.id === id);
+          if (project) {
+            project.aiProviderId = data.aiProviderId;
+          }
+          return project;
+        },
       },
-      count: async ({ where: { aiProviderId } }: { where: { aiProviderId: string } }) =>
-        store.projects.filter((item) => item.aiProviderId === aiProviderId).length,
-      update: async ({
-        where: { id },
-        data,
-      }: {
-        where: { id: string };
-        data: { aiProviderId: string | null };
-      }) => {
-        const project = store.projects.find((item) => item.id === id);
-        if (project) {
-          project.aiProviderId = data.aiProviderId;
-        }
-        return project;
+      projectAiConfig: {
+        count: async () => 0,
+        findMany: async () => [],
+        findUnique: async () => null,
       },
-    },
+      aiModel: {
+        upsert: async ({ create }: { create: Record<string, unknown> }) => ({
+          id: "mdl-1",
+          ...create,
+        }),
+      },
+      aiProviderCapability: {
+        deleteMany: async () => ({ count: 0 }),
+        createMany: async () => ({ count: 0 }),
+      },
     $transaction: async <T>(fn: (tx: unknown) => Promise<T>) => fn(prisma),
   };
 
@@ -292,6 +307,22 @@ describe("AI Provider CRUD", () => {
       projects: [],
     });
     await expect(service.testSaved("p1")).resolves.toEqual({ success: true });
+  });
+
+  it("rejects IMAGE capability on OpenAI Compatible providers", async () => {
+    const { service } = createService({ providers: [], projects: [] });
+    await expect(
+      service.create({
+        name: "Bad",
+        provider: AiProviderKind.OPENAI_COMPATIBLE,
+        baseUrl: "https://api.deepseek.com/v1",
+        apiKey: "sk-secret",
+        model: "deepseek-chat",
+        capabilities: ["IMAGE"] as never,
+      }),
+    ).rejects.toMatchObject({
+      code: ErrorCodes.PROVIDER_CAPABILITY_NOT_SUPPORTED,
+    });
   });
 
   it("returns a safe failure for an invalid API key", async () => {

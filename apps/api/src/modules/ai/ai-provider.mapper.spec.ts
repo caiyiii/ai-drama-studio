@@ -23,6 +23,7 @@ describe("Public AI Provider payload", () => {
       id: "p1",
       name: "DeepSeek",
       hasApiKey: true,
+      capabilities: ["CHAT", "STRUCTURED_OUTPUT"],
     });
     expect(publicProvider).not.toHaveProperty("apiKey");
     expect(publicProvider).not.toHaveProperty("encryptedApiKey");

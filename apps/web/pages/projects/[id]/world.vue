@@ -13,7 +13,7 @@
           {{ worldStore.actionError }}
         </p>
         <WorldGenerateModal :project-id="projectId" :has-world="false" @applied="onApplied" />
-        <WorldGenerationHistory :items="worldStore.generations" />
+        <WorldGenerationHistory :items="worldStore.generations" :type="GenerationTaskType.WORLD" />
         <form class="mt-8 space-y-3 text-left" @submit.prevent="onCreate">
           <input v-model="createTitle" required maxlength="120" placeholder="世界名称" class="studio-field" />
           <textarea v-model="createSummary" rows="4" placeholder="世界简介" class="studio-field resize-none" />
@@ -51,7 +51,7 @@
           />
           <div v-if="section === 'overview'" class="mt-6">
             <WorldGenerateModal :project-id="projectId" :has-world="true" @applied="onApplied" />
-            <WorldGenerationHistory :items="worldStore.generations" />
+            <WorldGenerationHistory :items="worldStore.generations" :type="GenerationTaskType.WORLD" />
           </div>
           <WorldTextPanel
             v-else-if="section === 'cosmic'"
@@ -114,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import type { UpdateWorldInput } from "@ai-drama-studio/types";
+import { GenerationTaskType, type UpdateWorldInput } from "@ai-drama-studio/types";
 import { useCurrentProject } from "~/composables/useCurrentProject";
 import { useViewport } from "~/composables/useViewport";
 import { useWorldStore } from "~/stores/world";

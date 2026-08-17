@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import {
+  AiCapability,
   GenerationTaskStatus,
   GenerationTaskType,
   Prisma,
@@ -28,7 +29,10 @@ export class WorldGenerationService {
 
   async createWorldGeneration(projectId: string, dto: CreateWorldGenerationDto) {
     await this.ensureProject(projectId);
-    const resolved = await this.ai.resolveForProject(projectId);
+    const resolved = await this.ai.resolveForCapability(
+      projectId,
+      AiCapability.STRUCTURED_OUTPUT,
+    );
     const input = {
       prompt: dto.prompt.trim(),
       style: dto.style?.trim() || "史诗",
@@ -39,6 +43,7 @@ export class WorldGenerationService {
         projectId,
         type: GenerationTaskType.WORLD,
         status: GenerationTaskStatus.PENDING,
+        capability: AiCapability.STRUCTURED_OUTPUT,
         provider:
           resolved.source === "system" ? resolved.kind : resolved.name,
         model: resolved.model || null,
@@ -85,6 +90,9 @@ export class WorldGenerationService {
     if (task.status !== GenerationTaskStatus.SUCCEEDED) {
       throw new BadRequestException("只能应用已成功的生成结果");
     }
+    if (task.appliedAt) {
+      throw new BadRequestException("该生成结果已经应用过");
+    }
     let result: WorldGenerationResult;
     try {
       result = validateWorldGenerationResult(task.output);
@@ -97,6 +105,10 @@ export class WorldGenerationService {
     try {
       await this.prisma.$transaction(async (tx) => {
         await applyWorldGenerationResult(tx, projectId, result);
+        await tx.generationTask.update({
+          where: { id },
+          data: { appliedAt: new Date() },
+        });
       });
     } catch (error) {
       throw new BadRequestException(

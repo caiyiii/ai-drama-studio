@@ -4,8 +4,11 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { AiProviderKind, type AiProvider } from "@prisma/client";
+import { AiCapability, AiProviderKind, type AiProvider } from "@prisma/client";
 import type { AIProviderTestResult } from "@ai-drama-studio/types";
+import {
+  kindAllowsCapability,
+} from "@ai-drama-studio/core";
 import { AppError, ErrorCodes } from "../../common/app-error";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AiProviderError, sanitizeSecret, userFacingAiError } from "./ai.errors";
@@ -32,6 +35,7 @@ export class AiProvidersService {
   async list() {
     this.crypto.assertManagementEnabled();
     const rows = await this.prisma.aiProvider.findMany({
+      include: { capabilities: true },
       orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }],
     });
     return rows.map(toPublicAiProvider);
@@ -45,7 +49,9 @@ export class AiProvidersService {
   async create(dto: CreateAiProviderDto) {
     this.crypto.assertManagementEnabled();
     this.assertSupported(dto.provider);
+    const capabilities = this.normalizeCapabilities(dto.provider, dto.capabilities);
     const encryptedApiKey = this.crypto.encryptApiKey(dto.apiKey.trim());
+    const model = dto.model.trim();
     const created = await this.prisma.$transaction(async (tx) => {
       if (dto.isDefault) {
         await tx.aiProvider.updateMany({
@@ -58,11 +64,22 @@ export class AiProvidersService {
           name: dto.name.trim(),
           provider: dto.provider,
           baseUrl: dto.baseUrl.trim(),
-          model: dto.model.trim(),
+          model,
           encryptedApiKey,
           isDefault: Boolean(dto.isDefault),
           enabled: dto.enabled ?? true,
+          capabilities: {
+            create: capabilities.map((capability) => ({ capability })),
+          },
+          models: {
+            create: {
+              name: model,
+              modelId: model,
+              capabilities,
+            },
+          },
         },
+        include: { capabilities: true },
       });
     });
     return toPublicAiProvider(created);
@@ -93,6 +110,12 @@ export class AiProvidersService {
     }
     if (dto.isDefault !== undefined) data.isDefault = dto.isDefault;
 
+    const capabilities =
+      dto.capabilities !== undefined
+        ? this.normalizeCapabilities(dto.provider ?? existing.provider, dto.capabilities)
+        : undefined;
+    const nextModel = dto.model !== undefined ? dto.model.trim() : existing.model;
+
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.isDefault === true) {
         await tx.aiProvider.updateMany({
@@ -105,10 +128,48 @@ export class AiProvidersService {
           data: { isDefault: false },
         });
       }
-      return tx.aiProvider.update({
+      const row = await tx.aiProvider.update({
         where: { id },
         data,
+        include: { capabilities: true },
       });
+      if (capabilities) {
+        await tx.aiProviderCapability.deleteMany({ where: { providerId: id } });
+        await tx.aiProviderCapability.createMany({
+          data: capabilities.map((capability) => ({
+            providerId: id,
+            capability,
+          })),
+        });
+      }
+      if (dto.model !== undefined || capabilities) {
+        await tx.aiModel.upsert({
+          where: {
+            providerId_modelId: { providerId: id, modelId: nextModel },
+          },
+          create: {
+            providerId: id,
+            name: nextModel,
+            modelId: nextModel,
+            capabilities: capabilities ?? [
+              AiCapability.CHAT,
+              AiCapability.STRUCTURED_OUTPUT,
+            ],
+          },
+          update: {
+            name: nextModel,
+            ...(capabilities ? { capabilities } : {}),
+          },
+        });
+      }
+      return {
+        ...row,
+        capabilities:
+          capabilities?.map((capability) => ({
+            capability,
+            enabled: true,
+          })) ?? row.capabilities,
+      };
     });
     return toPublicAiProvider(updated);
   }
@@ -119,7 +180,10 @@ export class AiProvidersService {
     const inUse = await this.prisma.project.count({
       where: { aiProviderId: id },
     });
-    if (inUse > 0) {
+    const configInUse = await this.prisma.projectAiConfig.count({
+      where: { providerId: id },
+    });
+    if (inUse > 0 || configInUse > 0) {
       throw new AppError(
         HttpStatus.CONFLICT,
         ErrorCodes.PROVIDER_IN_USE,
@@ -253,8 +317,31 @@ export class AiProvidersService {
     }
   }
 
-  private async findRow(id: string): Promise<AiProvider> {
-    const row = await this.prisma.aiProvider.findUnique({ where: { id } });
+  private normalizeCapabilities(
+    kind: AiProviderKind,
+    capabilities?: AiCapability[],
+  ): AiCapability[] {
+    const next =
+      capabilities && capabilities.length > 0
+        ? Array.from(new Set(capabilities))
+        : [AiCapability.CHAT, AiCapability.STRUCTURED_OUTPUT];
+    for (const capability of next) {
+      if (!kindAllowsCapability(kind, capability)) {
+        throw new AppError(
+          HttpStatus.BAD_REQUEST,
+          ErrorCodes.PROVIDER_CAPABILITY_NOT_SUPPORTED,
+          "该 Provider 类型不支持所选 AI 能力。",
+        );
+      }
+    }
+    return next;
+  }
+
+  private async findRow(id: string): Promise<AiProvider & { capabilities?: { capability: AiCapability; enabled: boolean }[] }> {
+    const row = await this.prisma.aiProvider.findUnique({
+      where: { id },
+      include: { capabilities: true },
+    });
     if (!row) {
       throw new NotFoundException("AI Provider not found");
     }

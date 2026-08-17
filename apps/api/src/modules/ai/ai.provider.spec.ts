@@ -75,6 +75,43 @@ describe("OpenAI-compatible provider", () => {
     }
   });
 
+  it("does not leak the API key in test failures", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ error: { message: "bad sk-test" } }), {
+        status: 401,
+      })) as typeof fetch;
+
+    try {
+      const provider = new OpenAiCompatibleProvider({
+        baseUrl: "https://example.test/v1",
+        apiKey: "sk-test",
+        model: "demo-model",
+      });
+      await expect(provider.testConnection()).rejects.toMatchObject({
+        code: "MISSING_API_KEY",
+      });
+      try {
+        await provider.testConnection();
+      } catch (error) {
+        expect(String(error)).not.toContain("sk-test");
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("throws CAPABILITY_NOT_IMPLEMENTED for image generation", async () => {
+    const provider = new OpenAiCompatibleProvider({
+      baseUrl: "https://example.test/v1",
+      apiKey: "sk-test",
+      model: "demo-model",
+    });
+    await expect(provider.generateImage({ prompt: "hero" })).rejects.toMatchObject({
+      code: "CAPABILITY_NOT_IMPLEMENTED",
+    });
+  });
+
   it("maps invalid API key responses", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async () =>

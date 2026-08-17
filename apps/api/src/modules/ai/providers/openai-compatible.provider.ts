@@ -1,8 +1,16 @@
 import { AiProviderError, sanitizeSecret } from "../ai.errors";
+import { capabilityNotImplemented } from "../capability-not-implemented";
 import type {
+  AiEmbeddingRequest,
+  AiImageRequest,
+  AiImageToVideoRequest,
+  AiMusicRequest,
   AiProvider,
+  AiSpeechRequest,
   AiStructuredRequest,
   AiTextRequest,
+  AiVideoRequest,
+  AiVoiceCloneRequest,
 } from "../ai.provider";
 
 interface OpenAiCompatibleConfig {
@@ -42,6 +50,34 @@ export class OpenAiCompatibleProvider implements AiProvider {
       },
       false,
     );
+  }
+
+  async generateImage(_request: AiImageRequest): Promise<never> {
+    return capabilityNotImplemented("IMAGE", "图片生成");
+  }
+
+  async generateVideo(_request: AiVideoRequest): Promise<never> {
+    return capabilityNotImplemented("VIDEO", "视频生成");
+  }
+
+  async generateImageToVideo(_request: AiImageToVideoRequest): Promise<never> {
+    return capabilityNotImplemented("IMAGE_TO_VIDEO", "图片转视频");
+  }
+
+  async generateSpeech(_request: AiSpeechRequest): Promise<never> {
+    return capabilityNotImplemented("TTS", "语音生成");
+  }
+
+  async generateVoiceClone(_request: AiVoiceCloneRequest): Promise<never> {
+    return capabilityNotImplemented("VOICE_CLONE", "声音克隆");
+  }
+
+  async generateMusic(_request: AiMusicRequest): Promise<never> {
+    return capabilityNotImplemented("MUSIC", "音乐生成");
+  }
+
+  async generateEmbedding(_request: AiEmbeddingRequest): Promise<never> {
+    return capabilityNotImplemented("EMBEDDING", "向量 Embedding");
   }
 
   private async complete(

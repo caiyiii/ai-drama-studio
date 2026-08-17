@@ -32,6 +32,9 @@
           <ion-button expand="block" class="ion-margin-top" :router-link="`/tabs/projects/${project.id}/world`">
             进入世界观
           </ion-button>
+          <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${project.id}/characters`">
+            进入人物
+          </ion-button>
         </div>
 
         <section class="flow">

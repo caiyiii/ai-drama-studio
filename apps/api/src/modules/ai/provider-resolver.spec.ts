@@ -18,8 +18,13 @@ function createResolver(options: {
     project: {
       findUnique: async () => options.project ?? null,
     },
+    projectAiConfig: {
+      findUnique: async () => null,
+    },
     aiProvider: {
       findFirst: async () => options.defaultProvider ?? null,
+      findMany: async () => [],
+      findUnique: async () => null,
     },
   };
   const config = {

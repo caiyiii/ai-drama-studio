@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@ai-drama-studio/types": "workspace:*",
+    "@ai-drama-studio/core": "workspace:*",
+    "@ai-drama-studio/config": "workspace:*",
     "@nestjs/common": "^11.1.5",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.5",

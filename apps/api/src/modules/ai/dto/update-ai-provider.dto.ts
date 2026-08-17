@@ -1,5 +1,6 @@
-import { AiProviderKind } from "@prisma/client";
+import { AiCapability, AiProviderKind } from "@prisma/client";
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsOptional,
@@ -44,4 +45,9 @@ export class UpdateAiProviderDto {
   @IsOptional()
   @IsBoolean()
   enabled?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AiCapability, { each: true })
+  capabilities?: AiCapability[];
 }

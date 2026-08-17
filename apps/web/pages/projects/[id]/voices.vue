@@ -2,7 +2,7 @@
   <WorkspacePlaceholder
     eyebrow="Voices"
     title="配音"
-    description="对白与旁白的 TTS 将在后续由后端任务系统调度。"
+    description="尚未配置语音生成 AI。TTS / VOICE_CLONE 请在项目设置中配置对应 Provider。"
     :step="ProjectStep.VOICES"
   />
 </template>

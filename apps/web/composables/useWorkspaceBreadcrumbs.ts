@@ -47,9 +47,11 @@ export function useWorkspaceBreadcrumbs() {
       .replace(`/projects/${projectId.value}`, "")
       .replace(/^\//, "");
     if (suffix) {
-      const nav = WORKSPACE_NAV.find((item) => item.path === suffix);
+      const parts = suffix.split("/").filter(Boolean);
+      const page = parts[0] ?? "";
+      const nav = WORKSPACE_NAV.find((item) => item.path === page);
       const section =
-        suffix === "world" && typeof route.query.section === "string"
+        page === "world" && typeof route.query.section === "string"
           ? route.query.section
           : "";
       const worldItem =
@@ -57,13 +59,16 @@ export function useWorkspaceBreadcrumbs() {
           ? WORLD_NAV.find((item) => item.key === section)
           : null;
       crumbs.push({
-        label: nav?.label ?? suffix,
-        to: worldItem
-          ? `/projects/${projectId.value}/${suffix}`
-          : undefined,
+        label: nav?.label ?? page,
+        to:
+          worldItem || parts.length > 1
+            ? `/projects/${projectId.value}/${page}`
+            : undefined,
       });
       if (worldItem) {
         crumbs.push({ label: worldItem.label });
+      } else if (page === "characters" && parts[1]) {
+        crumbs.push({ label: "详情" });
       }
     }
 
