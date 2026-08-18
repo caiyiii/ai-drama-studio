@@ -87,6 +87,19 @@ import type {
   UpdateScriptInput,
   UpdateStoryboardInput,
   UpdateStoryboardShotInput,
+  CompositionManifest,
+  CompositionPreview,
+  CreateTimelineClipInput,
+  CreateTimelineTrackInput,
+  EpisodeTimeline,
+  TimelineBuildInput,
+  TimelineBuildResult,
+  TimelineClip,
+  TimelineContinuityResult,
+  TimelineTrack,
+  UpdateEpisodeTimelineInput,
+  UpdateTimelineClipInput,
+  UpdateTimelineTrackInput,
 } from "@ai-drama-studio/types";
 
 export class ApiError extends Error {
@@ -1240,6 +1253,168 @@ export class ApiClient {
     await this.request<void>(
       `/projects/${projectId}/character-relationships/${relationshipId}`,
       { method: "DELETE" },
+    );
+  }
+
+  async getEpisodeTimeline(
+    projectId: string,
+    episodeId: string,
+  ): Promise<EpisodeTimeline> {
+    return this.request<EpisodeTimeline>(
+      `/projects/${projectId}/episodes/${episodeId}/timeline`,
+    );
+  }
+
+  async buildEpisodeTimeline(
+    projectId: string,
+    episodeId: string,
+    data: TimelineBuildInput = {},
+  ): Promise<TimelineBuildResult> {
+    const query = data.rebuild ? "?rebuild=true" : "";
+    return this.request<TimelineBuildResult>(
+      `/projects/${projectId}/episodes/${episodeId}/timeline/build${query}`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateEpisodeTimeline(
+    projectId: string,
+    episodeId: string,
+    data: UpdateEpisodeTimelineInput,
+  ): Promise<EpisodeTimeline> {
+    return this.request<EpisodeTimeline>(
+      `/projects/${projectId}/episodes/${episodeId}/timeline`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteEpisodeTimeline(projectId: string, episodeId: string): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/episodes/${episodeId}/timeline`,
+      { method: "DELETE" },
+    );
+  }
+
+  async unlockEpisodeTimeline(
+    projectId: string,
+    episodeId: string,
+  ): Promise<EpisodeTimeline> {
+    return this.request<EpisodeTimeline>(
+      `/projects/${projectId}/episodes/${episodeId}/timeline/unlock`,
+      { method: "POST" },
+    );
+  }
+
+  async getTimelineTracks(
+    projectId: string,
+    timelineId: string,
+  ): Promise<TimelineTrack[]> {
+    return this.request<TimelineTrack[]>(
+      `/projects/${projectId}/timelines/${timelineId}/tracks`,
+    );
+  }
+
+  async createTimelineTrack(
+    projectId: string,
+    timelineId: string,
+    data: CreateTimelineTrackInput,
+  ): Promise<TimelineTrack> {
+    return this.request<TimelineTrack>(
+      `/projects/${projectId}/timelines/${timelineId}/tracks`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateTimelineTrack(
+    projectId: string,
+    timelineId: string,
+    trackId: string,
+    data: UpdateTimelineTrackInput,
+  ): Promise<TimelineTrack> {
+    return this.request<TimelineTrack>(
+      `/projects/${projectId}/timelines/${timelineId}/tracks/${trackId}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteTimelineTrack(
+    projectId: string,
+    timelineId: string,
+    trackId: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/timelines/${timelineId}/tracks/${trackId}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async getTimelineClips(
+    projectId: string,
+    timelineId: string,
+  ): Promise<TimelineClip[]> {
+    return this.request<TimelineClip[]>(
+      `/projects/${projectId}/timelines/${timelineId}/clips`,
+    );
+  }
+
+  async createTimelineClip(
+    projectId: string,
+    timelineId: string,
+    data: CreateTimelineClipInput,
+  ): Promise<TimelineClip> {
+    return this.request<TimelineClip>(
+      `/projects/${projectId}/timelines/${timelineId}/clips`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async updateTimelineClip(
+    projectId: string,
+    timelineId: string,
+    clipId: string,
+    data: UpdateTimelineClipInput,
+  ): Promise<TimelineClip> {
+    return this.request<TimelineClip>(
+      `/projects/${projectId}/timelines/${timelineId}/clips/${clipId}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteTimelineClip(
+    projectId: string,
+    timelineId: string,
+    clipId: string,
+  ): Promise<void> {
+    await this.request<void>(
+      `/projects/${projectId}/timelines/${timelineId}/clips/${clipId}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async getCompositionManifest(
+    projectId: string,
+    episodeId: string,
+  ): Promise<CompositionManifest> {
+    return this.request<CompositionManifest>(
+      `/projects/${projectId}/episodes/${episodeId}/timeline/manifest`,
+    );
+  }
+
+  async getCompositionPreview(
+    projectId: string,
+    episodeId: string,
+  ): Promise<CompositionPreview> {
+    return this.request<CompositionPreview>(
+      `/projects/${projectId}/episodes/${episodeId}/timeline/preview`,
+    );
+  }
+
+  async getTimelineContinuity(
+    projectId: string,
+    episodeId: string,
+  ): Promise<TimelineContinuityResult> {
+    return this.request<TimelineContinuityResult>(
+      `/projects/${projectId}/episodes/${episodeId}/timeline/continuity`,
     );
   }
 

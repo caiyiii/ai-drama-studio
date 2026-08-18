@@ -74,7 +74,7 @@ export function useWorkspaceBreadcrumbs() {
           label: "剧集",
           to: `/projects/${projectId.value}/episodes`,
         });
-        crumbs.push({ label: parts[2] === "storyboard" ? "分镜" : "剧本" });
+        crumbs.push({ label: parts[2] === "storyboard" ? "分镜" : parts[2] === "timeline" ? "时间线" : "剧本" });
       } else if (page === "seasons" && parts[1]) {
         crumbs.push({
           label: "季详情",

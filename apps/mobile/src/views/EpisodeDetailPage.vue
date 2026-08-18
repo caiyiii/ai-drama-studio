@@ -32,6 +32,9 @@
         <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}/storyboard`">
           查看分镜
         </ion-button>
+        <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}/timeline`">
+          查看时间线预览
+        </ion-button>
         <section v-if="musicItems.length || sfxItems.length" class="block">
           <p class="eyebrow">Music / SFX</p>
           <p class="hint">可播放已生成的剧集音频。复杂 AI 生成请使用 Web 工作台。</p>

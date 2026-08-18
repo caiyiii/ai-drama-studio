@@ -1959,3 +1959,237 @@ export interface SfxContext extends MusicContext {
   shotAction?: string;
   shotEnvironment?: string;
 }
+
+export enum TimelineStatus {
+  DRAFT = "DRAFT",
+  PREVIEW_READY = "PREVIEW_READY",
+  STALE = "STALE",
+  LOCKED = "LOCKED",
+}
+
+export enum TimelineTrackType {
+  VIDEO = "VIDEO",
+  IMAGE = "IMAGE",
+  DIALOGUE = "DIALOGUE",
+  MUSIC = "MUSIC",
+  SFX = "SFX",
+}
+
+export enum TimelineClipType {
+  VIDEO = "VIDEO",
+  IMAGE = "IMAGE",
+  AUDIO = "AUDIO",
+}
+
+export enum TimelineClipSourceType {
+  STORYBOARD_SHOT = "STORYBOARD_SHOT",
+  SCRIPT_BLOCK = "SCRIPT_BLOCK",
+  EPISODE_AUDIO = "EPISODE_AUDIO",
+  ASSET = "ASSET",
+}
+
+export const TIMELINE_STATUS_LABELS: Record<TimelineStatus, string> = {
+  [TimelineStatus.DRAFT]: "草稿",
+  [TimelineStatus.PREVIEW_READY]: "可预览",
+  [TimelineStatus.STALE]: "已过期",
+  [TimelineStatus.LOCKED]: "已锁定",
+};
+
+export interface EpisodeTimeline {
+  id: string;
+  projectId: string;
+  episodeId: string;
+  version: number;
+  status: TimelineStatus;
+  computedStatus?: TimelineStatus;
+  stale?: boolean;
+  durationSeconds: number;
+  fps: number;
+  resolution: string;
+  aspectRatio: string;
+  sourceStoryboardVersion: number | null;
+  sourceScriptVersion: number | null;
+  sourceAssetVersionSummary: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  tracks?: TimelineTrack[];
+}
+
+export interface TimelineTrack {
+  id: string;
+  timelineId: string;
+  type: TimelineTrackType;
+  name: string;
+  order: number;
+  enabled: boolean;
+  muted: boolean;
+  volume: number;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  clips?: TimelineClip[];
+}
+
+export interface TimelineClip {
+  id: string;
+  trackId: string;
+  type: TimelineClipType;
+  sourceType: TimelineClipSourceType;
+  sourceId: string;
+  assetId: string;
+  startTime: number;
+  duration: number;
+  sourceStartTime: number;
+  sourceDuration: number;
+  zIndex: number;
+  volume: number;
+  speed: number;
+  opacity: number;
+  enabled: boolean;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TimelineMissingAssets {
+  visual: Array<{ shotId: string; shotNumber?: number }>;
+  dialogue: Array<{ blockId: string }>;
+  music: boolean;
+  sfx: boolean;
+}
+
+export interface TimelineBuildInput {
+  rebuild?: boolean;
+}
+
+export interface TimelineBuildResult {
+  timeline: EpisodeTimeline;
+  created: boolean;
+  rebuilt: boolean;
+  missing: TimelineMissingAssets;
+}
+
+export interface TimelineContinuityResult {
+  ok: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface UpdateEpisodeTimelineInput {
+  fps?: number;
+  resolution?: string;
+  aspectRatio?: string;
+  status?: TimelineStatus;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface CreateTimelineTrackInput {
+  type: TimelineTrackType;
+  name: string;
+  order?: number;
+  enabled?: boolean;
+  muted?: boolean;
+  volume?: number;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface UpdateTimelineTrackInput {
+  name?: string;
+  order?: number;
+  enabled?: boolean;
+  muted?: boolean;
+  volume?: number;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface CreateTimelineClipInput {
+  trackId: string;
+  type: TimelineClipType;
+  sourceType: TimelineClipSourceType;
+  sourceId: string;
+  assetId: string;
+  startTime: number;
+  duration: number;
+  sourceStartTime?: number;
+  sourceDuration?: number;
+  zIndex?: number;
+  volume?: number;
+  speed?: number;
+  opacity?: number;
+  enabled?: boolean;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface UpdateTimelineClipInput {
+  startTime?: number;
+  duration?: number;
+  sourceStartTime?: number;
+  sourceDuration?: number;
+  zIndex?: number;
+  volume?: number;
+  speed?: number;
+  opacity?: number;
+  enabled?: boolean;
+}
+
+export interface CompositionAssetRef {
+  id: string;
+  type: AssetType;
+  name: string;
+  url: string | null;
+  mimeType: string | null;
+  durationSeconds: number | null;
+}
+
+export interface CompositionClip {
+  id: string;
+  type: TimelineClipType;
+  sourceType: TimelineClipSourceType;
+  sourceId: string;
+  assetId: string;
+  startTime: number;
+  duration: number;
+  sourceStartTime: number;
+  sourceDuration: number;
+  zIndex: number;
+  volume: number;
+  speed: number;
+  opacity: number;
+  enabled: boolean;
+  playbackVolume: number;
+  asset: CompositionAssetRef | null;
+}
+
+export interface CompositionTrack {
+  id: string;
+  type: TimelineTrackType;
+  name: string;
+  order: number;
+  enabled: boolean;
+  muted: boolean;
+  volume: number;
+  clips: CompositionClip[];
+}
+
+export interface CompositionManifest {
+  episodeId: string;
+  projectId: string;
+  timelineId: string;
+  version: number;
+  status: TimelineStatus;
+  durationSeconds: number;
+  fps: number;
+  resolution: string;
+  aspectRatio: string;
+  tracks: CompositionTrack[];
+}
+
+export interface CompositionPreview {
+  disclaimer: string;
+  ready: boolean;
+  readyMessage: string;
+  missing: TimelineMissingAssets;
+  stale: boolean;
+  manifest: CompositionManifest;
+}

@@ -30,6 +30,7 @@ export const WORKSPACE_NAV = [
   { key: "voices", label: "配音", short: "音", path: "voices", step: "VOICES" },
   { key: "music", label: "音乐", short: "乐", path: "music", step: null },
   { key: "sfx", label: "音效", short: "效", path: "sfx", step: null },
+  { key: "timeline", label: "时间线", short: "轴", path: "timeline", step: null },
   { key: "render", label: "成片", short: "片", path: "render", step: "RENDER" },
   { key: "assets", label: "素材", short: "材", path: "assets", step: null },
   { key: "settings", label: "设置", short: "设", path: "settings", step: null },

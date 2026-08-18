@@ -23,6 +23,12 @@
           </div>
           <div class="flex flex-wrap gap-2">
             <NuxtLink
+              :to="`/projects/${projectId}/episodes/${episodeId}/timeline`"
+              class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-sm text-gold-300"
+            >
+              进入时间线
+            </NuxtLink>
+            <NuxtLink
               :to="`/projects/${projectId}/episodes/${episodeId}/script`"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >

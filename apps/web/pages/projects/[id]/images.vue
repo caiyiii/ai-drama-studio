@@ -4,6 +4,7 @@
     <h1 class="mt-1 font-display text-3xl">图片资产</h1>
     <p class="mt-2 text-sm text-zinc-500">
       正式图片来自分镜镜头 Apply 后的 Asset。请在分镜工作台生成与确认。
+      <NuxtLink :to="`/projects/${projectId}/timeline`" class="ml-1 text-gold-300">进入时间线</NuxtLink>
     </p>
     <p class="mt-2 text-xs text-zinc-500">
       图片生成将使用当前项目配置的 AI Provider，相关 API 使用费用由对应 Provider 账户承担。

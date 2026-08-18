@@ -3,7 +3,8 @@
     <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Music</p>
     <h1 class="mt-1 font-display text-3xl">剧集音乐</h1>
     <p class="mt-2 text-sm text-zinc-500">
-      正式音乐来自剧集 Apply 后的 Audio Asset。重新生成会保留历史，不会覆盖。本页不做混音或时间线。
+      正式音乐来自剧集 Apply 后的 Audio Asset。重新生成会保留历史，不会覆盖。编排请进入时间线，本页不做混音。
+      <NuxtLink :to="`/projects/${projectId}/timeline`" class="ml-1 text-gold-300">进入时间线</NuxtLink>
     </p>
     <p class="mt-2 text-xs text-zinc-500">费用由当前配置的 Provider 账户承担。</p>
     <PageState

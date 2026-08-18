@@ -4,6 +4,7 @@
     <h1 class="mt-1 font-display text-3xl">视频资产</h1>
     <p class="mt-2 text-sm text-zinc-500">
       正式视频来自分镜镜头 Apply 后的 Asset。本页只浏览 Shot Video，不做剪辑。
+      <NuxtLink :to="`/projects/${projectId}/timeline`" class="ml-1 text-gold-300">进入时间线</NuxtLink>
     </p>
     <p class="mt-2 text-xs text-zinc-500">
       视频生成将使用当前项目配置的 AI Provider，费用由该 Provider 账户承担。
@@ -48,7 +49,7 @@
     <AppModal
       :open="Boolean(selected)"
       :title="selected?.name || '视频详情'"
-      description="HTML5 播放器。本阶段不提供 Timeline Editor。"
+      description="HTML5 播放器。复杂时间线编辑请使用 Web Timeline。"
       @close="selected = null"
     >
       <div v-if="selected" class="space-y-3 text-sm">

@@ -79,6 +79,10 @@ Web / Mobile / Desktop
 
 本阶段不引入 Redis、BullMQ、Worker 或任何 Provider SDK。
 
+## Episode Timeline / Composition
+
+详见 `docs/architecture/timeline-composition.md`。Phase 13 将 Script / Storyboard / Assets 编排进 Episode Timeline，并输出浏览器内 Composition Preview。不实现 FFmpeg、MP4 导出或发布。
+
 ## 文件上传（未来）
 
 不要把「Client → Backend → Storage」设计成唯一方案。

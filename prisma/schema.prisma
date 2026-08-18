@@ -62,6 +62,34 @@ enum AudioAssetRole {
   FINAL
 }
 
+enum TimelineStatus {
+  DRAFT
+  PREVIEW_READY
+  STALE
+  LOCKED
+}
+
+enum TimelineTrackType {
+  VIDEO
+  IMAGE
+  DIALOGUE
+  MUSIC
+  SFX
+}
+
+enum TimelineClipType {
+  VIDEO
+  IMAGE
+  AUDIO
+}
+
+enum TimelineClipSourceType {
+  STORYBOARD_SHOT
+  SCRIPT_BLOCK
+  EPISODE_AUDIO
+  ASSET
+}
+
 enum GenerationTaskType {
   WORLD
   CHARACTER
@@ -277,6 +305,7 @@ model Project {
   ownedProviders         AiProvider[]             @relation("ProviderOwnedByProject")
   characterRelationships CharacterRelationship[]
   aiConfigs              ProjectAiConfig[]
+  timelines              EpisodeTimeline[]
 
   @@index([aiProviderId])
 }
@@ -340,6 +369,7 @@ model Episode {
   script           Script?
   storyboard       Storyboard?
   audioAssets      EpisodeAudioAsset[]
+  timeline         EpisodeTimeline?
 
   @@unique([seasonId, number])
   @@index([projectId])
@@ -573,6 +603,7 @@ model Asset {
   shotAssets       StoryboardShotAsset[]
   blockAssets      ScriptBlockAsset[]
   episodeAssets    EpisodeAudioAsset[]
+  timelineClips    TimelineClip[]
 
   @@index([projectId])
   @@index([generationTaskId])
@@ -816,4 +847,72 @@ model PowerSystem {
   updatedAt   DateTime @updatedAt
 
   @@index([worldId])
+}
+
+model EpisodeTimeline {
+  id                         String         @id @default(cuid())
+  projectId                  String
+  project                    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  episodeId                  String         @unique
+  episode                    Episode        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  version                    Int            @default(1)
+  status                     TimelineStatus @default(DRAFT)
+  durationSeconds            Float          @default(0)
+  fps                        Int            @default(24)
+  resolution                 String         @default("1920x1080")
+  aspectRatio                String         @default("16:9")
+  sourceStoryboardVersion    Int?
+  sourceScriptVersion        Int?
+  sourceAssetVersionSummary  Json?
+  metadata                   Json?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+  tracks                     TimelineTrack[]
+
+  @@index([projectId])
+}
+
+model TimelineTrack {
+  id         String            @id @default(cuid())
+  timelineId String
+  timeline   EpisodeTimeline   @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  type       TimelineTrackType
+  name       String
+  order      Int               @default(0)
+  enabled    Boolean           @default(true)
+  muted      Boolean           @default(false)
+  volume     Float             @default(1)
+  metadata   Json?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  clips      TimelineClip[]
+
+  @@index([timelineId])
+}
+
+model TimelineClip {
+  id               String                 @id @default(cuid())
+  trackId          String
+  track            TimelineTrack          @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  type             TimelineClipType
+  sourceType       TimelineClipSourceType
+  sourceId         String
+  assetId          String
+  asset            Asset                  @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  startTime        Float
+  duration         Float
+  sourceStartTime  Float                  @default(0)
+  sourceDuration   Float
+  zIndex           Int                    @default(0)
+  volume           Float                  @default(1)
+  speed            Float                  @default(1)
+  opacity          Float                  @default(1)
+  enabled          Boolean                @default(true)
+  metadata         Json?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@index([trackId])
+  @@index([assetId])
+  @@index([sourceType, sourceId])
 }

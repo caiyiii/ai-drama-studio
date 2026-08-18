@@ -4,6 +4,7 @@
     <h1 class="mt-1 font-display text-3xl">配音资产</h1>
     <p class="mt-2 text-sm text-zinc-500">
       正式语音来自剧本对白 Apply 后的 Audio Asset。本页只浏览独立 Dialogue Audio，不做混音或拼接。
+      <NuxtLink :to="`/projects/${projectId}/timeline`" class="ml-1 text-gold-300">进入时间线</NuxtLink>
     </p>
     <p class="mt-2 text-xs text-zinc-500">
       语音生成费用由当前项目配置的 Provider 账户承担。

@@ -20,8 +20,14 @@
           </div>
           <div class="flex gap-2">
             <NuxtLink
-              :to="`/projects/${projectId}/episodes/${episodeId}/script`"
+              :to="`/projects/${projectId}/episodes/${episodeId}/timeline`"
               class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-sm text-gold-300"
+            >
+              进入时间线
+            </NuxtLink>
+            <NuxtLink
+              :to="`/projects/${projectId}/episodes/${episodeId}/script`"
+              class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
               进入剧本
             </NuxtLink>
@@ -65,6 +71,21 @@
         </form>
 
         <section class="rounded-2xl border border-white/5 bg-ink-800/60 p-4">
+          <h2 class="font-display text-xl">Episode Workspace</h2>
+          <p class="mt-1 text-xs text-zinc-500">Timeline 是合成层，不生产新素材。</p>
+          <div class="mt-3 flex flex-wrap gap-2 text-sm">
+            <NuxtLink :to="`/projects/${projectId}/episodes/${episodeId}/script`" class="rounded-xl border border-white/10 px-3 py-1.5">剧本</NuxtLink>
+            <NuxtLink :to="`/projects/${projectId}/episodes/${episodeId}/storyboard`" class="rounded-xl border border-white/10 px-3 py-1.5">分镜</NuxtLink>
+            <NuxtLink :to="`/projects/${projectId}/images`" class="rounded-xl border border-white/10 px-3 py-1.5">图片</NuxtLink>
+            <NuxtLink :to="`/projects/${projectId}/videos`" class="rounded-xl border border-white/10 px-3 py-1.5">视频</NuxtLink>
+            <NuxtLink :to="`/projects/${projectId}/voices`" class="rounded-xl border border-white/10 px-3 py-1.5">配音</NuxtLink>
+            <NuxtLink :to="`/projects/${projectId}/music`" class="rounded-xl border border-white/10 px-3 py-1.5">音乐</NuxtLink>
+            <NuxtLink :to="`/projects/${projectId}/sfx`" class="rounded-xl border border-white/10 px-3 py-1.5">音效</NuxtLink>
+            <NuxtLink :to="`/projects/${projectId}/episodes/${episodeId}/timeline`" class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-gold-300">时间线</NuxtLink>
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-white/5 bg-ink-800/60 p-4">
           <h2 class="font-display text-xl">Story State</h2>
           <pre class="mt-3 overflow-auto text-xs text-zinc-400">{{ JSON.stringify(store.episode.storyState, null, 2) }}</pre>
           <p class="mt-4 text-sm text-zinc-500">Unresolved Threads</p>
@@ -103,7 +124,7 @@
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 class="font-display text-xl">🔊 SFX</h2>
-              <p class="mt-1 text-xs text-zinc-500">剧集音效。本阶段不做 Timeline / 混音。</p>
+              <p class="mt-1 text-xs text-zinc-500">剧集音效。时间线编排请进入合成预览，本页不混音。</p>
             </div>
             <div class="flex gap-2">
               <NuxtLink :to="`/projects/${projectId}/sfx`" class="rounded-xl border border-white/10 px-3 py-1.5 text-xs">
