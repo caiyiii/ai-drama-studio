@@ -2193,3 +2193,156 @@ export interface CompositionPreview {
   stale: boolean;
   manifest: CompositionManifest;
 }
+
+export enum RenderJobStatus {
+  QUEUED = "QUEUED",
+  PREPARING = "PREPARING",
+  RENDERING = "RENDERING",
+  SUCCEEDED = "SUCCEEDED",
+  FAILED = "FAILED",
+  CANCEL_REQUESTED = "CANCEL_REQUESTED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum RenderJobStage {
+  QUEUED = "QUEUED",
+  PREPARING = "PREPARING",
+  ENCODING_VIDEO = "ENCODING_VIDEO",
+  MIXING_AUDIO = "MIXING_AUDIO",
+  FINALIZING = "FINALIZING",
+  COMPLETED = "COMPLETED",
+}
+
+export enum RenderJobEventType {
+  QUEUED = "QUEUED",
+  PREPARING = "PREPARING",
+  FFMPEG_STARTED = "FFMPEG_STARTED",
+  FFMPEG_PROGRESS = "FFMPEG_PROGRESS",
+  FFMPEG_COMPLETED = "FFMPEG_COMPLETED",
+  ARTIFACT_CREATED = "ARTIFACT_CREATED",
+  SUCCEEDED = "SUCCEEDED",
+  FAILED = "FAILED",
+  CANCEL_REQUESTED = "CANCEL_REQUESTED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum RenderArtifactType {
+  EPISODE_VIDEO = "EPISODE_VIDEO",
+}
+
+export const RENDER_JOB_STATUS_LABELS: Record<RenderJobStatus, string> = {
+  [RenderJobStatus.QUEUED]: "排队中",
+  [RenderJobStatus.PREPARING]: "准备中",
+  [RenderJobStatus.RENDERING]: "渲染中",
+  [RenderJobStatus.SUCCEEDED]: "已完成",
+  [RenderJobStatus.FAILED]: "失败",
+  [RenderJobStatus.CANCEL_REQUESTED]: "正在取消",
+  [RenderJobStatus.CANCELLED]: "已取消",
+};
+
+export const RENDER_JOB_STAGE_LABELS: Record<RenderJobStage, string> = {
+  [RenderJobStage.QUEUED]: "排队",
+  [RenderJobStage.PREPARING]: "准备素材",
+  [RenderJobStage.ENCODING_VIDEO]: "编码画面",
+  [RenderJobStage.MIXING_AUDIO]: "混合音频",
+  [RenderJobStage.FINALIZING]: "收尾",
+  [RenderJobStage.COMPLETED]: "完成",
+};
+
+export interface RenderSnapshotAsset {
+  id: string;
+  storageKey: string | null;
+  mimeType: string | null;
+  type: AssetType;
+  name: string;
+  durationSeconds: number | null;
+}
+
+export interface RenderManifestSnapshot extends CompositionManifest {
+  missing: TimelineMissingAssets;
+  assets: RenderSnapshotAsset[];
+}
+
+export interface RenderArtifact {
+  id: string;
+  projectId: string;
+  episodeId: string;
+  renderJobId: string;
+  type: RenderArtifactType;
+  mimeType: string;
+  fileSize: number;
+  durationSeconds: number | null;
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  url: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RenderJob {
+  id: string;
+  projectId: string;
+  episodeId: string;
+  timelineId: string;
+  timelineVersion: number;
+  status: RenderJobStatus;
+  progress: number | null;
+  currentStage: RenderJobStage;
+  attempt: number;
+  maxAttempts: number;
+  outputFormat: string;
+  outputContainer: string;
+  width: number;
+  height: number;
+  fps: number;
+  durationSeconds: number;
+  outputArtifactId: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  failedAt: string | null;
+  artifact?: RenderArtifact | null;
+}
+
+export interface RenderJobEvent {
+  id: string;
+  renderJobId: string;
+  type: RenderJobEventType;
+  message: string | null;
+  progress: number | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface RenderEngineInput {
+  manifest: RenderManifestSnapshot;
+  workspace: string;
+  output: string;
+  options?: {
+    ffmpegPath?: string;
+    ffprobePath?: string;
+  };
+}
+
+export interface RenderResult {
+  success: boolean;
+  outputPath?: string;
+  durationSeconds?: number;
+  width?: number;
+  height?: number;
+  fps?: number;
+  fileSize?: number;
+  videoCodec?: string | null;
+  audioCodec?: string | null;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+export const RENDER_FINAL_DISCLAIMER = "这是最终 Episode MP4 Render。";
+

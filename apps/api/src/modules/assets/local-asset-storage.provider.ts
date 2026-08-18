@@ -33,6 +33,11 @@ export interface AssetStorageProvider {
   delete(storageKey: string): Promise<void>;
   getUrl(projectId: string, assetId: string): string;
   resolvePath(storageKey: string): string;
+  saveFromFile(input: {
+    storageKey: string;
+    sourcePath: string;
+    mimeType?: string;
+  }): Promise<SavedAssetFile>;
 }
 
 const MIME_EXT: Record<string, string> = {
@@ -141,6 +146,23 @@ export class LocalAssetStorageProvider implements AssetStorageProvider {
     }
   }
 
+  async saveFromFile(input: {
+    storageKey: string;
+    sourcePath: string;
+    mimeType?: string;
+  }): Promise<SavedAssetFile> {
+    const full = this.resolvePath(input.storageKey);
+    await fs.mkdir(path.dirname(full), { recursive: true });
+    await fs.copyFile(input.sourcePath, full);
+    const stat = await fs.stat(full);
+    return {
+      storageKey: input.storageKey.replace(/\\/g, "/").replace(/^\/+/, ""),
+      url: "",
+      mimeType: input.mimeType || "video/mp4",
+      sizeBytes: stat.size,
+    };
+  }
+
   private async write(
     projectId: string,
     assetId: string,
@@ -199,6 +221,9 @@ export class S3AssetStorageProvider implements AssetStorageProvider {
   }
   resolvePath(): string {
     throw new Error("S3 storage is not implemented");
+  }
+  saveFromFile(): Promise<SavedAssetFile> {
+    return Promise.reject(new Error("S3 storage is not implemented"));
   }
 }
 

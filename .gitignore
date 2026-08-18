@@ -35,3 +35,6 @@ desktop.ini
 # Local asset storage (Phase 9)
 storage/**
 !storage/.gitkeep
+
+# Local render temp (Phase 14)
+tmp/

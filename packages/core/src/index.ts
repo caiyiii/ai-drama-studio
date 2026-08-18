@@ -188,3 +188,25 @@ export type {
   ShotTimingInput,
   VisualAssetCandidate,
 } from "./timeline";
+export {
+  RENDER_ACTIVE_STATUSES,
+  assertRenderJobTransition,
+  assertRenderReady,
+  calculateEffectiveVolume,
+  calculateRenderProgress,
+  canCreateRender,
+  clampProgress,
+  containsForbiddenRenderLeak,
+  getRenderJobStageLabel,
+  getRenderJobStatusLabel,
+  isProgressMonotonic,
+  parseFfmpegProgress,
+  parseResolution,
+  renderArtifactStorageKey,
+  resolveRenderAudioClips,
+  resolveRenderLayers,
+  sanitizeRenderDiagnostic,
+  validateRenderJobTransition,
+  validateRenderManifest,
+} from "./render";
+export type { RenderLayerClip } from "./render";

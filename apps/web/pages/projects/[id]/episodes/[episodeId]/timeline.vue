@@ -45,6 +45,22 @@
             <button
               v-if="locked"
               type="button"
+              class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
+              @click="goRender"
+            >
+              Render Episode
+            </button>
+            <button
+              v-else
+              type="button"
+              class="rounded-xl border border-white/10 px-3 py-1.5 text-sm text-zinc-500"
+              disabled
+            >
+              请先锁定时间线
+            </button>
+            <button
+              v-if="locked"
+              type="button"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
               @click="onUnlock"
             >
@@ -268,6 +284,10 @@ async function onLock() {
 
 async function onUnlock() {
   timeline.value = await $api.unlockEpisodeTimeline(projectId.value, episodeId.value);
+}
+
+function goRender() {
+  void navigateTo(`/projects/${projectId.value}/episodes/${episodeId.value}/render`);
 }
 
 async function saveClip() {

@@ -32,6 +32,7 @@
       <StoryboardPanel v-else-if="current === 'storyboard'" />
       <EpisodeAudioPanel v-else-if="current === 'music' || current === 'sfx'" :kind="current" />
       <TimelinePanel v-else-if="current === 'timeline'" />
+      <RenderPanel v-else-if="current === 'render'" />
       <template v-else>
         <p class="lead">
           当前阶段 Desktop 复用共享类型与 API Client。复杂时间线编辑请使用 Web 工作台。项目 AI 能力配置（Chat / Structured Output / Image / Video / TTS / Music / SFX）请使用 Web。
@@ -55,6 +56,7 @@ import ScriptPanel from "./ScriptPanel.vue";
 import StoryboardPanel from "./StoryboardPanel.vue";
 import EpisodeAudioPanel from "./EpisodeAudioPanel.vue";
 import TimelinePanel from "./TimelinePanel.vue";
+import RenderPanel from "./RenderPanel.vue";
 
 const items = getWorkspaceSteps();
 const current = ref<(typeof items)[number]["key"]>("overview");

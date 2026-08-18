@@ -90,6 +90,42 @@ enum TimelineClipSourceType {
   ASSET
 }
 
+enum RenderJobStatus {
+  QUEUED
+  PREPARING
+  RENDERING
+  SUCCEEDED
+  FAILED
+  CANCEL_REQUESTED
+  CANCELLED
+}
+
+enum RenderJobStage {
+  QUEUED
+  PREPARING
+  ENCODING_VIDEO
+  MIXING_AUDIO
+  FINALIZING
+  COMPLETED
+}
+
+enum RenderJobEventType {
+  QUEUED
+  PREPARING
+  FFMPEG_STARTED
+  FFMPEG_PROGRESS
+  FFMPEG_COMPLETED
+  ARTIFACT_CREATED
+  SUCCEEDED
+  FAILED
+  CANCEL_REQUESTED
+  CANCELLED
+}
+
+enum RenderArtifactType {
+  EPISODE_VIDEO
+}
+
 enum GenerationTaskType {
   WORLD
   CHARACTER
@@ -306,6 +342,8 @@ model Project {
   characterRelationships CharacterRelationship[]
   aiConfigs              ProjectAiConfig[]
   timelines              EpisodeTimeline[]
+  renderJobs             RenderJob[]
+  renderArtifacts        RenderArtifact[]
 
   @@index([aiProviderId])
 }
@@ -370,6 +408,8 @@ model Episode {
   storyboard       Storyboard?
   audioAssets      EpisodeAudioAsset[]
   timeline         EpisodeTimeline?
+  renderJobs       RenderJob[]
+  renderArtifacts  RenderArtifact[]
 
   @@unique([seasonId, number])
   @@index([projectId])
@@ -868,6 +908,7 @@ model EpisodeTimeline {
   createdAt                  DateTime       @default(now())
   updatedAt                  DateTime       @updatedAt
   tracks                     TimelineTrack[]
+  renderJobs                 RenderJob[]
 
   @@index([projectId])
 }
@@ -915,4 +956,82 @@ model TimelineClip {
   @@index([trackId])
   @@index([assetId])
   @@index([sourceType, sourceId])
+}
+
+model RenderJob {
+  id                 String           @id @default(cuid())
+  projectId          String
+  project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  episodeId          String
+  episode            Episode          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  timelineId         String
+  timeline           EpisodeTimeline  @relation(fields: [timelineId], references: [id], onDelete: Restrict)
+  timelineVersion    Int
+  status             RenderJobStatus  @default(QUEUED)
+  manifestSnapshot   Json
+  outputFormat       String           @default("h264_aac")
+  outputContainer    String           @default("mp4")
+  width              Int
+  height             Int
+  fps                Int
+  durationSeconds    Float
+  progress           Float?
+  currentStage       RenderJobStage   @default(QUEUED)
+  outputArtifactId   String?
+  errorCode          String?
+  errorMessage       String?
+  attempt            Int              @default(1)
+  maxAttempts        Int              @default(3)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  failedAt           DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  events             RenderJobEvent[]
+  artifacts          RenderArtifact[]
+
+  @@index([projectId])
+  @@index([episodeId])
+  @@index([timelineId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([projectId, episodeId, timelineId, timelineVersion])
+}
+
+model RenderJobEvent {
+  id          String              @id @default(cuid())
+  renderJobId String
+  renderJob   RenderJob           @relation(fields: [renderJobId], references: [id], onDelete: Cascade)
+  type        RenderJobEventType
+  message     String?
+  progress    Float?
+  metadata    Json?
+  createdAt   DateTime            @default(now())
+
+  @@index([renderJobId])
+}
+
+model RenderArtifact {
+  id               String             @id @default(cuid())
+  projectId        String
+  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  episodeId        String
+  episode          Episode            @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  renderJobId      String
+  renderJob        RenderJob          @relation(fields: [renderJobId], references: [id], onDelete: Cascade)
+  type             RenderArtifactType @default(EPISODE_VIDEO)
+  storageKey       String
+  mimeType         String             @default("video/mp4")
+  fileSize         Int
+  durationSeconds  Float?
+  width            Int?
+  height           Int?
+  fps              Float?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([renderJobId])
+  @@index([projectId])
+  @@index([episodeId])
 }

@@ -32,6 +32,9 @@
     "db:seed:tts-demo": "tsx prisma/seed-tts-demo.ts",
     "db:seed:music-sfx-demo": "tsx prisma/seed-music-sfx-demo.ts",
     "db:seed:timeline-demo": "tsx prisma/seed-timeline-demo.ts",
+    "db:seed:render-demo": "tsx prisma/seed-render-demo.ts",
+    "render:check": "tsx scripts/render-check.ts",
+    "render:episode": "tsx scripts/render-episode.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

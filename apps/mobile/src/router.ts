@@ -69,6 +69,10 @@ const routes: RouteRecordRaw[] = [
         component: () => import("./views/TimelinePage.vue"),
       },
       {
+        path: "projects/:id/seasons/:seasonId/episodes/:episodeId/render",
+        component: () => import("./views/RenderPage.vue"),
+      },
+      {
         path: "projects/:id/seasons/:seasonId/episodes/:episodeId/storyboard/:shotId",
         component: () => import("./views/StoryboardShotPage.vue"),
       },

@@ -100,6 +100,8 @@ import type {
   UpdateEpisodeTimelineInput,
   UpdateTimelineClipInput,
   UpdateTimelineTrackInput,
+  RenderArtifact,
+  RenderJob,
 } from "@ai-drama-studio/types";
 
 export class ApiError extends Error {
@@ -1415,6 +1417,48 @@ export class ApiClient {
   ): Promise<TimelineContinuityResult> {
     return this.request<TimelineContinuityResult>(
       `/projects/${projectId}/episodes/${episodeId}/timeline/continuity`,
+    );
+  }
+
+  async createRenderJob(projectId: string, episodeId: string): Promise<RenderJob> {
+    return this.request<RenderJob>(
+      `/projects/${projectId}/episodes/${episodeId}/render`,
+      { method: "POST" },
+    );
+  }
+
+  async getRenderJobs(projectId: string, episodeId?: string): Promise<RenderJob[]> {
+    const query = episodeId ? `?episodeId=${encodeURIComponent(episodeId)}` : "";
+    return this.request<RenderJob[]>(`/projects/${projectId}/render-jobs${query}`);
+  }
+
+  async getRenderJob(projectId: string, renderJobId: string): Promise<RenderJob> {
+    return this.request<RenderJob>(`/projects/${projectId}/render-jobs/${renderJobId}`);
+  }
+
+  async cancelRenderJob(projectId: string, renderJobId: string): Promise<RenderJob> {
+    return this.request<RenderJob>(
+      `/projects/${projectId}/render-jobs/${renderJobId}/cancel`,
+      { method: "POST" },
+    );
+  }
+
+  async retryRenderJob(projectId: string, renderJobId: string): Promise<RenderJob> {
+    return this.request<RenderJob>(
+      `/projects/${projectId}/render-jobs/${renderJobId}/retry`,
+      { method: "POST" },
+    );
+  }
+
+  async getRenderArtifact(projectId: string, renderJobId: string): Promise<RenderArtifact> {
+    return this.request<RenderArtifact>(
+      `/projects/${projectId}/render-jobs/${renderJobId}/artifact`,
+    );
+  }
+
+  async getRenderArtifactById(projectId: string, artifactId: string): Promise<RenderArtifact> {
+    return this.request<RenderArtifact>(
+      `/projects/${projectId}/render-artifacts/${artifactId}`,
     );
   }
 

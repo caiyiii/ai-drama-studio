@@ -55,4 +55,12 @@ export class AssetStorageService {
   resolvePath(storageKey: string): string {
     return this.adapter.resolvePath(storageKey);
   }
+
+  saveFromFile(input: {
+    storageKey: string;
+    sourcePath: string;
+    mimeType?: string;
+  }): Promise<SavedAssetFile> {
+    return this.adapter.saveFromFile(input);
+  }
 }

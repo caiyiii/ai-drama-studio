@@ -14,6 +14,7 @@ import { AiModule } from "./modules/ai/ai.module";
 import { StoryModule } from "./modules/story/story.module";
 import { ScriptModule } from "./modules/script/script.module";
 import { TimelineModule } from "./modules/timeline/timeline.module";
+import { RenderModule } from "./modules/render/render.module";
 import configuration from "./config/configuration";
 
 @Module({
@@ -36,6 +37,7 @@ import configuration from "./config/configuration";
     StoryModule,
     ScriptModule,
     TimelineModule,
+    RenderModule,
   ],
   controllers: [AppController],
 })

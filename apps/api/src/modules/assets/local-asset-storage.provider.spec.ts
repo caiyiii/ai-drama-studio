@@ -49,5 +49,16 @@ describe("LocalAssetStorageProvider", () => {
     expect(copied.storageKey).toBe("assets/proj-1/asset-music-copy/music.mp3");
     await storage.delete(music.storageKey);
     await storage.delete(copied.storageKey);
+
+    const renderSource = path.join(root, "episode-src.mp4");
+    await fs.writeFile(renderSource, Buffer.from("fake-mp4"));
+    const rendered = await storage.saveFromFile({
+      storageKey: "renders/proj-1/ep-1/job-1/episode.mp4",
+      sourcePath: renderSource,
+      mimeType: "video/mp4",
+    });
+    expect(rendered.storageKey).toBe("renders/proj-1/ep-1/job-1/episode.mp4");
+    expect(rendered.sizeBytes).toBeGreaterThan(0);
+    await storage.delete(rendered.storageKey);
   });
 });
