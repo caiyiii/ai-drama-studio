@@ -30,5 +30,24 @@ describe("LocalAssetStorageProvider", () => {
     });
     expect(audio.storageKey).toBe("assets/proj-1/asset-audio/audio.mp3");
     await storage.delete(audio.storageKey);
+
+    const music = await storage.saveFromBase64({
+      projectId: "proj-1",
+      assetId: "asset-music",
+      base64: Buffer.from("RIFF").toString("base64"),
+      mimeType: "audio/mpeg",
+      fileStem: "music",
+    });
+    expect(music.storageKey).toBe("assets/proj-1/asset-music/music.mp3");
+    const copied = await storage.copy({
+      sourceStorageKey: music.storageKey,
+      projectId: "proj-1",
+      assetId: "asset-music-copy",
+      mimeType: "audio/mpeg",
+      fileStem: "music",
+    });
+    expect(copied.storageKey).toBe("assets/proj-1/asset-music-copy/music.mp3");
+    await storage.delete(music.storageKey);
+    await storage.delete(copied.storageKey);
   });
 });

@@ -49,6 +49,8 @@ const TYPE_LABELS: Record<GenerationTaskType, string> = {
   [GenerationTaskType.IMAGE_TO_VIDEO]: "图生视频",
   [GenerationTaskType.VOICE]: "配音",
   [GenerationTaskType.TTS]: "语音",
+  [GenerationTaskType.MUSIC]: "音乐",
+  [GenerationTaskType.SFX]: "音效",
   [GenerationTaskType.STORYBOARD]: "分镜",
 };
 

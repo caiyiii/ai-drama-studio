@@ -324,6 +324,11 @@ describe("AI Provider CRUD", () => {
     expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.TTS)).toBe(true);
   });
 
+  it("allows MUSIC and SFX capability on OpenAI Compatible providers", async () => {
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.MUSIC)).toBe(true);
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.SFX)).toBe(true);
+  });
+
   it("rejects VOICE_CLONE capability on OpenAI Compatible providers", async () => {
     const { service } = createService({ providers: [], projects: [] });
     await expect(

@@ -261,6 +261,8 @@ describe("Project AI Config", () => {
     expect(list.find((item) => item.capability === "VIDEO")?.implemented).toBe(true);
     expect(list.find((item) => item.capability === "IMAGE_TO_VIDEO")?.implemented).toBe(true);
     expect(list.find((item) => item.capability === "TTS")?.implemented).toBe(true);
+    expect(list.find((item) => item.capability === "MUSIC")?.implemented).toBe(true);
+    expect(list.find((item) => item.capability === "SFX")?.implemented).toBe(true);
     expect(JSON.stringify(list)).not.toContain("apiKey");
   });
 

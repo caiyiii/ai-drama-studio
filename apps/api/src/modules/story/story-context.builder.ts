@@ -4,7 +4,9 @@ import {
   summarizeCharacterForStoryboard,
 } from "@ai-drama-studio/core";
 import type {
+  MusicContext,
   ScriptStatus,
+  SfxContext,
   StoryboardScriptContext,
   StoryCharacterSummary,
   StoryContext,
@@ -269,6 +271,129 @@ export class StoryContextBuilder {
       script: script && script.projectId === projectId ? mapScriptContext(script) : null,
     };
   }
+
+  async buildMusicContext(projectId: string, episodeId: string): Promise<MusicContext> {
+    const [project, episodeContext, script, storyboard] = await Promise.all([
+      this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { name: true, genre: true },
+      }),
+      this.buildEpisodeContext(projectId, episodeId),
+      this.prisma.script.findUnique({
+        where: { episodeId },
+        select: {
+          projectId: true,
+          title: true,
+          summary: true,
+          scenes: {
+            orderBy: { number: "asc" },
+            take: 8,
+            select: { title: true, summary: true },
+          },
+        },
+      }),
+      this.prisma.storyboard.findUnique({
+        where: { episodeId },
+        select: {
+          projectId: true,
+          title: true,
+          shots: {
+            orderBy: { shotNumber: "asc" },
+            take: 8,
+            select: { visualDescription: true, action: true, mood: true },
+          },
+        },
+      }),
+    ]);
+    const episode = episodeContext.episode;
+    return {
+      projectName: project?.name,
+      genre: project?.genre ?? undefined,
+      worldSummary: episodeContext.world?.summary
+        ? truncate(episodeContext.world.summary, 240)
+        : undefined,
+      storyBiblePremise: episodeContext.storyBible?.premise
+        ? truncate(episodeContext.storyBible.premise, 240)
+        : undefined,
+      storyBibleTone: episodeContext.storyBible?.tone ?? undefined,
+      seasonTitle: episodeContext.season?.title,
+      episodeTitle: episode?.title,
+      episodeOutline: episode?.outline ? truncate(episode.outline, 400) : undefined,
+      episodeSynopsis: episode?.synopsis ? truncate(episode.synopsis, 240) : undefined,
+      continuityNotes: episode?.continuityNotes
+        ? truncate(episode.continuityNotes, 240)
+        : undefined,
+      storyStateSummary: summarizeStoryState(episode?.storyState),
+      scriptSummary:
+        script && script.projectId === projectId
+          ? truncate(
+              [script.title, script.summary, ...script.scenes.map((item) => item.title)]
+                .filter(Boolean)
+                .join(" · "),
+              320,
+            )
+          : undefined,
+      storyboardSummary:
+        storyboard && storyboard.projectId === projectId
+          ? truncate(
+              storyboard.shots
+                .map((shot) => shot.mood || shot.action || shot.visualDescription)
+                .filter(Boolean)
+                .join(" · "),
+              320,
+            )
+          : undefined,
+    };
+  }
+
+  async buildSfxContext(
+    projectId: string,
+    episodeId: string,
+    sceneId?: string,
+    shotId?: string,
+  ): Promise<SfxContext> {
+    const base = await this.buildMusicContext(projectId, episodeId);
+    let sceneTitle: string | undefined;
+    let shotVisualDescription: string | undefined;
+    let shotAction: string | undefined;
+    let shotEnvironment: string | undefined;
+    if (sceneId) {
+      const scene = await this.prisma.scene.findUnique({
+        where: { id: sceneId },
+        include: { script: true },
+      });
+      if (scene?.script.episodeId === episodeId && scene.script.projectId === projectId) {
+        sceneTitle = scene.title;
+        shotEnvironment = [scene.location, scene.timeOfDay].filter(Boolean).join(" · ") || undefined;
+      }
+    }
+    if (shotId) {
+      const shot = await this.prisma.storyboardShot.findUnique({
+        where: { id: shotId },
+        include: { storyboard: true },
+      });
+      if (
+        shot?.storyboard.episodeId === episodeId &&
+        shot.storyboard.projectId === projectId
+      ) {
+        shotVisualDescription = shot.visualDescription
+          ? truncate(shot.visualDescription, 240)
+          : undefined;
+        shotAction = shot.action ? truncate(shot.action, 240) : undefined;
+        shotEnvironment =
+          shot.location || shotEnvironment
+            ? truncate(shot.location || shotEnvironment || "", 160)
+            : undefined;
+      }
+    }
+    return {
+      ...base,
+      sceneTitle,
+      shotVisualDescription,
+      shotAction,
+      shotEnvironment,
+    };
+  }
 }
 
 function mapEpisodeSummary(row: {
@@ -345,6 +470,21 @@ function truncate(value: string, max: number): string {
     return trimmed;
   }
   return `${trimmed.slice(0, max)}…`;
+}
+
+function summarizeStoryState(value: StoryEpisodeSummary["storyState"] | null | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const parts = [
+    ...(Array.isArray(value.unresolvedThreads)
+      ? value.unresolvedThreads.map((item) => String(item)).slice(0, 4)
+      : []),
+    ...(Array.isArray(value.foreshadowing)
+      ? value.foreshadowing.map((item) => String(item)).slice(0, 4)
+      : []),
+  ].filter(Boolean);
+  return parts.length ? truncate(parts.join(" · "), 240) : undefined;
 }
 
 type PrismaJson = Parameters<typeof asStoryState>[0];

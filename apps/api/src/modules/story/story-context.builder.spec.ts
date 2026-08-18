@@ -243,6 +243,46 @@ function createBuilder() {
         return null;
       },
     },
+    storyboard: {
+      findUnique: async ({ where: { episodeId } }: { where: { episodeId: string } }) =>
+        episodeId === "ep-1"
+          ? {
+              projectId: "proj-a",
+              title: "分镜",
+              shots: [
+                {
+                  visualDescription: "星图碎裂",
+                  action: "沈星河抬头",
+                  mood: "紧张",
+                },
+              ],
+            }
+          : null,
+    },
+    scene: {
+      findUnique: async ({ where: { id } }: { where: { id: string } }) =>
+        id === "scene-1"
+          ? {
+              id: "scene-1",
+              title: "问天宗夜课",
+              location: "问天宗外门",
+              timeOfDay: "夜",
+              script: { episodeId: "ep-1", projectId: "proj-a" },
+            }
+          : null,
+    },
+    storyboardShot: {
+      findUnique: async ({ where: { id } }: { where: { id: string } }) =>
+        id === "shot-1"
+          ? {
+              id: "shot-1",
+              visualDescription: "飞船撞击空间站，金属变形",
+              action: "撞击",
+              location: "近地轨道",
+              storyboard: { episodeId: "ep-1", projectId: "proj-a" },
+            }
+          : null,
+    },
   };
   return new StoryContextBuilder(prisma as never);
 }
@@ -298,5 +338,22 @@ describe("StoryContextBuilder", () => {
     expect(JSON.stringify(context)).not.toContain("imageProfile");
     expect(JSON.stringify(context)).not.toContain("voiceProfile");
     expect(JSON.stringify(context)).not.toContain('"secret"');
+  });
+
+  it("builds music and sfx context summaries without leaking secrets", async () => {
+    const builder = createBuilder();
+    const music = await builder.buildMusicContext("proj-a", "ep-1");
+    expect(music.projectName).toBe("星河碰撞");
+    expect(music.episodeTitle).toBe("星系碰撞");
+    expect(music.storyBibleTone).toBe("史诗");
+    expect(JSON.stringify(music)).not.toContain("apiKey");
+    expect(JSON.stringify(music)).not.toContain("encryptedApiKey");
+    expect(JSON.stringify(music)).not.toContain("imageProfile");
+    expect(JSON.stringify(music)).not.toContain("voiceProfile");
+    const sfx = await builder.buildSfxContext("proj-a", "ep-1", "scene-1", "shot-1");
+    expect(sfx.sceneTitle).toBe("问天宗夜课");
+    expect(sfx.shotAction).toBe("撞击");
+    expect(sfx.shotVisualDescription).toContain("飞船撞击");
+    expect(JSON.stringify(sfx)).not.toContain("encryptedApiKey");
   });
 });

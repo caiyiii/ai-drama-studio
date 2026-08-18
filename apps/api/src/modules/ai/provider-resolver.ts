@@ -170,7 +170,11 @@ export class ProviderResolver {
             ? "尚未配置图生视频 AI。"
             : capability === AiCapability.TTS
               ? "尚未配置语音生成 AI。"
-              : "尚未配置可用的 AI Provider。请前往项目设置 → AI 配置。",
+              : capability === AiCapability.MUSIC
+                ? "尚未配置音乐生成 AI。"
+                : capability === AiCapability.SFX
+                  ? "尚未配置音效生成 AI。"
+                  : "尚未配置可用的 AI Provider。请前往项目设置 → AI 配置。",
     );
   }
 

@@ -76,6 +76,8 @@ const MEDIA_CAPABILITIES = new Set([
   AiCapability.VIDEO,
   AiCapability.IMAGE_TO_VIDEO,
   AiCapability.TTS,
+  AiCapability.MUSIC,
+  AiCapability.SFX,
 ]);
 
 export function kindAllowsCapability(

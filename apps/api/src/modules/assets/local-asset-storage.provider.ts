@@ -14,12 +14,21 @@ export interface AssetStorageProvider {
     assetId: string;
     url: string;
     mimeType?: string;
+    fileStem?: string;
   }): Promise<SavedAssetFile>;
   saveFromBase64(input: {
     projectId: string;
     assetId: string;
     base64: string;
     mimeType?: string;
+    fileStem?: string;
+  }): Promise<SavedAssetFile>;
+  copy(input: {
+    sourceStorageKey: string;
+    projectId: string;
+    assetId: string;
+    mimeType?: string;
+    fileStem?: string;
   }): Promise<SavedAssetFile>;
   delete(storageKey: string): Promise<void>;
   getUrl(projectId: string, assetId: string): string;
@@ -68,10 +77,11 @@ export class LocalAssetStorageProvider implements AssetStorageProvider {
     assetId: string;
     base64: string;
     mimeType?: string;
+    fileStem?: string;
   }): Promise<SavedAssetFile> {
     const mimeType = input.mimeType || "image/png";
     const buffer = Buffer.from(stripDataUrl(input.base64), "base64");
-    return this.write(input.projectId, input.assetId, buffer, mimeType);
+    return this.write(input.projectId, input.assetId, buffer, mimeType, input.fileStem);
   }
 
   async saveFromUrl(input: {
@@ -79,6 +89,7 @@ export class LocalAssetStorageProvider implements AssetStorageProvider {
     assetId: string;
     url: string;
     mimeType?: string;
+    fileStem?: string;
   }): Promise<SavedAssetFile> {
     let response: Response;
     try {
@@ -94,7 +105,30 @@ export class LocalAssetStorageProvider implements AssetStorageProvider {
       input.mimeType ||
       response.headers.get("content-type")?.split(";")[0]?.trim() ||
       "image/png";
-    return this.write(input.projectId, input.assetId, buffer, mimeType);
+    return this.write(
+      input.projectId,
+      input.assetId,
+      buffer,
+      mimeType,
+      input.fileStem,
+    );
+  }
+
+  async copy(input: {
+    sourceStorageKey: string;
+    projectId: string;
+    assetId: string;
+    mimeType?: string;
+    fileStem?: string;
+  }): Promise<SavedAssetFile> {
+    const buffer = await fs.readFile(this.resolvePath(input.sourceStorageKey));
+    return this.write(
+      input.projectId,
+      input.assetId,
+      buffer,
+      input.mimeType || "audio/mpeg",
+      input.fileStem,
+    );
   }
 
   async delete(storageKey: string): Promise<void> {
@@ -112,6 +146,7 @@ export class LocalAssetStorageProvider implements AssetStorageProvider {
     assetId: string,
     buffer: Buffer,
     mimeType: string,
+    fileStem?: string,
   ): Promise<SavedAssetFile> {
     const ext =
       MIME_EXT[mimeType] ||
@@ -120,11 +155,14 @@ export class LocalAssetStorageProvider implements AssetStorageProvider {
         : mimeType.startsWith("audio/")
           ? "mp3"
           : "png");
-    const filename = mimeType.startsWith("video/")
-      ? `video.${ext}`
-      : mimeType.startsWith("audio/")
-        ? `audio.${ext}`
-        : `original.${ext}`;
+    const stem =
+      fileStem ||
+      (mimeType.startsWith("video/")
+        ? "video"
+        : mimeType.startsWith("audio/")
+          ? "audio"
+          : "original");
+    const filename = `${stem}.${ext}`;
     const storageKey = `assets/${projectId}/${assetId}/${filename}`;
     const full = this.resolvePath(storageKey);
     await fs.mkdir(path.dirname(full), { recursive: true });
@@ -148,6 +186,9 @@ export class S3AssetStorageProvider implements AssetStorageProvider {
     return Promise.reject(new Error("S3 storage is not implemented"));
   }
   saveFromBase64(): Promise<SavedAssetFile> {
+    return Promise.reject(new Error("S3 storage is not implemented"));
+  }
+  copy(): Promise<SavedAssetFile> {
     return Promise.reject(new Error("S3 storage is not implemented"));
   }
   delete(): Promise<void> {

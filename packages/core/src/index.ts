@@ -132,6 +132,19 @@ export {
   validateTtsText,
 } from "./tts";
 export {
+  buildMusicPrompt,
+  getPrimaryEpisodeAudio,
+  normalizeMusicGenerationResult,
+  normalizeMusicInput,
+  validateMusicDuration,
+} from "./music";
+export {
+  buildSfxPrompt,
+  normalizeSfxGenerationResult,
+  normalizeSfxInput,
+  validateSfxDuration,
+} from "./sfx";
+export {
   characterBelongsToProject,
   continuityResult,
   episodeBelongsToProject,

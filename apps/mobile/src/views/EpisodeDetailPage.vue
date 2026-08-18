@@ -32,6 +32,19 @@
         <ion-button expand="block" fill="outline" class="ion-margin-top" :router-link="`/tabs/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}/storyboard`">
           查看分镜
         </ion-button>
+        <section v-if="musicItems.length || sfxItems.length" class="block">
+          <p class="eyebrow">Music / SFX</p>
+          <p class="hint">可播放已生成的剧集音频。复杂 AI 生成请使用 Web 工作台。</p>
+          <article v-for="item in musicItems" :key="item.id" class="audio-card">
+            <p class="meta">🎵 {{ item.asset?.name || "Music" }}</p>
+            <audio v-if="item.asset?.url" :src="item.asset.url" controls />
+          </article>
+          <article v-for="item in sfxItems" :key="'sfx-' + item.id" class="audio-card">
+            <p class="meta">🔊 {{ item.asset?.name || "SFX" }}</p>
+            <audio v-if="item.asset?.url" :src="item.asset.url" controls />
+          </article>
+        </section>
+        <p v-else class="hint">复杂 Music / SFX 生成请使用 Web 工作台。</p>
         <ion-button expand="block" class="ion-margin-top" :disabled="saving" @click="onSave">保存</ion-button>
         <section v-if="episode.storyState" class="block">
           <p class="eyebrow">Story State</p>
@@ -58,7 +71,9 @@ import {
 } from "@ionic/vue";
 import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import { AudioAssetRole, type EpisodeAudioAsset } from "@ai-drama-studio/types";
 import { useStory } from "../composables/useStory";
+import { api } from "../api";
 
 const route = useRoute();
 const projectId = String(route.params.id);
@@ -68,9 +83,26 @@ const { episode, loading, saving, error, loadEpisode, saveEpisode } = useStory()
 const title = ref("");
 const synopsis = ref("");
 const outline = ref("");
+const musicItems = ref<EpisodeAudioAsset[]>([]);
+const sfxItems = ref<EpisodeAudioAsset[]>([]);
 
 function reload() {
   void loadEpisode(projectId, seasonId, episodeId);
+  void loadAudio();
+}
+
+async function loadAudio() {
+  try {
+    const [music, sfx] = await Promise.all([
+      api.getEpisodeAudioAssets(projectId, episodeId, AudioAssetRole.MUSIC),
+      api.getEpisodeAudioAssets(projectId, episodeId, AudioAssetRole.SFX),
+    ]);
+    musicItems.value = music;
+    sfxItems.value = sfx;
+  } catch {
+    musicItems.value = [];
+    sfxItems.value = [];
+  }
 }
 
 watch(
@@ -107,8 +139,12 @@ async function onSave() {
   font-size: 11px;
   text-transform: uppercase;
 }
-.block {
-  margin-top: 16px;
+.audio-card {
+  margin-top: 8px;
+}
+audio {
+  width: 100%;
+  margin-top: 4px;
 }
 pre {
   white-space: pre-wrap;

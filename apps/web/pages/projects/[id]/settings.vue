@@ -36,7 +36,7 @@
             <div>
               <h2 class="font-display text-2xl">AI 配置</h2>
               <p class="mt-1 text-xs text-zinc-500">
-                图片、视频、图生视频、语音可以分别使用不同 Provider。
+                图片、视频、图生视频、语音、音乐、音效可以分别使用不同 Provider。
               </p>
               <p class="mt-2 text-xs text-zinc-500">
                 默认 Provider 仅用于开发 / Demo。正式生产建议配置自己的 Provider。
@@ -46,6 +46,9 @@
               </p>
               <p class="mt-1 text-xs text-zinc-500">
                 语音生成费用由当前项目配置的 Provider 账户承担。
+              </p>
+              <p class="mt-1 text-xs text-zinc-500">
+                音乐 / 音效生成费用由当前配置的 Provider 账户承担。平台默认 Provider 只是 Demo / Development fallback，不是长期免费代付。
               </p>
             </div>
             <NuxtLink
@@ -241,6 +244,12 @@ function capabilitySummary(capability: AiCapability) {
     }
     if (capability === AiCapability.TTS) {
       return "尚未配置语音生成 AI。平台默认文本 Provider 不支持 TTS，请配置自己的语音 Provider。";
+    }
+    if (capability === AiCapability.MUSIC) {
+      return "尚未配置音乐生成 AI。Status: Not configured";
+    }
+    if (capability === AiCapability.SFX) {
+      return "尚未配置音效生成 AI。Status: Not configured";
     }
     return "未配置，将使用自动回退";
   }

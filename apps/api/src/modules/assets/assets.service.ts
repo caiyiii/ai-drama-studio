@@ -1,9 +1,9 @@
 import { createReadStream } from "node:fs";
 import { HttpStatus, Injectable, StreamableFile } from "@nestjs/common";
-import { AssetStatus, AssetType, ScriptBlockAssetRole, StoryboardShotAssetRole } from "@prisma/client";
+import { AssetStatus, AssetType, AudioAssetRole, ScriptBlockAssetRole, StoryboardShotAssetRole } from "@prisma/client";
 import { AppError, ErrorCodes } from "../../common/app-error";
 import { PrismaService } from "../../prisma/prisma.service";
-import { mapAsset, mapBlockAsset, mapShotAsset } from "./asset.mapper";
+import { mapAsset, mapBlockAsset, mapEpisodeAudioAsset, mapShotAsset } from "./asset.mapper";
 import { AssetStorageService } from "./asset-storage.service";
 
 @Injectable()
@@ -143,6 +143,106 @@ export class AssetsService {
       }
     });
     return this.listScriptBlockAssets(projectId, scriptBlockId);
+  }
+
+  async listEpisodeAudioAssets(
+    projectId: string,
+    episodeId?: string,
+    role?: AudioAssetRole,
+  ) {
+    await this.ensureProject(projectId);
+    if (episodeId) {
+      await this.requireOwnedEpisode(projectId, episodeId);
+    }
+    const rows = await this.prisma.episodeAudioAsset.findMany({
+      where: {
+        ...(episodeId ? { episodeId } : {}),
+        ...(role ? { role } : {}),
+        episode: { projectId },
+        asset: { status: { not: AssetStatus.DELETED } },
+      },
+      include: { asset: true },
+      orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
+    });
+    return rows.map(mapEpisodeAudioAsset);
+  }
+
+  async setPrimaryEpisodeAudioAsset(
+    projectId: string,
+    episodeId: string,
+    assetId: string,
+    role?: AudioAssetRole,
+  ) {
+    await this.requireOwnedEpisode(projectId, episodeId);
+    const relation = await this.prisma.episodeAudioAsset.findUnique({
+      where: { episodeId_assetId: { episodeId, assetId } },
+    });
+    if (!relation) {
+      throw new AppError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.ASSET_NOT_FOUND,
+        "剧集未关联该音频",
+      );
+    }
+    const targetRole = role ?? relation.role;
+    if (relation.role !== targetRole) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.EPISODE_NOT_IN_PROJECT,
+        "音频角色不匹配",
+      );
+    }
+    const asset = await this.requireAsset(projectId, assetId);
+    if (asset.type !== AssetType.AUDIO) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.EPISODE_NOT_IN_PROJECT,
+        "只能将音频设为最终",
+      );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.episodeAudioAsset.updateMany({
+        where: {
+          episodeId,
+          role: targetRole,
+          isPrimary: true,
+        },
+        data: { isPrimary: false },
+      });
+      await tx.episodeAudioAsset.update({
+        where: { id: relation.id },
+        data: { isPrimary: true },
+      });
+      if (asset.status !== AssetStatus.READY) {
+        await tx.asset.update({
+          where: { id: asset.id },
+          data: { status: AssetStatus.READY },
+        });
+      }
+    });
+    return this.listEpisodeAudioAssets(projectId, episodeId, targetRole);
+  }
+
+  private async requireOwnedEpisode(projectId: string, episodeId: string) {
+    await this.ensureProject(projectId);
+    const episode = await this.prisma.episode.findUnique({
+      where: { id: episodeId },
+    });
+    if (!episode) {
+      throw new AppError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.EPISODE_NOT_FOUND,
+        "剧集不存在",
+      );
+    }
+    if (episode.projectId !== projectId) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.EPISODE_NOT_IN_PROJECT,
+        "剧集不属于当前项目",
+      );
+    }
+    return episode;
   }
 
   private async requireAsset(projectId: string, assetId: string) {

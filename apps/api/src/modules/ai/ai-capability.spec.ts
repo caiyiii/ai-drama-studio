@@ -20,6 +20,7 @@ describe("AiCapability", () => {
       "TTS",
       "VOICE_CLONE",
       "MUSIC",
+      "SFX",
       "EMBEDDING",
     ]);
   });
@@ -57,6 +58,8 @@ describe("AiCapability", () => {
     expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.VIDEO)).toBe(true);
     expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.IMAGE_TO_VIDEO)).toBe(true);
     expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.TTS)).toBe(true);
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.MUSIC)).toBe(true);
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.SFX)).toBe(true);
   });
 
   it("defaults new providers to text capabilities", () => {

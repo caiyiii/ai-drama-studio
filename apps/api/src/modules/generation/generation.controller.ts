@@ -11,6 +11,8 @@ import { CreateWorldGenerationDto } from "./dto/create-world-generation.dto";
 import { CreateScriptGenerationDto } from "./dto/create-script-generation.dto";
 import { CreateImageGenerationDto } from "./dto/create-image-generation.dto";
 import { CreateTtsGenerationDto } from "./dto/create-tts-generation.dto";
+import { CreateMusicGenerationDto } from "./dto/create-music-generation.dto";
+import { CreateSfxGenerationDto } from "./dto/create-sfx-generation.dto";
 import {
   CreateImageToVideoGenerationDto,
   CreateVideoGenerationDto,
@@ -18,6 +20,7 @@ import {
 import { CreateStoryboardGenerationDto } from "./dto/create-storyboard-generation.dto";
 import { ImageGenerationService } from "./image-generation.service";
 import { TtsGenerationService } from "./tts-generation.service";
+import { EpisodeAudioGenerationService } from "./episode-audio-generation.service";
 import { VideoGenerationService } from "./video-generation.service";
 import { ScriptGenerationService } from "./script-generation.service";
 import { StoryboardGenerationService } from "./storyboard-generation.service";
@@ -35,6 +38,7 @@ export class GenerationController {
     private readonly imageGeneration: ImageGenerationService,
     private readonly videoGeneration: VideoGenerationService,
     private readonly ttsGeneration: TtsGenerationService,
+    private readonly episodeAudioGeneration: EpisodeAudioGenerationService,
   ) {}
 
   @Get()
@@ -130,6 +134,27 @@ export class GenerationController {
     return this.ttsGeneration.createTtsGeneration(projectId, dto);
   }
 
+  @Post("music")
+  createMusic(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateMusicGenerationDto,
+  ) {
+    return this.episodeAudioGeneration.createMusicGeneration(projectId, dto);
+  }
+
+  @Post("sfx")
+  createSfx(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateSfxGenerationDto,
+  ) {
+    return this.episodeAudioGeneration.createSfxGeneration(projectId, dto);
+  }
+
+  @Get(":id/preview")
+  preview(@Param("projectId") projectId: string, @Param("id") id: string) {
+    return this.episodeAudioGeneration.streamPreview(projectId, id);
+  }
+
   @Get(":id")
   getOne(@Param("projectId") projectId: string, @Param("id") id: string) {
     return this.worldGeneration.getOne(projectId, id);
@@ -168,6 +193,12 @@ export class GenerationController {
       task.type === GenerationTaskType.VOICE
     ) {
       return this.ttsGeneration.apply(projectId, id);
+    }
+    if (
+      task.type === GenerationTaskType.MUSIC ||
+      task.type === GenerationTaskType.SFX
+    ) {
+      return this.episodeAudioGeneration.apply(projectId, id);
     }
     return this.worldGeneration.apply(projectId, id);
   }

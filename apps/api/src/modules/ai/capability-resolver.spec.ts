@@ -504,6 +504,26 @@ describe("Capability Resolver", () => {
     ).rejects.toMatchObject({ code: ErrorCodes.NO_AI_PROVIDER_CONFIGURED });
   });
 
+  it("does not use a text legacy DeepSeek provider for MUSIC or SFX", async () => {
+    const resolver = createResolver({
+      project: { id: "proj-1", aiProviderId: "legacy" },
+      providers: [makeProvider({ id: "legacy", name: "我的 DeepSeek" })],
+      env: {},
+    });
+    await expect(
+      resolver.resolveForCapability({
+        projectId: "proj-1",
+        capability: AiCapability.MUSIC,
+      }),
+    ).rejects.toMatchObject({ code: ErrorCodes.NO_AI_PROVIDER_CONFIGURED });
+    await expect(
+      resolver.resolveForCapability({
+        projectId: "proj-1",
+        capability: AiCapability.SFX,
+      }),
+    ).rejects.toMatchObject({ code: ErrorCodes.NO_AI_PROVIDER_CONFIGURED });
+  });
+
   it("does not use an IMAGE provider for VIDEO", async () => {
     const imageOnly = makeProvider({
       id: "img",

@@ -79,6 +79,27 @@ export interface AiVoiceCloneRequest {
 export interface AiMusicRequest {
   prompt: string;
   model?: string;
+  durationSeconds?: number;
+  style?: string;
+  mood?: string;
+  genre?: string;
+  instrumentation?: string;
+  tempo?: string;
+  language?: string;
+  isInstrumental?: boolean;
+  negativePrompt?: string;
+  title?: string;
+  loopable?: boolean;
+  intensity?: string;
+}
+
+export interface AiSfxRequest {
+  prompt: string;
+  model?: string;
+  durationSeconds?: number;
+  category?: string;
+  intensity?: string;
+  negativePrompt?: string;
 }
 
 export interface AiEmbeddingRequest {
@@ -95,7 +116,8 @@ export interface AiProvider {
   generateImageToVideo(request: AiImageToVideoRequest): Promise<VideoGenerationResult>;
   generateSpeech(request: AiSpeechRequest): Promise<GeneratedAudio>;
   generateVoiceClone(request: AiVoiceCloneRequest): Promise<never>;
-  generateMusic(request: AiMusicRequest): Promise<never>;
+  generateMusic(request: AiMusicRequest): Promise<GeneratedAudio>;
+  generateSfx(request: AiSfxRequest): Promise<GeneratedAudio>;
   generateEmbedding(request: AiEmbeddingRequest): Promise<never>;
   testConnection(): Promise<void>;
 }

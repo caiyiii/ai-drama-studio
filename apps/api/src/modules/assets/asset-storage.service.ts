@@ -19,6 +19,7 @@ export class AssetStorageService {
     assetId: string;
     url: string;
     mimeType?: string;
+    fileStem?: string;
   }): Promise<SavedAssetFile> {
     return this.adapter.saveFromUrl(input);
   }
@@ -28,8 +29,19 @@ export class AssetStorageService {
     assetId: string;
     base64: string;
     mimeType?: string;
+    fileStem?: string;
   }): Promise<SavedAssetFile> {
     return this.adapter.saveFromBase64(input);
+  }
+
+  copy(input: {
+    sourceStorageKey: string;
+    projectId: string;
+    assetId: string;
+    mimeType?: string;
+    fileStem?: string;
+  }): Promise<SavedAssetFile> {
+    return this.adapter.copy(input);
   }
 
   delete(storageKey: string): Promise<void> {

@@ -55,6 +55,13 @@ enum ScriptBlockAssetRole {
   FINAL
 }
 
+enum AudioAssetRole {
+  MUSIC
+  SFX
+  REFERENCE
+  FINAL
+}
+
 enum GenerationTaskType {
   WORLD
   CHARACTER
@@ -67,6 +74,8 @@ enum GenerationTaskType {
   IMAGE_TO_VIDEO
   VOICE
   TTS
+  MUSIC
+  SFX
   STORYBOARD
 }
 
@@ -122,6 +131,7 @@ enum AiCapability {
   TTS
   VOICE_CLONE
   MUSIC
+  SFX
   EMBEDDING
 }
 
@@ -329,6 +339,7 @@ model Episode {
   updatedAt        DateTime      @updatedAt
   script           Script?
   storyboard       Storyboard?
+  audioAssets      EpisodeAudioAsset[]
 
   @@unique([seasonId, number])
   @@index([projectId])
@@ -561,6 +572,7 @@ model Asset {
   updatedAt        DateTime              @updatedAt
   shotAssets       StoryboardShotAsset[]
   blockAssets      ScriptBlockAsset[]
+  episodeAssets    EpisodeAudioAsset[]
 
   @@index([projectId])
   @@index([generationTaskId])
@@ -580,6 +592,23 @@ model ScriptBlockAsset {
 
   @@unique([scriptBlockId, assetId])
   @@index([scriptBlockId])
+  @@index([assetId])
+}
+
+model EpisodeAudioAsset {
+  id        String         @id @default(cuid())
+  episodeId String
+  episode   Episode        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  assetId   String
+  asset     Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  role      AudioAssetRole
+  isPrimary Boolean        @default(false)
+  sortOrder Int            @default(0)
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  @@unique([episodeId, assetId])
+  @@index([episodeId])
   @@index([assetId])
 }
 

@@ -6,6 +6,7 @@ import type {
   AiImageToVideoRequest,
   AiMusicRequest,
   AiProvider,
+  AiSfxRequest,
   AiSpeechRequest,
   AiStructuredRequest,
   AiTextRequest,
@@ -16,6 +17,8 @@ import type { ImageGenerationImage, ImageGenerationResult, VideoGenerationResult
 import { formatImageSize } from "@ai-drama-studio/core";
 import { OpenAiCompatibleVideoAdapter } from "./video/openai-compatible-video.adapter";
 import { OpenAiCompatibleTtsAdapter } from "./tts/openai-compatible-tts.adapter";
+import { OpenAiCompatibleMusicAdapter } from "./music/openai-compatible-music.adapter";
+import { OpenAiCompatibleSfxAdapter } from "./sfx/openai-compatible-sfx.adapter";
 
 interface OpenAiCompatibleConfig {
   baseUrl: string;
@@ -46,6 +49,8 @@ export class OpenAiCompatibleProvider implements AiProvider {
   readonly name = "openai-compatible";
   private readonly videoAdapter = new OpenAiCompatibleVideoAdapter();
   private readonly ttsAdapter = new OpenAiCompatibleTtsAdapter();
+  private readonly musicAdapter = new OpenAiCompatibleMusicAdapter();
+  private readonly sfxAdapter = new OpenAiCompatibleSfxAdapter();
 
   constructor(private readonly config: OpenAiCompatibleConfig) {}
 
@@ -173,8 +178,22 @@ export class OpenAiCompatibleProvider implements AiProvider {
     return capabilityNotImplemented("VOICE_CLONE", "声音克隆");
   }
 
-  async generateMusic(_request: AiMusicRequest): Promise<never> {
-    return capabilityNotImplemented("MUSIC", "音乐生成");
+  async generateMusic(request: AiMusicRequest): Promise<GeneratedAudio> {
+    return this.musicAdapter.generateMusic({
+      baseUrl: this.config.baseUrl,
+      apiKey: this.config.apiKey,
+      model: this.config.model,
+      request,
+    });
+  }
+
+  async generateSfx(request: AiSfxRequest): Promise<GeneratedAudio> {
+    return this.sfxAdapter.generateSfx({
+      baseUrl: this.config.baseUrl,
+      apiKey: this.config.apiKey,
+      model: this.config.model,
+      request,
+    });
   }
 
   async generateEmbedding(_request: AiEmbeddingRequest): Promise<never> {

@@ -1,5 +1,5 @@
 import { API_DEFAULT_BASE_URL } from "@ai-drama-studio/config";
-import { AssetType } from "@ai-drama-studio/types";
+import { AssetType, AudioAssetRole } from "@ai-drama-studio/types";
 import type {
   AIProvider,
   AIProviderTestInput,
@@ -78,7 +78,10 @@ import type {
   VideoGenerationInput,
   ImageToVideoGenerationInput,
   TtsGenerationInput,
+  MusicGenerationInput,
+  SfxGenerationInput,
   Asset,
+  EpisodeAudioAsset,
   UpdateSceneInput,
   UpdateScriptBlockInput,
   UpdateScriptInput,
@@ -757,6 +760,105 @@ export class ApiClient {
 
   async applyTtsGeneration(projectId: string, id: string): Promise<GenerationTask> {
     return this.applyGeneration(projectId, id);
+  }
+
+  async createMusicGeneration(
+    projectId: string,
+    data: MusicGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/music`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getMusicGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.getGeneration(projectId, id);
+  }
+
+  async applyMusicGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.applyGeneration(projectId, id);
+  }
+
+  async createSfxGeneration(
+    projectId: string,
+    data: SfxGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/sfx`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getSfxGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.getGeneration(projectId, id);
+  }
+
+  async applySfxGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.applyGeneration(projectId, id);
+  }
+
+  async getMusicAssets(projectId: string): Promise<EpisodeAudioAsset[]> {
+    return this.getEpisodeAudioAssets(projectId, undefined, AudioAssetRole.MUSIC);
+  }
+
+  async getSfxAssets(projectId: string): Promise<EpisodeAudioAsset[]> {
+    return this.getEpisodeAudioAssets(projectId, undefined, AudioAssetRole.SFX);
+  }
+
+  async getEpisodeAudioAssets(
+    projectId: string,
+    episodeId?: string,
+    role?: AudioAssetRole,
+  ): Promise<EpisodeAudioAsset[]> {
+    const query = role ? `?role=${encodeURIComponent(role)}` : "";
+    if (episodeId) {
+      return this.request<EpisodeAudioAsset[]>(
+        `/projects/${projectId}/episodes/${episodeId}/audio-assets${query}`,
+      );
+    }
+    return this.request<EpisodeAudioAsset[]>(
+      `/projects/${projectId}/audio-assets${query}`,
+    );
+  }
+
+  async setPrimaryMusicAsset(
+    projectId: string,
+    episodeId: string,
+    assetId: string,
+  ): Promise<EpisodeAudioAsset[]> {
+    return this.setPrimaryEpisodeAudioAsset(
+      projectId,
+      episodeId,
+      assetId,
+      AudioAssetRole.MUSIC,
+    );
+  }
+
+  async setPrimarySfxAsset(
+    projectId: string,
+    episodeId: string,
+    assetId: string,
+  ): Promise<EpisodeAudioAsset[]> {
+    return this.setPrimaryEpisodeAudioAsset(
+      projectId,
+      episodeId,
+      assetId,
+      AudioAssetRole.SFX,
+    );
+  }
+
+  async setPrimaryEpisodeAudioAsset(
+    projectId: string,
+    episodeId: string,
+    assetId: string,
+    role?: AudioAssetRole,
+  ): Promise<EpisodeAudioAsset[]> {
+    const query = role ? `?role=${encodeURIComponent(role)}` : "";
+    return this.request<EpisodeAudioAsset[]>(
+      `/projects/${projectId}/episodes/${episodeId}/audio-assets/${assetId}/primary${query}`,
+      { method: "POST" },
+    );
   }
 
   async getAudioAssets(projectId: string): Promise<Asset[]> {

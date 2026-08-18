@@ -30,6 +30,7 @@
     "db:seed:image-demo": "tsx prisma/seed-image-demo.ts",
     "db:seed:video-demo": "tsx prisma/seed-video-demo.ts",
     "db:seed:tts-demo": "tsx prisma/seed-tts-demo.ts",
+    "db:seed:music-sfx-demo": "tsx prisma/seed-music-sfx-demo.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

@@ -68,7 +68,10 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    assets.value = await $api.getAudioAssets(projectId.value);
+    assets.value = (await $api.getAudioAssets(projectId.value)).filter((item) => {
+      const type = item.metadata?.type;
+      return type !== "music" && type !== "sfx";
+    });
   } catch (err) {
     error.value = err instanceof Error ? err.message : "加载语音失败";
   } finally {

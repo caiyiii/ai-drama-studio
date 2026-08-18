@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { AiCapability, AiProviderKind } from "@prisma/client";
-import type { AiProvider, AiStructuredRequest, AiTextRequest, AiImageRequest, AiVideoRequest, AiImageToVideoRequest, AiSpeechRequest } from "./ai.provider";
+import type { AiProvider, AiStructuredRequest, AiTextRequest, AiImageRequest, AiVideoRequest, AiImageToVideoRequest, AiMusicRequest, AiSfxRequest, AiSpeechRequest } from "./ai.provider";
 import { ProviderResolver, type ResolvedAiProvider } from "./provider-resolver";
 import { instantiateAiProvider } from "./providers/create-provider";
 
@@ -100,6 +100,26 @@ export class AiService {
     request: AiSpeechRequest,
   ) {
     return this.createRuntime(resolved).generateSpeech({
+      ...request,
+      model: request.model || resolved.model,
+    });
+  }
+
+  generateMusicWith(
+    resolved: ResolvedAiProvider,
+    request: AiMusicRequest,
+  ) {
+    return this.createRuntime(resolved).generateMusic({
+      ...request,
+      model: request.model || resolved.model,
+    });
+  }
+
+  generateSfxWith(
+    resolved: ResolvedAiProvider,
+    request: AiSfxRequest,
+  ) {
+    return this.createRuntime(resolved).generateSfx({
       ...request,
       model: request.model || resolved.model,
     });

@@ -28,6 +28,8 @@ export const WORKSPACE_NAV = [
   { key: "images", label: "图片", short: "图", path: "images", step: "IMAGES" },
   { key: "videos", label: "视频", short: "影", path: "videos", step: "VIDEOS" },
   { key: "voices", label: "配音", short: "音", path: "voices", step: "VOICES" },
+  { key: "music", label: "音乐", short: "乐", path: "music", step: null },
+  { key: "sfx", label: "音效", short: "效", path: "sfx", step: null },
   { key: "render", label: "成片", short: "片", path: "render", step: "RENDER" },
   { key: "assets", label: "素材", short: "材", path: "assets", step: null },
   { key: "settings", label: "设置", short: "设", path: "settings", step: null },
@@ -128,7 +130,8 @@ export const AI_CAPABILITY_DEFINITIONS = [
   { capability: "IMAGE_TO_VIDEO", label: "图片转视频", implemented: true },
   { capability: "TTS", label: "语音生成", implemented: true },
   { capability: "VOICE_CLONE", label: "声音克隆", implemented: false },
-  { capability: "MUSIC", label: "音乐生成", implemented: false },
+  { capability: "MUSIC", label: "音乐生成", implemented: true },
+  { capability: "SFX", label: "音效生成", implemented: true },
   { capability: "EMBEDDING", label: "向量 Embedding", implemented: false },
 ] as const;
 
@@ -145,4 +148,11 @@ export const OPENAI_COMPATIBLE_CAPABILITIES = [
   "VIDEO",
   "IMAGE_TO_VIDEO",
   "TTS",
+  "MUSIC",
+  "SFX",
 ] as const satisfies readonly AiCapabilityId[];
+
+export const MUSIC_DURATION_MIN_SECONDS = 1;
+export const MUSIC_DURATION_MAX_SECONDS = 600;
+export const SFX_DURATION_MIN_SECONDS = 0.1;
+export const SFX_DURATION_MAX_SECONDS = 60;

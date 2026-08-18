@@ -62,8 +62,10 @@
           <StudioCheckbox v-model="form.video" label="Video" />
           <StudioCheckbox v-model="form.imageToVideo" label="Image to Video" />
           <StudioCheckbox v-model="form.tts" label="TTS" />
-          <p class="text-xs text-zinc-600">Voice Clone / Music 仍为架构预留（Coming Soon）。</p>
-          <p class="text-xs text-zinc-600">测试连接走 Chat Completions。纯图片 / 视频 / 语音 Provider 可保存后在工作台验证生成。</p>
+          <StudioCheckbox v-model="form.music" label="Music" />
+          <StudioCheckbox v-model="form.sfx" label="SFX" />
+          <p class="text-xs text-zinc-600">Voice Clone 仍为架构预留（Coming Soon）。</p>
+          <p class="text-xs text-zinc-600">测试连接走 Chat Completions。纯图片 / 视频 / 语音 / 音乐 / 音效 Provider 可保存后在工作台验证生成。</p>
         </div>
       </div>
       <StudioCheckbox v-model="form.isDefault" label="设为默认" />
@@ -135,6 +137,8 @@ const form = reactive({
   video: false,
   imageToVideo: false,
   tts: false,
+  music: false,
+  sfx: false,
 });
 const verifiedSnapshot = ref<string | null>(null);
 const testOk = ref(false);
@@ -176,7 +180,7 @@ const canSave = computed(() => {
 
 const mediaOnly = computed(
   () =>
-    (form.image || form.video || form.imageToVideo || form.tts) &&
+    (form.image || form.video || form.imageToVideo || form.tts || form.music || form.sfx) &&
     !form.chat &&
     !form.structured,
 );
@@ -221,6 +225,8 @@ watch(
     form.imageToVideo =
       editing?.capabilities?.includes(AiCapability.IMAGE_TO_VIDEO) ?? false;
     form.tts = editing?.capabilities?.includes(AiCapability.TTS) ?? false;
+    form.music = editing?.capabilities?.includes(AiCapability.MUSIC) ?? false;
+    form.sfx = editing?.capabilities?.includes(AiCapability.SFX) ?? false;
     verifiedSnapshot.value = editing ? connectionSnapshot() : null;
   },
 );
@@ -266,7 +272,7 @@ async function onSave() {
     localError.value = saveHint.value || "请先测试连接成功后再保存。";
     return;
   }
-  if (!form.chat && !form.structured && !form.image && !form.video && !form.imageToVideo && !form.tts) {
+  if (!form.chat && !form.structured && !form.image && !form.video && !form.imageToVideo && !form.tts && !form.music && !form.sfx) {
     localError.value = "请至少选择一项能力。";
     return;
   }
@@ -277,6 +283,8 @@ async function onSave() {
     ...(form.video ? [AiCapability.VIDEO] : []),
     ...(form.imageToVideo ? [AiCapability.IMAGE_TO_VIDEO] : []),
     ...(form.tts ? [AiCapability.TTS] : []),
+    ...(form.music ? [AiCapability.MUSIC] : []),
+    ...(form.sfx ? [AiCapability.SFX] : []),
   ];
   localError.value = null;
   if (props.editing) {

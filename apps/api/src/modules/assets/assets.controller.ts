@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Post, Query } from "@nestjs/common";
-import { AssetType } from "@prisma/client";
+import { AssetType, AudioAssetRole } from "@prisma/client";
 import { AssetsService } from "./assets.service";
 
 @Controller("projects/:projectId")
@@ -63,5 +63,32 @@ export class AssetsController {
     @Param("assetId") assetId: string,
   ) {
     return this.assets.setPrimaryScriptBlockAsset(projectId, scriptBlockId, assetId);
+  }
+
+  @Get("audio-assets")
+  listProjectAudioAssets(
+    @Param("projectId") projectId: string,
+    @Query("role") role?: AudioAssetRole,
+  ) {
+    return this.assets.listEpisodeAudioAssets(projectId, undefined, role);
+  }
+
+  @Get("episodes/:episodeId/audio-assets")
+  listEpisodeAudioAssets(
+    @Param("projectId") projectId: string,
+    @Param("episodeId") episodeId: string,
+    @Query("role") role?: AudioAssetRole,
+  ) {
+    return this.assets.listEpisodeAudioAssets(projectId, episodeId, role);
+  }
+
+  @Post("episodes/:episodeId/audio-assets/:assetId/primary")
+  setPrimaryEpisodeAudioAsset(
+    @Param("projectId") projectId: string,
+    @Param("episodeId") episodeId: string,
+    @Param("assetId") assetId: string,
+    @Query("role") role?: AudioAssetRole,
+  ) {
+    return this.assets.setPrimaryEpisodeAudioAsset(projectId, episodeId, assetId, role);
   }
 }

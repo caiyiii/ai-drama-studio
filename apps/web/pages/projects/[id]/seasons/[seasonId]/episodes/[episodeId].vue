@@ -77,6 +77,50 @@
           </ul>
         </section>
 
+        <section class="rounded-2xl border border-white/5 bg-ink-800/60 p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="font-display text-xl">🎵 Music</h2>
+              <p class="mt-1 text-xs text-zinc-500">剧集背景音乐。生成后需确认 Apply，不会进入分镜或对白。</p>
+            </div>
+            <div class="flex gap-2">
+              <NuxtLink :to="`/projects/${projectId}/music`" class="rounded-xl border border-white/10 px-3 py-1.5 text-xs">
+                查看历史
+              </NuxtLink>
+              <MusicGenerationModal :project-id="projectId" :episode-id="episodeId" @applied="reloadAudio" />
+            </div>
+          </div>
+          <div v-if="musicAssets.length === 0" class="mt-3 text-sm text-zinc-500">尚未应用音乐。</div>
+          <ul v-else class="mt-3 space-y-3">
+            <li v-for="item in musicAssets" :key="item.id" class="rounded-xl border border-white/5 p-3">
+              <p class="text-sm text-zinc-100">{{ item.asset?.name }} {{ item.isPrimary ? "· Final" : "" }}</p>
+              <audio v-if="audioSrc(item)" :src="audioSrc(item)" controls class="mt-2 w-full" />
+            </li>
+          </ul>
+        </section>
+
+        <section class="rounded-2xl border border-white/5 bg-ink-800/60 p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="font-display text-xl">🔊 SFX</h2>
+              <p class="mt-1 text-xs text-zinc-500">剧集音效。本阶段不做 Timeline / 混音。</p>
+            </div>
+            <div class="flex gap-2">
+              <NuxtLink :to="`/projects/${projectId}/sfx`" class="rounded-xl border border-white/10 px-3 py-1.5 text-xs">
+                查看历史
+              </NuxtLink>
+              <SfxGenerationModal :project-id="projectId" :episode-id="episodeId" @applied="reloadAudio" />
+            </div>
+          </div>
+          <div v-if="sfxAssets.length === 0" class="mt-3 text-sm text-zinc-500">尚未应用音效。</div>
+          <ul v-else class="mt-3 space-y-3">
+            <li v-for="item in sfxAssets" :key="item.id" class="rounded-xl border border-white/5 p-3">
+              <p class="text-sm text-zinc-100">{{ item.asset?.name }} {{ item.isPrimary ? "· Final" : "" }}</p>
+              <audio v-if="audioSrc(item)" :src="audioSrc(item)" controls class="mt-2 w-full" />
+            </li>
+          </ul>
+        </section>
+
         <WorldGenerationHistory :items="store.episodeOutlineGenerations" :type="GenerationTaskType.EPISODE_OUTLINE" />
       </div>
     </PageState>
@@ -92,17 +136,23 @@
 </template>
 
 <script setup lang="ts">
-import { getEpisodeStatusLabel } from "@ai-drama-studio/core";
-import { GenerationTaskType, type EpisodeStatus } from "@ai-drama-studio/types";
+import { getEpisodeStatusLabel, resolveAssetDisplayUrl } from "@ai-drama-studio/core";
+import { GenerationTaskType, AudioAssetRole, type EpisodeAudioAsset, type EpisodeStatus } from "@ai-drama-studio/types";
 import { useCurrentProject } from "~/composables/useCurrentProject";
 import { useStoryStore } from "~/stores/story";
+import { useAiProviderStore } from "~/stores/ai-provider";
 
 const route = useRoute();
 const { projectId } = useCurrentProject();
 const store = useStoryStore();
+const aiStore = useAiProviderStore();
+const { $api } = useNuxtApp();
+const runtime = useRuntimeConfig();
 const seasonId = computed(() => String(route.params.seasonId || ""));
 const episodeId = computed(() => String(route.params.episodeId || ""));
 const confirmDelete = ref(false);
+const musicAssets = ref<EpisodeAudioAsset[]>([]);
+const sfxAssets = ref<EpisodeAudioAsset[]>([]);
 const form = reactive({
   title: "",
   synopsis: "",
@@ -147,9 +197,29 @@ function syncForm() {
   form.keyLocations = asMeta("keyLocations");
 }
 
+function audioSrc(item: EpisodeAudioAsset) {
+  return resolveAssetDisplayUrl(runtime.public.apiBase, item.asset?.url) ?? "";
+}
+
+async function reloadAudio() {
+  if (!projectId.value || !episodeId.value) {
+    return;
+  }
+  const [music, sfx] = await Promise.all([
+    $api.getEpisodeAudioAssets(projectId.value, episodeId.value, AudioAssetRole.MUSIC),
+    $api.getEpisodeAudioAssets(projectId.value, episodeId.value, AudioAssetRole.SFX),
+  ]);
+  musicAssets.value = music;
+  sfxAssets.value = sfx;
+}
+
 async function reload() {
   await store.loadEpisode(projectId.value, seasonId.value, episodeId.value);
   syncForm();
+  await Promise.all([
+    aiStore.loadProjectAiConfig(projectId.value),
+    reloadAudio(),
+  ]);
 }
 
 onMounted(() => {

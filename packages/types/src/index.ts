@@ -59,6 +59,13 @@ export enum ScriptBlockAssetRole {
   FINAL = "FINAL",
 }
 
+export enum AudioAssetRole {
+  MUSIC = "MUSIC",
+  SFX = "SFX",
+  REFERENCE = "REFERENCE",
+  FINAL = "FINAL",
+}
+
 export enum GenerationTaskType {
   WORLD = "WORLD",
   CHARACTER = "CHARACTER",
@@ -71,6 +78,8 @@ export enum GenerationTaskType {
   IMAGE_TO_VIDEO = "IMAGE_TO_VIDEO",
   VOICE = "VOICE",
   TTS = "TTS",
+  MUSIC = "MUSIC",
+  SFX = "SFX",
   STORYBOARD = "STORYBOARD",
 }
 
@@ -420,6 +429,18 @@ export interface ScriptBlockAsset {
 
 export type ScriptBlockAudioAsset = ScriptBlockAsset;
 
+export interface EpisodeAudioAsset {
+  id: string;
+  episodeId: string;
+  assetId: string;
+  role: AudioAssetRole;
+  isPrimary: boolean;
+  sortOrder: number;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  asset?: Asset;
+}
+
 export interface GenerationTaskUsage {
   inputTokens?: number;
   outputTokens?: number;
@@ -434,6 +455,7 @@ export interface GenerationTaskUsage {
   outputAssetCount?: number;
   characterCount?: number;
   audioDurationSeconds?: number;
+  sizeBytes?: number;
 }
 
 export interface GenerationTask {
@@ -773,6 +795,7 @@ export enum AiCapability {
   TTS = "TTS",
   VOICE_CLONE = "VOICE_CLONE",
   MUSIC = "MUSIC",
+  SFX = "SFX",
   EMBEDDING = "EMBEDDING",
 }
 
@@ -785,6 +808,7 @@ export const AI_CAPABILITIES = [
   AiCapability.TTS,
   AiCapability.VOICE_CLONE,
   AiCapability.MUSIC,
+  AiCapability.SFX,
   AiCapability.EMBEDDING,
 ] as const;
 
@@ -1841,4 +1865,97 @@ export interface TtsGenerationPreview {
   mimeType?: string;
   usage?: GenerationTaskUsage | null;
   error?: string | null;
+}
+
+export const SFX_CATEGORIES = [
+  "impact",
+  "weapon",
+  "magic",
+  "explosion",
+  "environment",
+  "mechanical",
+  "footstep",
+  "door",
+  "wind",
+  "fire",
+  "water",
+  "creature",
+  "technology",
+  "ui",
+  "other",
+] as const;
+export type SfxCategory = (typeof SFX_CATEGORIES)[number];
+
+export interface MusicGenerationInput {
+  episodeId: string;
+  prompt: string;
+  durationSeconds?: number;
+  style?: string;
+  mood?: string;
+  genre?: string;
+  instrumentation?: string;
+  tempo?: string;
+  language?: string;
+  isInstrumental?: boolean;
+  title?: string;
+  negativePrompt?: string;
+  loopable?: boolean;
+  intensity?: string;
+}
+
+export interface SfxGenerationInput {
+  episodeId: string;
+  prompt: string;
+  durationSeconds?: number;
+  category?: string;
+  intensity?: string;
+  negativePrompt?: string;
+  sceneId?: string;
+  shotId?: string;
+}
+
+export interface MusicMetadata {
+  type: "music";
+  style?: string;
+  mood?: string;
+  genre?: string;
+  durationSeconds?: number;
+  instrumentation?: string;
+  tempo?: string;
+  isInstrumental?: boolean;
+}
+
+export interface SfxMetadata {
+  type: "sfx";
+  category?: string;
+  intensity?: string;
+  sceneId?: string;
+  shotId?: string;
+  source?: string;
+}
+
+export type MusicGenerationResult = GeneratedAudio;
+export type SfxGenerationResult = GeneratedAudio;
+
+export interface MusicContext {
+  projectName?: string;
+  genre?: string;
+  worldSummary?: string;
+  storyBiblePremise?: string;
+  storyBibleTone?: string;
+  seasonTitle?: string;
+  episodeTitle?: string;
+  episodeOutline?: string;
+  episodeSynopsis?: string;
+  continuityNotes?: string;
+  storyStateSummary?: string;
+  scriptSummary?: string;
+  storyboardSummary?: string;
+}
+
+export interface SfxContext extends MusicContext {
+  sceneTitle?: string;
+  shotVisualDescription?: string;
+  shotAction?: string;
+  shotEnvironment?: string;
 }
