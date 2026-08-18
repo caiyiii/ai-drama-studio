@@ -49,6 +49,12 @@ enum StoryboardShotAssetRole {
   THUMBNAIL
 }
 
+enum ScriptBlockAssetRole {
+  REFERENCE
+  GENERATED
+  FINAL
+}
+
 enum GenerationTaskType {
   WORLD
   CHARACTER
@@ -60,6 +66,7 @@ enum GenerationTaskType {
   VIDEO
   IMAGE_TO_VIDEO
   VOICE
+  TTS
   STORYBOARD
 }
 
@@ -428,6 +435,7 @@ model ScriptBlock {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   storyboardShots StoryboardShot[]
+  blockAssets     ScriptBlockAsset[]
 
   @@unique([sceneId, order])
   @@index([sceneId])
@@ -552,9 +560,27 @@ model Asset {
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
   shotAssets       StoryboardShotAsset[]
+  blockAssets      ScriptBlockAsset[]
 
   @@index([projectId])
   @@index([generationTaskId])
+}
+
+model ScriptBlockAsset {
+  id            String               @id @default(cuid())
+  scriptBlockId String
+  scriptBlock   ScriptBlock          @relation(fields: [scriptBlockId], references: [id], onDelete: Cascade)
+  assetId       String
+  asset         Asset                @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  role          ScriptBlockAssetRole
+  isPrimary     Boolean              @default(false)
+  sortOrder     Int                  @default(0)
+  metadata      Json?
+  createdAt     DateTime             @default(now())
+
+  @@unique([scriptBlockId, assetId])
+  @@index([scriptBlockId])
+  @@index([assetId])
 }
 
 model StoryboardShotAsset {

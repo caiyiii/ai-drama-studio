@@ -2,15 +2,13 @@ import { HttpStatus, Injectable } from "@nestjs/common";
 import { AppError, ErrorCodes } from "../../common/app-error";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateSceneDto, ReorderScenesDto, UpdateSceneDto } from "./dto/scene.dto";
-import { emptyToNull, mapScene } from "./script.mapper";
+import { emptyToNull, mapScene, SCRIPT_BLOCK_INCLUDE } from "./script.mapper";
 import { ScriptsService } from "./scripts.service";
 
 const SCENE_INCLUDE = {
   blocks: {
     orderBy: { order: "asc" as const },
-    include: {
-      character: { select: { id: true, name: true, alias: true, role: true } },
-    },
+    include: SCRIPT_BLOCK_INCLUDE,
   },
 };
 

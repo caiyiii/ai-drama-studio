@@ -72,10 +72,12 @@ import type {
   StoryboardShot,
   StoryboardShotInput,
   StoryboardShotAsset,
+  ScriptBlockAsset,
   ReorderStoryboardShotsInput,
   ImageGenerationInput,
   VideoGenerationInput,
   ImageToVideoGenerationInput,
+  TtsGenerationInput,
   Asset,
   UpdateSceneInput,
   UpdateScriptBlockInput,
@@ -737,6 +739,48 @@ export class ApiClient {
 
   async applyVideoGeneration(projectId: string, id: string): Promise<GenerationTask> {
     return this.applyGeneration(projectId, id);
+  }
+
+  async createTtsGeneration(
+    projectId: string,
+    data: TtsGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(
+      `/projects/${projectId}/generations/tts`,
+      { method: "POST", body: JSON.stringify(data) },
+    );
+  }
+
+  async getTtsGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.getGeneration(projectId, id);
+  }
+
+  async applyTtsGeneration(projectId: string, id: string): Promise<GenerationTask> {
+    return this.applyGeneration(projectId, id);
+  }
+
+  async getAudioAssets(projectId: string): Promise<Asset[]> {
+    return this.listAssets(projectId, AssetType.AUDIO);
+  }
+
+  async getScriptBlockAssets(
+    projectId: string,
+    scriptBlockId: string,
+  ): Promise<ScriptBlockAsset[]> {
+    return this.request<ScriptBlockAsset[]>(
+      `/projects/${projectId}/script-blocks/${scriptBlockId}/assets`,
+    );
+  }
+
+  async setPrimaryScriptBlockAsset(
+    projectId: string,
+    scriptBlockId: string,
+    assetId: string,
+  ): Promise<ScriptBlockAsset[]> {
+    return this.request<ScriptBlockAsset[]>(
+      `/projects/${projectId}/script-blocks/${scriptBlockId}/assets/${assetId}/primary`,
+      { method: "POST" },
+    );
   }
 
   async getVideoAssets(projectId: string): Promise<Asset[]> {

@@ -116,6 +116,22 @@ export {
 } from "./video";
 export type { ShotVideoPromptSource } from "./video";
 export {
+  assertDialogueBlock,
+  buildTtsContext,
+  filterBlockAssetsByMediaType,
+  getPrimaryBlockAsset,
+  mimeToAudioFormat,
+  normalizeTtsGenerationResult,
+  normalizeTtsText,
+  previewAudioSrc,
+  resolveTtsLanguage,
+  resolveTtsPitch,
+  resolveTtsSpeed,
+  resolveTtsVoice,
+  sanitizeVoiceProfile,
+  validateTtsText,
+} from "./tts";
+export {
   characterBelongsToProject,
   continuityResult,
   episodeBelongsToProject,

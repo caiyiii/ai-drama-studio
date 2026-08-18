@@ -56,7 +56,7 @@ describe("AiCapability", () => {
     expect(kindAllowsCapability("OPENAI", AiCapability.IMAGE)).toBe(true);
     expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.VIDEO)).toBe(true);
     expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.IMAGE_TO_VIDEO)).toBe(true);
-    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.TTS)).toBe(false);
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.TTS)).toBe(true);
   });
 
   it("defaults new providers to text capabilities", () => {

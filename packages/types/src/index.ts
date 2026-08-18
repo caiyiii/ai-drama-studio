@@ -53,6 +53,12 @@ export enum StoryboardShotAssetRole {
   THUMBNAIL = "THUMBNAIL",
 }
 
+export enum ScriptBlockAssetRole {
+  REFERENCE = "REFERENCE",
+  GENERATED = "GENERATED",
+  FINAL = "FINAL",
+}
+
 export enum GenerationTaskType {
   WORLD = "WORLD",
   CHARACTER = "CHARACTER",
@@ -64,6 +70,7 @@ export enum GenerationTaskType {
   VIDEO = "VIDEO",
   IMAGE_TO_VIDEO = "IMAGE_TO_VIDEO",
   VOICE = "VOICE",
+  TTS = "TTS",
   STORYBOARD = "STORYBOARD",
 }
 
@@ -214,6 +221,8 @@ export interface CharacterVoiceProfile {
   language?: string | null;
   gender?: string | null;
   style?: string | null;
+  speed?: number | null;
+  pitch?: number | null;
 }
 
 export interface CharacterImageProfile {
@@ -279,6 +288,7 @@ export interface CharacterInput {
   conflict?: string | null;
   ability?: string | null;
   status?: CharacterStatus;
+  voiceProfile?: CharacterVoiceProfile | null;
 }
 
 export type CharacterUpdateInput = Partial<CharacterInput>;
@@ -396,6 +406,20 @@ export interface StoryboardShotAsset {
   asset?: Asset;
 }
 
+export interface ScriptBlockAsset {
+  id: string;
+  scriptBlockId: string;
+  assetId: string;
+  role: ScriptBlockAssetRole;
+  isPrimary: boolean;
+  sortOrder: number;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  asset?: Asset;
+}
+
+export type ScriptBlockAudioAsset = ScriptBlockAsset;
+
 export interface GenerationTaskUsage {
   inputTokens?: number;
   outputTokens?: number;
@@ -408,6 +432,8 @@ export interface GenerationTaskUsage {
   sourceShotId?: string;
   sourceAssetId?: string;
   outputAssetCount?: number;
+  characterCount?: number;
+  audioDurationSeconds?: number;
 }
 
 export interface GenerationTask {
@@ -1211,6 +1237,7 @@ export interface ScriptBlock {
   characterId: string | null;
   character?: CharacterRef | null;
   metadata: Record<string, unknown> | null;
+  assets?: ScriptBlockAsset[];
   createdAt: string;
   updatedAt: string;
 }
@@ -1768,3 +1795,50 @@ export type ShotVideoUiStatus =
   | "CANDIDATE"
   | "READY"
   | "STALE";
+
+export const TTS_MAX_TEXT_LENGTH = 4000;
+export const TTS_AUDIO_FORMATS = ["mp3", "wav", "ogg", "aac", "opus"] as const;
+export type TtsAudioFormat = (typeof TTS_AUDIO_FORMATS)[number];
+
+export interface TtsGenerationOptions {
+  voiceId?: string;
+  language?: string;
+  speed?: number;
+  pitch?: number;
+  format?: TtsAudioFormat;
+}
+
+export interface TtsGenerationInput extends TtsGenerationOptions {
+  episodeId: string;
+  scriptBlockId: string;
+  text?: string;
+  characterId?: string;
+}
+
+export interface GeneratedAudio {
+  url?: string;
+  base64?: string;
+  mimeType: string;
+  format?: string;
+  durationSeconds?: number;
+  provider?: string;
+  model?: string;
+  voice?: string;
+  providerRequestId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export type TtsGenerationResult = GeneratedAudio;
+
+export interface TtsGenerationPreview {
+  taskId: string;
+  status: string;
+  provider: string | null;
+  model: string | null;
+  voice?: string;
+  durationSeconds?: number;
+  previewUrl?: string;
+  mimeType?: string;
+  usage?: GenerationTaskUsage | null;
+  error?: string | null;
+}

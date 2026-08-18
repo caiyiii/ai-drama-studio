@@ -1,4 +1,4 @@
-import { AssetStatus, AssetType, type Asset, type StoryboardShotAsset } from "@ai-drama-studio/types";
+import { AssetStatus, AssetType, type Asset, type ScriptBlockAsset, type StoryboardShotAsset } from "@ai-drama-studio/types";
 import type { Prisma } from "@prisma/client";
 
 function asRecord(value: Prisma.JsonValue | null | undefined): Record<string, unknown> | null {
@@ -70,6 +70,30 @@ export function mapShotAsset(row: {
     shotId: row.shotId,
     assetId: row.assetId,
     role: row.role as StoryboardShotAsset["role"],
+    isPrimary: row.isPrimary,
+    sortOrder: row.sortOrder,
+    metadata: asRecord(row.metadata),
+    createdAt: row.createdAt.toISOString(),
+    asset: row.asset ? mapAsset(row.asset) : undefined,
+  };
+}
+
+export function mapBlockAsset(row: {
+  id: string;
+  scriptBlockId: string;
+  assetId: string;
+  role: string;
+  isPrimary: boolean;
+  sortOrder: number;
+  metadata: Prisma.JsonValue | null;
+  createdAt: Date;
+  asset?: Parameters<typeof mapAsset>[0];
+}): ScriptBlockAsset {
+  return {
+    id: row.id,
+    scriptBlockId: row.scriptBlockId,
+    assetId: row.assetId,
+    role: row.role as ScriptBlockAsset["role"],
     isPrimary: row.isPrimary,
     sortOrder: row.sortOrder,
     metadata: asRecord(row.metadata),

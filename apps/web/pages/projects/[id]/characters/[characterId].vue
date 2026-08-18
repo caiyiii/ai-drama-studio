@@ -55,7 +55,39 @@
           </article>
           <article class="rounded-2xl border border-white/5 bg-ink-800/60 p-4">
             <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">角色声音</p>
-            <p class="mt-2 text-sm text-zinc-500">即将开放</p>
+            <div class="mt-3 grid gap-3">
+              <label class="block text-sm">
+                <span class="text-xs text-zinc-500">Voice ID</span>
+                <input v-model="voiceForm.voiceId" class="studio-field mt-1" placeholder="例如 xinghe-calm" />
+              </label>
+              <label class="block text-sm">
+                <span class="text-xs text-zinc-500">Language</span>
+                <input v-model="voiceForm.language" class="studio-field mt-1" placeholder="zh-CN" />
+              </label>
+              <div class="grid gap-3 tablet:grid-cols-2">
+                <label class="block text-sm">
+                  <span class="text-xs text-zinc-500">Speed</span>
+                  <input v-model.number="voiceForm.speed" type="number" min="0.25" max="4" step="0.05" class="studio-field mt-1" />
+                </label>
+                <label class="block text-sm">
+                  <span class="text-xs text-zinc-500">Pitch</span>
+                  <input v-model.number="voiceForm.pitch" type="number" min="-20" max="20" step="1" class="studio-field mt-1" />
+                </label>
+              </div>
+              <label class="block text-sm">
+                <span class="text-xs text-zinc-500">Style</span>
+                <input v-model="voiceForm.style" class="studio-field mt-1" placeholder="calm / firm" />
+              </label>
+              <p class="text-xs text-zinc-600">声音偏好，不保存 API Key。Voice Clone 尚未开放。</p>
+              <button
+                type="button"
+                class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
+                :disabled="store.saving"
+                @click="onSaveVoice"
+              >
+                {{ store.saving ? "保存中…" : "保存声音配置" }}
+              </button>
+            </div>
           </article>
         </div>
 
@@ -173,6 +205,13 @@ const editingRelation = ref<CharacterRelationship | null>(null);
 const pendingDelete = ref(false);
 const pendingRelation = ref<CharacterRelationship | null>(null);
 const pageError = ref<string | null>(null);
+const voiceForm = reactive({
+  voiceId: "",
+  language: "zh-CN",
+  speed: 1 as number | null,
+  pitch: 0 as number | null,
+  style: "",
+});
 
 const characterId = computed(() => String(route.params.characterId || ""));
 const character = computed(
@@ -214,6 +253,19 @@ watch([projectId, characterId], () => {
   void load();
 });
 
+watch(
+  character,
+  (value) => {
+    const profile = value?.voiceProfile;
+    voiceForm.voiceId = profile?.voiceId || "";
+    voiceForm.language = profile?.language || "zh-CN";
+    voiceForm.speed = typeof profile?.speed === "number" ? profile.speed : 1;
+    voiceForm.pitch = typeof profile?.pitch === "number" ? profile.pitch : 0;
+    voiceForm.style = profile?.style || "";
+  },
+  { immediate: true },
+);
+
 async function load() {
   pageError.value = null;
   if (!projectId.value) {
@@ -243,6 +295,21 @@ async function onSaveCharacter(payload: CharacterInput) {
   if (result) {
     showForm.value = false;
   }
+}
+
+async function onSaveVoice() {
+  if (!projectId.value || !character.value) {
+    return;
+  }
+  await store.update(projectId.value, character.value.id, {
+    voiceProfile: {
+      voiceId: voiceForm.voiceId.trim() || null,
+      language: voiceForm.language.trim() || null,
+      speed: voiceForm.speed,
+      pitch: voiceForm.pitch,
+      style: voiceForm.style.trim() || null,
+    },
+  });
 }
 
 async function onDeleteCharacter() {

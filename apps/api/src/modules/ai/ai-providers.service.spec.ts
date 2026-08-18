@@ -320,7 +320,11 @@ describe("AI Provider CRUD", () => {
     expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.IMAGE_TO_VIDEO)).toBe(true);
   });
 
-  it("rejects TTS capability on OpenAI Compatible providers", async () => {
+  it("allows TTS capability on OpenAI Compatible providers", async () => {
+    expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.TTS)).toBe(true);
+  });
+
+  it("rejects VOICE_CLONE capability on OpenAI Compatible providers", async () => {
     const { service } = createService({ providers: [], projects: [] });
     await expect(
       service.create({
@@ -329,7 +333,7 @@ describe("AI Provider CRUD", () => {
         baseUrl: "https://api.deepseek.com/v1",
         apiKey: "sk-secret",
         model: "deepseek-chat",
-        capabilities: ["TTS"] as never,
+        capabilities: ["VOICE_CLONE"] as never,
       }),
     ).rejects.toMatchObject({
       code: ErrorCodes.PROVIDER_CAPABILITY_NOT_SUPPORTED,

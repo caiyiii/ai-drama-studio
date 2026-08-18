@@ -39,6 +39,13 @@
               auto-grow
               @ionBlur="(event) => onSaveBlock(scene.id, block.id, textareaValue(event))"
             />
+            <audio
+              v-if="primaryAudioSrc(block)"
+              :src="primaryAudioSrc(block)"
+              controls
+              class="player"
+            />
+            <p v-if="block.type === 'DIALOGUE'" class="meta">复杂 TTS 生成请使用 Web 工作台。</p>
           </div>
         </section>
       </div>
@@ -60,8 +67,9 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/vue";
-import { getScriptBlockTypeLabel } from "@ai-drama-studio/core";
-import type { ScriptBlockType } from "@ai-drama-studio/types";
+import { getPrimaryBlockAsset, getScriptBlockTypeLabel, resolveAssetDisplayUrl } from "@ai-drama-studio/core";
+import { API_DEFAULT_BASE_URL } from "@ai-drama-studio/config";
+import type { ScriptBlock, ScriptBlockType } from "@ai-drama-studio/types";
 import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useScript } from "../composables/useScript";
@@ -76,6 +84,13 @@ const summary = ref("");
 
 function blockLabel(type: ScriptBlockType) {
   return getScriptBlockTypeLabel(type);
+}
+
+function primaryAudioSrc(block: ScriptBlock) {
+  const asset = getPrimaryBlockAsset(block.assets)?.asset;
+  return asset?.url
+    ? resolveAssetDisplayUrl(import.meta.env.VITE_API_BASE || API_DEFAULT_BASE_URL, asset.url) ?? ""
+    : "";
 }
 
 function reload() {
@@ -138,5 +153,9 @@ function textareaValue(event: Event) {
 .type {
   color: #e4c56a;
   font-size: 12px;
+}
+.player {
+  margin-top: 8px;
+  width: 100%;
 }
 </style>

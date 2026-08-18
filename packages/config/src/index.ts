@@ -126,7 +126,7 @@ export const AI_CAPABILITY_DEFINITIONS = [
   { capability: "IMAGE", label: "图片生成", implemented: true },
   { capability: "VIDEO", label: "视频生成", implemented: true },
   { capability: "IMAGE_TO_VIDEO", label: "图片转视频", implemented: true },
-  { capability: "TTS", label: "语音生成", implemented: false },
+  { capability: "TTS", label: "语音生成", implemented: true },
   { capability: "VOICE_CLONE", label: "声音克隆", implemented: false },
   { capability: "MUSIC", label: "音乐生成", implemented: false },
   { capability: "EMBEDDING", label: "向量 Embedding", implemented: false },
@@ -144,4 +144,5 @@ export const OPENAI_COMPATIBLE_CAPABILITIES = [
   "IMAGE",
   "VIDEO",
   "IMAGE_TO_VIDEO",
+  "TTS",
 ] as const satisfies readonly AiCapabilityId[];

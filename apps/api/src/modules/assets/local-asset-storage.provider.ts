@@ -35,6 +35,15 @@ const MIME_EXT: Record<string, string> = {
   "video/mp4": "mp4",
   "video/webm": "webm",
   "video/quicktime": "mov",
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/wav": "wav",
+  "audio/wave": "wav",
+  "audio/x-wav": "wav",
+  "audio/ogg": "ogg",
+  "audio/opus": "opus",
+  "audio/mp4": "m4a",
+  "audio/aac": "aac",
 };
 
 export class LocalAssetStorageProvider implements AssetStorageProvider {
@@ -106,8 +115,16 @@ export class LocalAssetStorageProvider implements AssetStorageProvider {
   ): Promise<SavedAssetFile> {
     const ext =
       MIME_EXT[mimeType] ||
-      (mimeType.startsWith("video/") ? "mp4" : "png");
-    const filename = mimeType.startsWith("video/") ? `video.${ext}` : `original.${ext}`;
+      (mimeType.startsWith("video/")
+        ? "mp4"
+        : mimeType.startsWith("audio/")
+          ? "mp3"
+          : "png");
+    const filename = mimeType.startsWith("video/")
+      ? `video.${ext}`
+      : mimeType.startsWith("audio/")
+        ? `audio.${ext}`
+        : `original.${ext}`;
     const storageKey = `assets/${projectId}/${assetId}/${filename}`;
     const full = this.resolvePath(storageKey);
     await fs.mkdir(path.dirname(full), { recursive: true });

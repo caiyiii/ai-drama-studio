@@ -5,6 +5,7 @@ import type {
   CharacterInput,
   CharacterRelationship,
   CharacterRelationshipInput,
+  CharacterUpdateInput,
   Civilization,
   Faction,
 } from "@ai-drama-studio/types";
@@ -62,6 +63,23 @@ export function useCharacters() {
     }
   }
 
+  async function update(projectId: string, characterId: string, data: CharacterUpdateInput) {
+    saving.value = true;
+    error.value = null;
+    try {
+      const updated = await api.updateCharacter(projectId, characterId, data);
+      characters.value = characters.value.map((item) =>
+        item.id === updated.id ? updated : item,
+      );
+      return updated;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "更新失败";
+      return null;
+    } finally {
+      saving.value = false;
+    }
+  }
+
   async function createRelationship(
     projectId: string,
     data: CharacterRelationshipInput,
@@ -90,6 +108,7 @@ export function useCharacters() {
     error,
     load,
     create,
+    update,
     createRelationship,
   };
 }

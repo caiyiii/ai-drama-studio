@@ -2,14 +2,62 @@ import { Type } from "class-transformer";
 import {
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
 import { CharacterStatus } from "@ai-drama-studio/types";
+
+export class CharacterVoiceProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  voiceId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  providerId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  modelId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  language?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  gender?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  style?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.25)
+  @Max(4)
+  speed?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-20)
+  @Max(20)
+  pitch?: number | null;
+}
 
 export class UpdateCharacterDto {
   @IsOptional()
@@ -101,4 +149,9 @@ export class UpdateCharacterDto {
   @IsOptional()
   @IsEnum(CharacterStatus)
   status?: CharacterStatus;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CharacterVoiceProfileDto)
+  voiceProfile?: CharacterVoiceProfileDto | null;
 }

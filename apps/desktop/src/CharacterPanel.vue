@@ -41,6 +41,10 @@
           <span v-if="selected.faction"> · {{ selected.faction.name }}</span>
         </p>
         <p>{{ selected.description || "暂无简介" }}</p>
+        <h3>角色声音</h3>
+        <p class="hint">Voice ID：{{ selected.voiceProfile?.voiceId || "未配置" }}</p>
+        <p class="hint">Language：{{ selected.voiceProfile?.language || "—" }}</p>
+        <p class="hint">复杂 TTS 生成请使用 Web。</p>
         <h3>人物关系</h3>
         <p v-if="relations.length === 0" class="hint">还没有人物关系。</p>
         <div v-for="item in relations" :key="item.id" class="relation">

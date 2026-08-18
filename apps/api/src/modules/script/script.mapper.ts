@@ -1,5 +1,42 @@
 import { Prisma } from "@prisma/client";
-import type { Scene, Script, ScriptBlock } from "@ai-drama-studio/types";
+import type { Scene, Script, ScriptBlock, ScriptBlockAsset } from "@ai-drama-studio/types";
+import { mapAsset } from "../assets/asset.mapper";
+
+export const SCRIPT_BLOCK_INCLUDE = {
+  character: { select: { id: true, name: true, alias: true, role: true } },
+  blockAssets: {
+    include: { asset: true },
+    orderBy: [
+      { isPrimary: "desc" as const },
+      { sortOrder: "asc" as const },
+      { createdAt: "asc" as const },
+    ],
+  },
+};
+
+function mapBlockAsset(row: {
+  id: string;
+  scriptBlockId: string;
+  assetId: string;
+  role: string;
+  isPrimary: boolean;
+  sortOrder: number;
+  metadata: Prisma.JsonValue | null;
+  createdAt: Date;
+  asset?: Parameters<typeof mapAsset>[0];
+}): ScriptBlockAsset {
+  return {
+    id: row.id,
+    scriptBlockId: row.scriptBlockId,
+    assetId: row.assetId,
+    role: row.role as ScriptBlockAsset["role"],
+    isPrimary: row.isPrimary,
+    sortOrder: row.sortOrder,
+    metadata: asRecord(row.metadata),
+    createdAt: row.createdAt.toISOString(),
+    asset: row.asset ? mapAsset(row.asset) : undefined,
+  };
+}
 
 export function asRecord(
   value: Prisma.JsonValue | null,
@@ -21,6 +58,7 @@ export function mapScriptBlock(row: {
   createdAt: Date;
   updatedAt: Date;
   character?: { id: string; name: string; alias: string | null; role: string | null } | null;
+  blockAssets?: Array<Parameters<typeof mapBlockAsset>[0]>;
 }): ScriptBlock {
   return {
     id: row.id,
@@ -31,6 +69,7 @@ export function mapScriptBlock(row: {
     characterId: row.characterId,
     character: row.character ?? null,
     metadata: asRecord(row.metadata),
+    assets: row.blockAssets?.map(mapBlockAsset),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

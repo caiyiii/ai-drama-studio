@@ -47,4 +47,21 @@ export class AssetsController {
   ) {
     return this.assets.setPrimaryShotAsset(projectId, shotId, assetId);
   }
+
+  @Get("script-blocks/:scriptBlockId/assets")
+  listScriptBlockAssets(
+    @Param("projectId") projectId: string,
+    @Param("scriptBlockId") scriptBlockId: string,
+  ) {
+    return this.assets.listScriptBlockAssets(projectId, scriptBlockId);
+  }
+
+  @Post("script-blocks/:scriptBlockId/assets/:assetId/primary")
+  setPrimaryScriptBlockAsset(
+    @Param("projectId") projectId: string,
+    @Param("scriptBlockId") scriptBlockId: string,
+    @Param("assetId") assetId: string,
+  ) {
+    return this.assets.setPrimaryScriptBlockAsset(projectId, scriptBlockId, assetId);
+  }
 }

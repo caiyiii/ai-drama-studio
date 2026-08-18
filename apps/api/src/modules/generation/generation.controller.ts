@@ -10,12 +10,14 @@ import {
 import { CreateWorldGenerationDto } from "./dto/create-world-generation.dto";
 import { CreateScriptGenerationDto } from "./dto/create-script-generation.dto";
 import { CreateImageGenerationDto } from "./dto/create-image-generation.dto";
+import { CreateTtsGenerationDto } from "./dto/create-tts-generation.dto";
 import {
   CreateImageToVideoGenerationDto,
   CreateVideoGenerationDto,
 } from "./dto/create-video-generation.dto";
 import { CreateStoryboardGenerationDto } from "./dto/create-storyboard-generation.dto";
 import { ImageGenerationService } from "./image-generation.service";
+import { TtsGenerationService } from "./tts-generation.service";
 import { VideoGenerationService } from "./video-generation.service";
 import { ScriptGenerationService } from "./script-generation.service";
 import { StoryboardGenerationService } from "./storyboard-generation.service";
@@ -32,6 +34,7 @@ export class GenerationController {
     private readonly storyboardGeneration: StoryboardGenerationService,
     private readonly imageGeneration: ImageGenerationService,
     private readonly videoGeneration: VideoGenerationService,
+    private readonly ttsGeneration: TtsGenerationService,
   ) {}
 
   @Get()
@@ -119,6 +122,14 @@ export class GenerationController {
     return this.videoGeneration.createImageToVideoGeneration(projectId, dto);
   }
 
+  @Post("tts")
+  createTts(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateTtsGenerationDto,
+  ) {
+    return this.ttsGeneration.createTtsGeneration(projectId, dto);
+  }
+
   @Get(":id")
   getOne(@Param("projectId") projectId: string, @Param("id") id: string) {
     return this.worldGeneration.getOne(projectId, id);
@@ -151,6 +162,12 @@ export class GenerationController {
       task.type === GenerationTaskType.IMAGE_TO_VIDEO
     ) {
       return this.videoGeneration.apply(projectId, id);
+    }
+    if (
+      task.type === GenerationTaskType.TTS ||
+      task.type === GenerationTaskType.VOICE
+    ) {
+      return this.ttsGeneration.apply(projectId, id);
     }
     return this.worldGeneration.apply(projectId, id);
   }

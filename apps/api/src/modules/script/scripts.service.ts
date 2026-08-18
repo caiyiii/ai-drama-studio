@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from "@nestjs/common";
 import { AppError, ErrorCodes } from "../../common/app-error";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateScriptDto, UpdateScriptDto } from "./dto/script.dto";
-import { emptyToNull, mapScript } from "./script.mapper";
+import { emptyToNull, mapScript, SCRIPT_BLOCK_INCLUDE } from "./script.mapper";
 
 const SCRIPT_INCLUDE = {
   scenes: {
@@ -10,11 +10,7 @@ const SCRIPT_INCLUDE = {
     include: {
       blocks: {
         orderBy: { order: "asc" as const },
-        include: {
-          character: {
-            select: { id: true, name: true, alias: true, role: true },
-          },
-        },
+        include: SCRIPT_BLOCK_INCLUDE,
       },
     },
   },

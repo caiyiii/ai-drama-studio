@@ -12,9 +12,10 @@ import type {
   AiVideoRequest,
   AiVoiceCloneRequest,
 } from "../ai.provider";
-import type { ImageGenerationImage, ImageGenerationResult, VideoGenerationResult } from "@ai-drama-studio/types";
+import type { ImageGenerationImage, ImageGenerationResult, VideoGenerationResult, GeneratedAudio } from "@ai-drama-studio/types";
 import { formatImageSize } from "@ai-drama-studio/core";
 import { OpenAiCompatibleVideoAdapter } from "./video/openai-compatible-video.adapter";
+import { OpenAiCompatibleTtsAdapter } from "./tts/openai-compatible-tts.adapter";
 
 interface OpenAiCompatibleConfig {
   baseUrl: string;
@@ -44,6 +45,7 @@ interface ImageGenerationResponse {
 export class OpenAiCompatibleProvider implements AiProvider {
   readonly name = "openai-compatible";
   private readonly videoAdapter = new OpenAiCompatibleVideoAdapter();
+  private readonly ttsAdapter = new OpenAiCompatibleTtsAdapter();
 
   constructor(private readonly config: OpenAiCompatibleConfig) {}
 
@@ -158,8 +160,13 @@ export class OpenAiCompatibleProvider implements AiProvider {
     });
   }
 
-  async generateSpeech(_request: AiSpeechRequest): Promise<never> {
-    return capabilityNotImplemented("TTS", "语音生成");
+  async generateSpeech(request: AiSpeechRequest): Promise<GeneratedAudio> {
+    return this.ttsAdapter.generateSpeech({
+      baseUrl: this.config.baseUrl,
+      apiKey: this.config.apiKey,
+      model: this.config.model,
+      request,
+    });
   }
 
   async generateVoiceClone(_request: AiVoiceCloneRequest): Promise<never> {

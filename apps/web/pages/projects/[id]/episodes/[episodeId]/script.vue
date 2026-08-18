@@ -152,6 +152,14 @@
                       {{ character.name }}
                     </option>
                   </select>
+                  <TtsGenerationModal
+                    v-if="block.type === ScriptBlockType.DIALOGUE"
+                    :project-id="projectId"
+                    :episode-id="episodeId"
+                    :block="block"
+                    :character="characterOf(block.characterId)"
+                    @applied="reload"
+                  />
                   <button
                     v-if="!store.locked"
                     type="button"
@@ -167,6 +175,12 @@
                   class="studio-field resize-none"
                   :disabled="store.locked"
                   @change="onChangeBlockContent(block.id, ($event.target as HTMLTextAreaElement).value)"
+                />
+                <audio
+                  v-if="block.type === ScriptBlockType.DIALOGUE && primaryAudioSrc(block)"
+                  :src="primaryAudioSrc(block)"
+                  controls
+                  class="mt-2 w-full"
                 />
               </div>
             </div>
@@ -198,23 +212,27 @@
 </template>
 
 <script setup lang="ts">
-import { getScriptBlockTypeLabel, getScriptStatusLabel } from "@ai-drama-studio/core";
+import { getPrimaryBlockAsset, getScriptBlockTypeLabel, getScriptStatusLabel, resolveAssetDisplayUrl } from "@ai-drama-studio/core";
 import {
   GenerationTaskType,
   ScriptBlockType,
   ScriptStatus,
+  type ScriptBlock,
   type ScriptStatus as ScriptStatusType,
 } from "@ai-drama-studio/types";
 import { useCurrentProject } from "~/composables/useCurrentProject";
+import { useAiProviderStore } from "~/stores/ai-provider";
 import { useCharacterStore } from "~/stores/character";
 import { useScriptStore } from "~/stores/script";
 import { useStoryStore } from "~/stores/story";
 
 const route = useRoute();
+const config = useRuntimeConfig();
 const { projectId } = useCurrentProject();
 const store = useScriptStore();
 const story = useStoryStore();
 const characters = useCharacterStore();
+const aiStore = useAiProviderStore();
 const episodeId = computed(() => String(route.params.episodeId || ""));
 const confirmLock = ref(false);
 const dragSceneId = ref<string | null>(null);
@@ -249,6 +267,18 @@ function blockLabel(type: ScriptBlockType) {
   return getScriptBlockTypeLabel(type);
 }
 
+function characterOf(characterId?: string | null) {
+  if (!characterId) {
+    return null;
+  }
+  return characters.characters.find((item) => item.id === characterId) ?? null;
+}
+
+function primaryAudioSrc(block: ScriptBlock) {
+  const asset = getPrimaryBlockAsset(block.assets)?.asset;
+  return asset?.url ? resolveAssetDisplayUrl(config.public.apiBase, asset.url) ?? "" : "";
+}
+
 function syncForms() {
   form.title = store.script?.title || "";
   form.logline = store.script?.logline || "";
@@ -268,6 +298,7 @@ async function reload() {
     story.loadProjectEpisodes(projectId.value),
     story.loadBible(projectId.value),
     characters.load(projectId.value),
+    aiStore.loadProjectAiConfig(projectId.value),
   ]);
   syncForms();
 }

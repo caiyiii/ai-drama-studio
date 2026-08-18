@@ -21,5 +21,14 @@ describe("LocalAssetStorageProvider", () => {
     await expect(fs.stat(full)).resolves.toBeTruthy();
     expect(() => storage.resolvePath("../secret.txt")).toThrow();
     await storage.delete(saved.storageKey);
+
+    const audio = await storage.saveFromBase64({
+      projectId: "proj-1",
+      assetId: "asset-audio",
+      base64: Buffer.from("RIFF").toString("base64"),
+      mimeType: "audio/mpeg",
+    });
+    expect(audio.storageKey).toBe("assets/proj-1/asset-audio/audio.mp3");
+    await storage.delete(audio.storageKey);
   });
 });

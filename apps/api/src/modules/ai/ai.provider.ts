@@ -1,4 +1,8 @@
-import type { ImageGenerationResult, VideoGenerationResult } from "@ai-drama-studio/types";
+import type {
+  GeneratedAudio,
+  ImageGenerationResult,
+  VideoGenerationResult,
+} from "@ai-drama-studio/types";
 
 export interface AiTextRequest {
   system?: string;
@@ -60,6 +64,10 @@ export interface AiSpeechRequest {
   text: string;
   model?: string;
   voice?: string;
+  language?: string;
+  format?: string;
+  speed?: number;
+  pitch?: number;
 }
 
 export interface AiVoiceCloneRequest {
@@ -85,7 +93,7 @@ export interface AiProvider {
   generateImage(request: AiImageRequest): Promise<ImageGenerationResult>;
   generateVideo(request: AiVideoRequest): Promise<VideoGenerationResult>;
   generateImageToVideo(request: AiImageToVideoRequest): Promise<VideoGenerationResult>;
-  generateSpeech(request: AiSpeechRequest): Promise<never>;
+  generateSpeech(request: AiSpeechRequest): Promise<GeneratedAudio>;
   generateVoiceClone(request: AiVoiceCloneRequest): Promise<never>;
   generateMusic(request: AiMusicRequest): Promise<never>;
   generateEmbedding(request: AiEmbeddingRequest): Promise<never>;

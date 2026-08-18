@@ -1,9 +1,9 @@
 import { createReadStream } from "node:fs";
 import { HttpStatus, Injectable, StreamableFile } from "@nestjs/common";
-import { AssetStatus, AssetType, StoryboardShotAssetRole } from "@prisma/client";
+import { AssetStatus, AssetType, ScriptBlockAssetRole, StoryboardShotAssetRole } from "@prisma/client";
 import { AppError, ErrorCodes } from "../../common/app-error";
 import { PrismaService } from "../../prisma/prisma.service";
-import { mapAsset, mapShotAsset } from "./asset.mapper";
+import { mapAsset, mapBlockAsset, mapShotAsset } from "./asset.mapper";
 import { AssetStorageService } from "./asset-storage.service";
 
 @Injectable()
@@ -88,6 +88,63 @@ export class AssetsService {
     return this.listShotAssets(projectId, shotId, asset.type);
   }
 
+  async listScriptBlockAssets(projectId: string, scriptBlockId: string) {
+    const block = await this.requireOwnedScriptBlock(projectId, scriptBlockId);
+    const rows = await this.prisma.scriptBlockAsset.findMany({
+      where: { scriptBlockId: block.id },
+      include: { asset: true },
+      orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+    });
+    return rows.map(mapBlockAsset);
+  }
+
+  async setPrimaryScriptBlockAsset(
+    projectId: string,
+    scriptBlockId: string,
+    assetId: string,
+  ) {
+    const block = await this.requireOwnedScriptBlock(projectId, scriptBlockId);
+    const relation = await this.prisma.scriptBlockAsset.findUnique({
+      where: { scriptBlockId_assetId: { scriptBlockId: block.id, assetId } },
+    });
+    if (!relation) {
+      throw new AppError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.TTS_ASSET_NOT_FOUND,
+        "对白未关联该音频",
+      );
+    }
+    const asset = await this.requireAsset(projectId, assetId);
+    if (asset.type !== AssetType.AUDIO) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.TTS_ASSET_PROJECT_MISMATCH,
+        "只能将对白的音频设为最终语音",
+      );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.scriptBlockAsset.updateMany({
+        where: {
+          scriptBlockId: block.id,
+          isPrimary: true,
+          asset: { type: AssetType.AUDIO },
+        },
+        data: { isPrimary: false },
+      });
+      await tx.scriptBlockAsset.update({
+        where: { id: relation.id },
+        data: { isPrimary: true, role: ScriptBlockAssetRole.FINAL },
+      });
+      if (asset.status !== AssetStatus.READY) {
+        await tx.asset.update({
+          where: { id: asset.id },
+          data: { status: AssetStatus.READY },
+        });
+      }
+    });
+    return this.listScriptBlockAssets(projectId, scriptBlockId);
+  }
+
   private async requireAsset(projectId: string, assetId: string) {
     await this.ensureProject(projectId);
     const row = await this.prisma.asset.findUnique({ where: { id: assetId } });
@@ -118,6 +175,29 @@ export class AssetsService {
       );
     }
     return shot;
+  }
+
+  private async requireOwnedScriptBlock(projectId: string, scriptBlockId: string) {
+    await this.ensureProject(projectId);
+    const block = await this.prisma.scriptBlock.findUnique({
+      where: { id: scriptBlockId },
+      include: { scene: { include: { script: true } } },
+    });
+    if (!block) {
+      throw new AppError(
+        HttpStatus.NOT_FOUND,
+        ErrorCodes.SCRIPT_BLOCK_NOT_FOUND,
+        "剧本段落不存在",
+      );
+    }
+    if (block.scene.script.projectId !== projectId) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.TTS_ASSET_PROJECT_MISMATCH,
+        "对白不属于当前项目",
+      );
+    }
+    return block;
   }
 
   private async ensureProject(projectId: string) {

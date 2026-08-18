@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import {
   clampRelationStrength,
   isSelfRelationship,
+  sanitizeVoiceProfile,
 } from "@ai-drama-studio/core";
 import { AppError, ErrorCodes } from "../../common/app-error";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -148,6 +149,11 @@ export class CharactersService {
           : {}),
         ...(dto.ability !== undefined ? { ability: emptyToNull(dto.ability) } : {}),
         ...(dto.status !== undefined ? { status: toPrismaStatus(dto.status) } : {}),
+        ...(dto.voiceProfile !== undefined
+          ? {
+              voiceProfile: sanitizeVoiceProfile(dto.voiceProfile) as Prisma.InputJsonValue,
+            }
+          : {}),
       },
       include: CHARACTER_INCLUDE,
     });

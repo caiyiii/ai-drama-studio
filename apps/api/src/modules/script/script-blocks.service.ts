@@ -7,13 +7,11 @@ import {
   ReorderScriptBlocksDto,
   UpdateScriptBlockDto,
 } from "./dto/script-block.dto";
-import { mapScriptBlock } from "./script.mapper";
+import { mapScriptBlock, SCRIPT_BLOCK_INCLUDE } from "./script.mapper";
 import { ScenesService } from "./scenes.service";
 import { ScriptsService } from "./scripts.service";
 
-const BLOCK_INCLUDE = {
-  character: { select: { id: true, name: true, alias: true, role: true } },
-};
+const BLOCK_INCLUDE = SCRIPT_BLOCK_INCLUDE;
 
 @Injectable()
 export class ScriptBlocksService {

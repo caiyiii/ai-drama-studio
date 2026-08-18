@@ -40,6 +40,8 @@
             <strong>{{ block.type }}</strong>
             <span v-if="block.character"> · {{ block.character.name }}</span>
             <textarea :value="block.content" @change="saveBlock(scene.id, block.id, ($event.target as HTMLTextAreaElement).value)" />
+            <audio v-if="primaryAudioSrc(block)" :src="primaryAudioSrc(block)" controls />
+            <p v-if="block.type === 'DIALOGUE'" class="hint">复杂 TTS 生成请使用 Web。</p>
           </div>
         </section>
       </article>
@@ -50,7 +52,8 @@
 <script setup lang="ts">
 import { API_DEFAULT_BASE_URL } from "@ai-drama-studio/config";
 import { ApiError, createApiClient } from "@ai-drama-studio/api-client";
-import type { Episode, Project, Script } from "@ai-drama-studio/types";
+import { getPrimaryBlockAsset, resolveAssetDisplayUrl } from "@ai-drama-studio/core";
+import type { Episode, Project, Script, ScriptBlock } from "@ai-drama-studio/types";
 import { onMounted, ref } from "vue";
 
 const api = createApiClient(import.meta.env.VITE_API_BASE || API_DEFAULT_BASE_URL);
@@ -129,6 +132,13 @@ async function saveBlock(sceneId: string, blockId: string, content: string) {
   await api.updateScriptBlock(projectId.value, episodeId.value, sceneId, blockId, { content });
   await selectEpisode(episodeId.value);
   message.value = "段落已保存。";
+}
+
+function primaryAudioSrc(block: ScriptBlock) {
+  const asset = getPrimaryBlockAsset(block.assets)?.asset;
+  return asset?.url
+    ? resolveAssetDisplayUrl(import.meta.env.VITE_API_BASE || API_DEFAULT_BASE_URL, asset.url) ?? ""
+    : "";
 }
 </script>
 

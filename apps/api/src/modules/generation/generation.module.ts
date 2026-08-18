@@ -5,6 +5,7 @@ import { CharacterGenerationService } from "./character-generation.service";
 import { GenerationController } from "./generation.controller";
 import { GenerationExecutor } from "./generation.executor";
 import { ImageGenerationService } from "./image-generation.service";
+import { TtsGenerationService } from "./tts-generation.service";
 import { VideoGenerationService } from "./video-generation.service";
 import { ScriptGenerationService } from "./script-generation.service";
 import { StoryboardGenerationService } from "./storyboard-generation.service";
@@ -23,6 +24,7 @@ import { WorldGenerationService } from "./world-generation.service";
     StoryboardGenerationService,
     ImageGenerationService,
     VideoGenerationService,
+    TtsGenerationService,
   ],
 })
 export class GenerationModule {}

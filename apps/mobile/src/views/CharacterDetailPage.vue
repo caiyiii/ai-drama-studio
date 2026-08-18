@@ -25,6 +25,20 @@
         <p class="body">{{ character.description || "暂无简介" }}</p>
 
         <section class="block">
+          <p class="eyebrow">角色声音</p>
+          <ion-item>
+            <ion-input v-model="voiceId" label="Voice ID" label-placement="stacked" />
+          </ion-item>
+          <ion-item>
+            <ion-input v-model="voiceLanguage" label="Language" label-placement="stacked" />
+          </ion-item>
+          <ion-button expand="block" class="ion-margin-top" :disabled="saving" @click="onSaveVoice">
+            保存声音配置
+          </ion-button>
+          <p class="meta">复杂 TTS 生成请使用 Web。Voice Clone 尚未开放。</p>
+        </section>
+
+        <section class="block">
           <p class="eyebrow">人物关系</p>
           <article v-for="item in relations" :key="item.id" class="card">
             <p class="from">{{ item.fromCharacter.name }}</p>
@@ -70,6 +84,7 @@ import {
   IonContent,
   IonHeader,
   IonItem,
+  IonInput,
   IonPage,
   IonSelect,
   IonSelectOption,
@@ -89,10 +104,12 @@ import { useCharacters } from "../composables/useCharacters";
 const route = useRoute();
 const projectId = String(route.params.id);
 const characterId = String(route.params.characterId);
-const { characters, relationships, loading, saving, error, load, createRelationship } =
+const { characters, relationships, loading, saving, error, load, createRelationship, update } =
   useCharacters();
 const toId = ref("");
 const relType = ref(CharacterRelationType.UNKNOWN);
+const voiceId = ref("");
+const voiceLanguage = ref("zh-CN");
 
 const character = computed(
   () => characters.value.find((item) => item.id === characterId) ?? null,
@@ -123,8 +140,26 @@ watch(
   { immediate: true },
 );
 
+watch(
+  character,
+  (value) => {
+    voiceId.value = value?.voiceProfile?.voiceId || "";
+    voiceLanguage.value = value?.voiceProfile?.language || "zh-CN";
+  },
+  { immediate: true },
+);
+
 function relationLabel(type: CharacterRelationType) {
   return getCharacterRelationTypeLabel(type);
+}
+
+async function onSaveVoice() {
+  await update(projectId, characterId, {
+    voiceProfile: {
+      voiceId: voiceId.value.trim() || null,
+      language: voiceLanguage.value.trim() || null,
+    },
+  });
 }
 
 async function onAddRelation() {
