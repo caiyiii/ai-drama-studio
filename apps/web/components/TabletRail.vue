@@ -74,6 +74,15 @@ const railItems = computed(() => {
 });
 
 function isActive(to: string) {
-  return route.path === to;
+  if (route.path === to) {
+    return true;
+  }
+  if (to.endsWith("/episodes")) {
+    return route.path.includes("/episodes");
+  }
+  if (to.endsWith("/seasons")) {
+    return route.path.includes("/seasons") && !route.path.includes("/episodes");
+  }
+  return to !== "/" && route.path.startsWith(`${to}/`);
 }
 </script>

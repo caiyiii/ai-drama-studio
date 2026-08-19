@@ -5,6 +5,8 @@ export {
   getProjectStepPath,
   getWorkspacePath,
   getWorkspaceSteps,
+  isLegacyProjectProductionPath,
+  resolveLegacyProductionRedirect,
 } from "./workflow";
 export {
   canRetryTask,

@@ -9,9 +9,15 @@
       <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Final Render</p>
-            <h1 class="mt-1 font-display text-3xl">Episode MP4 Render</h1>
-            <p class="mt-2 text-sm text-zinc-500">这是最终 Episode MP4 Render。浏览器合成预览不是最终视频导出。</p>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">本集成片</p>
+            <h1 class="mt-1 font-display text-3xl">
+              <template v-if="overview">
+                E{{ String(overview.episode.number).padStart(2, "0") }} · {{ overview.episode.title }}
+              </template>
+              <template v-else>成片</template>
+            </h1>
+            <p v-if="overview" class="mt-1 text-sm text-zinc-400">成片</p>
+            <p class="mt-2 text-sm text-zinc-500">把锁定的时间线渲染成 MP4。浏览器合成预览不是最终视频导出。</p>
             <p v-if="timeline" class="mt-1 text-xs text-zinc-500">
               Timeline v{{ timeline.version }} · {{ statusLabel }} · {{ timeline.resolution }} · {{ timeline.fps }}fps
             </p>
@@ -21,7 +27,7 @@
               :to="`/projects/${projectId}/episodes/${episodeId}`"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
-              返回 Episode Workspace
+              返回本集工作台
             </NuxtLink>
             <NuxtLink
               :to="`/projects/${projectId}/episodes/${episodeId}/timeline`"
@@ -160,7 +166,7 @@ let poll: ReturnType<typeof setInterval> | null = null;
 
 const canRender = computed(() => Boolean(overview.value?.readiness.canRender));
 const renderButtonLabel = computed(() => {
-  if (canRender.value) return "Render Episode";
+  if (canRender.value) return "生成成片";
   if (!timeline.value) return "尚未创建时间线";
   if (timeline.value.stale) return "时间线已过期";
   if (timeline.value.status !== "LOCKED") return "请先锁定时间线";

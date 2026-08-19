@@ -12,9 +12,13 @@
             <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">
               {{ episodeLabel }}
             </p>
-            <h1 class="mt-1 font-display text-3xl">{{ store.script?.title || episode?.title || "剧本" }}</h1>
+            <h1 class="mt-1 font-display text-3xl">
+              {{ episodeHeading }}
+            </h1>
+            <p class="mt-1 text-sm text-zinc-400">剧本</p>
             <p class="mt-2 text-sm text-zinc-500">
-              {{ store.script ? statusLabel(store.script.status) : "尚未创建剧本" }}
+              把这一集的剧情转化为可执行的场景、动作与对白。
+              {{ store.script ? statusLabel(store.script.status) : "本集尚未生成剧本。" }}
               <span v-if="store.script"> · v{{ store.script.version }}</span>
             </p>
           </div>
@@ -23,7 +27,7 @@
               :to="workspacePath"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
-              返回 Episode Workspace
+              返回本集工作台
             </NuxtLink>
             <NuxtLink
               :to="`/projects/${projectId}/episodes/${episodeId}/storyboard`"
@@ -81,7 +85,16 @@
           </div>
         </div>
 
-        <p v-if="store.actionError" class="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <EpisodeProductionNav
+          :project-id="projectId"
+          :episode-id="episodeId"
+          current="script"
+        />
+
+        <p
+          v-if="store.actionError"
+          class="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+        >
           {{ store.actionError }}
         </p>
         <div
@@ -285,8 +298,13 @@ const episode = computed(
 );
 const episodeLabel = computed(() => {
   const current = episode.value;
-  return current ? `E${String(current.number).padStart(2, "0")} · 剧本工作台` : "剧本工作台";
+  return current
+    ? `E${String(current.number).padStart(2, "0")} · ${current.title}`
+    : "本集剧本";
 });
+const episodeHeading = computed(
+  () => episodeLabel.value,
+);
 const workspacePath = computed(() =>
   `/projects/${projectId.value}/episodes/${episodeId.value}`,
 );

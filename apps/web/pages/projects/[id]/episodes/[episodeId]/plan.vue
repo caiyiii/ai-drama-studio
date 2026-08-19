@@ -9,15 +9,18 @@
       <div v-if="episode && overview" class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Episode Plan</p>
-            <h1 class="mt-1 font-display text-3xl">{{ episode.title }}</h1>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">剧集规划</p>
+            <h1 class="mt-1 font-display text-3xl">
+              E{{ String(episode.number).padStart(2, "0") }} · {{ episode.title }}
+            </h1>
+            <p class="mt-1 text-sm text-zinc-400">剧集规划</p>
             <p class="mt-2 text-sm text-zinc-500">
-              先明确这一集讲什么、冲突是什么、承接哪一集，再进入剧本。
+              定义这一集讲什么。这不是剧本：剧本才是可拍摄的场景、动作与对白。
             </p>
           </div>
           <div class="flex flex-wrap gap-2">
             <NuxtLink :to="workspacePath(episodeId)" class="rounded-xl border border-white/10 px-3 py-1.5 text-sm">
-              返回 Episode Workspace
+              返回本集工作台
             </NuxtLink>
             <NuxtLink
               :to="planReady ? `/projects/${projectId}/episodes/${episodeId}/script` : workspacePath(episodeId)"
@@ -27,6 +30,12 @@
             </NuxtLink>
           </div>
         </div>
+
+        <EpisodeProductionNav
+          :project-id="projectId"
+          :episode-id="episodeId"
+          current="plan"
+        />
 
         <p
           v-if="saveMessage"

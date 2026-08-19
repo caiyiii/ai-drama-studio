@@ -9,10 +9,16 @@
       <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Episode Timeline</p>
-            <h1 class="mt-1 font-display text-3xl">合成预览</h1>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">本集时间线</p>
+            <h1 class="mt-1 font-display text-3xl">
+              <template v-if="overview">
+                E{{ String(overview.episode.number).padStart(2, "0") }} · {{ overview.episode.title }}
+              </template>
+              <template v-else>时间线</template>
+            </h1>
+            <p v-if="overview" class="mt-1 text-sm text-zinc-400">时间线</p>
             <p class="mt-2 text-sm text-zinc-500">
-              {{ COMPOSITION_PREVIEW_DISCLAIMER }}
+              把已生成的视觉和音频素材按时间排列。这是合成预览，不是最终视频导出。
             </p>
             <p v-if="timeline" class="mt-1 text-xs text-zinc-500">
               v{{ timeline.version }} · {{ statusLabel }} · {{ Math.round(timeline.durationSeconds) }}s ·
@@ -24,7 +30,7 @@
               :to="`/projects/${projectId}/episodes/${episodeId}`"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
-              返回 Episode Workspace
+              返回本集工作台
             </NuxtLink>
             <button
               type="button"
@@ -48,7 +54,7 @@
               class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
               @click="goRender"
             >
-              Render Episode
+              生成成片
             </button>
             <button
               v-else-if="locked"
@@ -84,6 +90,12 @@
             </button>
           </div>
         </div>
+
+        <EpisodeProductionNav
+          :project-id="projectId"
+          :episode-id="episodeId"
+          current="timeline"
+        />
 
         <p class="rounded-xl border border-gold-400/20 bg-gold-400/5 px-4 py-3 text-sm text-gold-200">
           {{ preview?.readyMessage || COMPOSITION_PREVIEW_DISCLAIMER }}
@@ -187,6 +199,7 @@ import {
   TimelineStatus,
   TimelineTrackType,
   type CompositionPreview,
+  type EpisodeOverview,
   type EpisodeTimeline,
   type TimelineClip,
 } from "@ai-drama-studio/types";
@@ -202,6 +215,7 @@ const apiBase = computed(() => String(runtime.public.apiBase || ""));
 const loading = ref(false);
 const building = ref(false);
 const error = ref<string | null>(null);
+const overview = ref<EpisodeOverview | null>(null);
 const timeline = ref<EpisodeTimeline | null>(null);
 const preview = ref<CompositionPreview | null>(null);
 const selectedClip = ref<TimelineClip | null>(null);
@@ -270,7 +284,7 @@ const timelinePrerequisiteMessage = computed(() => {
 const timelinePrerequisiteCta = computed(() => {
   if (!timeline.value) {
     return {
-      label: "返回 Episode Workspace",
+      label: "返回本集工作台",
       to: `/projects/${projectId.value}/episodes/${episodeId.value}`,
     };
   }
@@ -309,16 +323,21 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    timeline.value = await $api.getEpisodeTimeline(projectId.value, episodeId.value);
-    preview.value = await $api.getCompositionPreview(projectId.value, episodeId.value);
+    const [currentOverview, currentTimeline, currentPreview] = await Promise.all([
+      $api.getEpisodeProductionOverview(projectId.value, episodeId.value).catch(() => null),
+      $api.getEpisodeTimeline(projectId.value, episodeId.value).catch((err) => {
+        if (err instanceof ApiError && err.code === "TIMELINE_NOT_FOUND") {
+          return null;
+        }
+        throw err;
+      }),
+      $api.getCompositionPreview(projectId.value, episodeId.value).catch(() => null),
+    ]);
+    overview.value = currentOverview;
+    timeline.value = currentTimeline;
+    preview.value = currentPreview;
   } catch (err) {
-    if (err instanceof ApiError && err.code === "TIMELINE_NOT_FOUND") {
-      timeline.value = null;
-      preview.value = null;
-      error.value = null;
-    } else {
-      error.value = err instanceof Error ? err.message : "加载时间线失败";
-    }
+    error.value = err instanceof Error ? err.message : "加载时间线失败";
   } finally {
     loading.value = false;
   }

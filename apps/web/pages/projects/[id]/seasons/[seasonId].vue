@@ -132,6 +132,7 @@
                 <p class="text-xs text-gold-300">E{{ String(item.number).padStart(2, "0") }}</p>
                 <h3 class="mt-1 font-display text-xl">{{ item.title }}</h3>
                 <p class="mt-1 text-sm text-zinc-500">{{ item.synopsis || "尚未填写简介" }}</p>
+                <p class="mt-3 text-sm text-gold-300">进入制作 →</p>
               </NuxtLink>
             </li>
           </ol>

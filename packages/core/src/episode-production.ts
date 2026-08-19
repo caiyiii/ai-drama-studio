@@ -35,16 +35,16 @@ const ACTION_META: Record<
     description: "先明确这一集讲什么，再进入剧本。",
   },
   [EpisodeNextActionType.GENERATE_SCRIPT]: {
-    label: "生成剧本",
-    description: "根据本集规划生成 Script，先 Preview 再 Apply。",
+    label: "AI 生成剧本",
+    description: "剧集规划已完成。现在可以把这一集写成可拍摄的场景、动作与对白。",
   },
   [EpisodeNextActionType.CONFIRM_SCRIPT]: {
     label: "确认剧本",
     description: "确认剧本后才能生成正式分镜。",
   },
   [EpisodeNextActionType.GENERATE_STORYBOARD]: {
-    label: "生成分镜",
-    description: "把已确认的剧本拆成镜头。",
+    label: "AI 生成分镜",
+    description: "根据已确认剧本，把这一集拆成具体镜头。",
   },
   [EpisodeNextActionType.CONFIRM_STORYBOARD]: {
     label: "确认分镜",
@@ -59,15 +59,15 @@ const ACTION_META: Record<
     description: "补齐对白配音、音乐或音效。",
   },
   [EpisodeNextActionType.OPEN_TIMELINE]: {
-    label: "进入合成",
-    description: "用已有素材构建时间线，不会自动调用 AI。",
+    label: "打开时间线",
+    description: "把已生成的视觉和音频素材按时间排列。不会自动调用 AI。",
   },
   [EpisodeNextActionType.LOCK_TIMELINE]: {
     label: "锁定时间线",
     description: "锁定后才能渲染成片。",
   },
   [EpisodeNextActionType.RENDER_EPISODE]: {
-    label: "Render Episode",
+    label: "生成成片",
     description: "把已锁定时间线输出为 Episode MP4。",
   },
   [EpisodeNextActionType.VIEW_RENDER_JOB]: {
@@ -271,8 +271,8 @@ export function resolveEpisodeProductionProgress(
     },
     {
       id: "TIMELINE",
-      label: "合成",
-      description: "编排已经存在的素材。",
+      label: "时间线",
+      description: "把已生成的视觉和音频素材按时间排列。",
       state: timelineProgressState(input, stage),
     },
     {
@@ -356,36 +356,28 @@ export function resolveEpisodeProductionChecklist(
   const musicReady = Boolean(audio?.musicReady) || (audio?.musicReadyCount ?? 0) > 0;
   const sfxReady = Boolean(audio?.sfxReady) || (audio?.sfxReadyCount ?? 0) > 0;
   return [
-    { id: "plan", label: "Episode Plan", done: isPlanReady(input) },
-    { id: "script", label: "Script", done: isScriptConfirmed(input) },
-    { id: "storyboard", label: "Storyboard", done: isStoryboardConfirmed(input) },
+    { id: "plan", label: "剧集规划", done: isPlanReady(input) },
+    { id: "script", label: "剧本", done: isScriptConfirmed(input) },
+    { id: "storyboard", label: "分镜", done: isStoryboardConfirmed(input) },
     {
       id: "visuals",
-      label: "Visual Assets",
+      label: "视觉素材",
       done: isVisualsComplete(input),
       detail: shotCount > 0 ? `${visualReady} / ${shotCount}` : undefined,
     },
     {
-      id: "dialogue",
-      label: "Dialogue",
-      done: dialogueTotal > 0 ? dialogueReady >= dialogueTotal : dialogueReady > 0,
-      detail: dialogueTotal > 0 ? `${dialogueReady} / ${dialogueTotal}` : undefined,
+      id: "audio",
+      label: "音频素材",
+      done: isAudioComplete(input),
+      detail:
+        dialogueTotal > 0
+          ? `${dialogueReady} / ${dialogueTotal}`
+          : musicReady || sfxReady
+            ? "已配置"
+            : undefined,
     },
-    {
-      id: "music",
-      label: "Music",
-      done: musicReady,
-      detail: `${audio?.musicReadyCount ?? (musicReady ? 1 : 0)} / ${audio?.musicExpected ?? 1}`,
-    },
-    {
-      id: "sfx",
-      label: "SFX",
-      done: (audio?.sfxExpected ?? 0) <= 0 ? sfxReady || isAudioComplete(input) : sfxReady,
-      detail: `${audio?.sfxReadyCount ?? (sfxReady ? 1 : 0)} / ${audio?.sfxExpected ?? 0}`,
-    },
-    { id: "timeline", label: "Timeline", done: Boolean(input.timeline) },
-    { id: "timelineLocked", label: "Timeline Locked", done: isTimelineLocked(input) },
-    { id: "render", label: "Render", done: isRenderSucceeded(input) },
+    { id: "timeline", label: "时间线", done: isTimelineLocked(input) },
+    { id: "render", label: "成片", done: isRenderSucceeded(input) },
   ];
 }
 
@@ -447,7 +439,7 @@ export function getEpisodeProductionStageLabel(stage: EpisodeProductionStage): s
   if (stage === EpisodeProductionStage.STORYBOARDING) return "分镜";
   if (stage === EpisodeProductionStage.VISUAL_ASSETS) return "视觉素材";
   if (stage === EpisodeProductionStage.AUDIO_ASSETS) return "音频素材";
-  if (stage === EpisodeProductionStage.COMPOSING) return "合成";
+  if (stage === EpisodeProductionStage.COMPOSING) return "时间线";
   if (stage === EpisodeProductionStage.READY_TO_RENDER) return "待成片";
   if (stage === EpisodeProductionStage.RENDERING) return "成片生成中";
   return "已完成";

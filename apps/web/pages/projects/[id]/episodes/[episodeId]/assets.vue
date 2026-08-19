@@ -9,15 +9,18 @@
       <div v-if="overview" class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Episode Assets</p>
-            <h1 class="mt-1 font-display text-3xl">{{ overview.episode.title }}</h1>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">本集素材</p>
+            <h1 class="mt-1 font-display text-3xl">
+              E{{ String(overview.episode.number).padStart(2, "0") }} · {{ overview.episode.title }}
+            </h1>
+            <p class="mt-1 text-sm text-zinc-400">视觉 / 音频素材</p>
             <p class="mt-2 text-sm text-zinc-500">
-              素材是制作产物，不是新的策划层。这里汇总本集已绑定的视觉、配音与音频结果。
+              这里汇总本集已绑定的画面、配音与音频。全局素材库只用于跨集浏览。
             </p>
           </div>
           <div class="flex flex-wrap gap-2">
             <NuxtLink :to="workspacePath(episodeId)" class="rounded-xl border border-white/10 px-3 py-1.5 text-sm">
-              返回 Episode Workspace
+              返回本集工作台
             </NuxtLink>
             <NuxtLink
               :to="nextAction.to"
@@ -27,6 +30,12 @@
             </NuxtLink>
           </div>
         </div>
+
+        <EpisodeProductionNav
+          :project-id="projectId"
+          :episode-id="episodeId"
+          current="assets"
+        />
 
         <div class="grid gap-4 tablet:grid-cols-2 desktop:grid-cols-5">
           <article v-for="card in summaryCards" :key="card.title" class="rounded-2xl border border-white/5 bg-ink-900/70 p-4">
@@ -307,7 +316,7 @@ const nextAction = computed(() => {
     };
   }
   return {
-    label: "返回 Episode Workspace",
+    label: "返回本集工作台",
     to: workspacePath(episodeId.value),
   };
 });

@@ -13,7 +13,7 @@
               :to="`/projects/${projectId}/seasons/${overview.season.id}`"
               class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80"
             >
-              ← {{ overview.season.title }}
+              ← 第{{ overview.season.number }}季 · {{ overview.season.title }}
             </NuxtLink>
             <h1 class="mt-1 font-display text-3xl">
               E{{ String(overview.episode.number).padStart(2, "0") }} · {{ overview.episode.title }}
@@ -74,7 +74,8 @@
 
         <div class="grid gap-4 desktop:grid-cols-[1.2fr_0.8fr]">
           <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Current Task</p>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">当前任务</p>
+            <p class="mt-2 text-sm text-zinc-500">当前阶段：{{ stageLabel }}</p>
             <h2 class="mt-1 font-display text-2xl">{{ overview.nextAction.label }}</h2>
             <p class="mt-2 text-sm text-zinc-400">{{ overview.nextAction.description }}</p>
             <p v-if="overview.nextAction.reason" class="mt-2 text-sm text-amber-200">
@@ -138,15 +139,13 @@
         </section>
 
         <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Episode Navigation</p>
-          <div class="mt-3 flex flex-wrap gap-2 text-sm">
-            <span class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-gold-300">概览</span>
-            <NuxtLink :to="pathFor('plan')" class="rounded-xl border border-white/10 px-3 py-1.5">剧集规划</NuxtLink>
-            <NuxtLink :to="pathFor('script')" class="rounded-xl border border-white/10 px-3 py-1.5">剧本</NuxtLink>
-            <NuxtLink :to="pathFor('storyboard')" class="rounded-xl border border-white/10 px-3 py-1.5">分镜</NuxtLink>
-            <NuxtLink :to="pathFor('assets')" class="rounded-xl border border-white/10 px-3 py-1.5">素材</NuxtLink>
-            <NuxtLink :to="pathFor('timeline')" class="rounded-xl border border-white/10 px-3 py-1.5">时间线</NuxtLink>
-            <NuxtLink :to="pathFor('render')" class="rounded-xl border border-white/10 px-3 py-1.5">成片</NuxtLink>
+          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">本集制作导航</p>
+          <div class="mt-3">
+            <EpisodeProductionNav
+              :project-id="projectId"
+              :episode-id="episodeId"
+              current="workspace"
+            />
           </div>
         </section>
 
@@ -260,16 +259,16 @@ const visualReadyCount = computed(() => {
 const secondaryAction = computed(() => {
   const type = overview.value?.nextAction.type;
   if (type === EpisodeNextActionType.CONFIRM_SCRIPT) {
-    return { label: "查看剧本", to: pathFor("script") };
+    return { label: "返回剧本", to: pathFor("script") };
   }
   if (type === EpisodeNextActionType.GENERATE_STORYBOARD) {
-    return { label: "查看剧本", to: pathFor("script") };
+    return { label: "返回剧本", to: pathFor("script") };
   }
   if (type === EpisodeNextActionType.CONFIRM_STORYBOARD) {
-    return { label: "查看分镜", to: pathFor("storyboard") };
+    return { label: "返回分镜", to: pathFor("storyboard") };
   }
   if (type === EpisodeNextActionType.RENDER_EPISODE) {
-    return { label: "打开合成", to: pathFor("timeline") };
+    return { label: "打开时间线", to: pathFor("timeline") };
   }
   return null;
 });
@@ -280,6 +279,7 @@ function pathFor(module: "plan" | "script" | "storyboard" | "assets" | "timeline
 
 function stepMark(state: EpisodeProductionState) {
   if (state === "COMPLETED" || state === "LOCKED") return "✓";
+  if (state === "STALE") return "!";
   if (state === "IN_PROGRESS" || state === "READY") return "●";
   return "○";
 }
@@ -301,6 +301,9 @@ async function reload() {
   error.value = null;
   try {
     overview.value = await $api.getEpisodeProductionOverview(projectId.value, episodeId.value);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(`ads:last-episode:${projectId.value}`, episodeId.value);
+    }
     if (seasonId.value) {
       await store.loadEpisode(projectId.value, seasonId.value, episodeId.value);
     }

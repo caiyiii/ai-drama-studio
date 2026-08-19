@@ -13,10 +13,12 @@
               {{ episodeLabel }}
             </p>
             <h1 class="mt-1 font-display text-3xl">
-              {{ store.storyboard?.title || episode?.title || "分镜" }}
+              {{ episodeHeading }}
             </h1>
+            <p class="mt-1 text-sm text-zinc-400">分镜</p>
             <p class="mt-2 text-sm text-zinc-500">
-              {{ store.storyboard ? statusLabel(store.storyboard.status) : "尚未创建分镜" }}
+              把确认后的剧本拆解成具体镜头。
+              {{ store.storyboard ? statusLabel(store.storyboard.status) : "本集尚未生成分镜。" }}
               <span v-if="store.storyboard"> · v{{ store.storyboard.version }}</span>
               <span v-if="store.storyboard"> · {{ store.totalDuration }}s</span>
             </p>
@@ -26,7 +28,7 @@
               :to="workspacePath"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
-              返回 Episode Workspace
+              返回本集工作台
             </NuxtLink>
             <NuxtLink
               :to="`/projects/${projectId}/episodes/${episodeId}/storyboard`"
@@ -81,6 +83,12 @@
             </button>
           </div>
         </div>
+
+        <EpisodeProductionNav
+          :project-id="projectId"
+          :episode-id="episodeId"
+          current="storyboard"
+        />
 
         <p
           v-if="store.storyboard?.stale"
@@ -333,8 +341,11 @@ const episode = computed(
 );
 const episodeLabel = computed(() => {
   const current = episode.value;
-  return current ? `E${String(current.number).padStart(2, "0")} · 分镜工作台` : "分镜工作台";
+  return current
+    ? `E${String(current.number).padStart(2, "0")} · ${current.title}`
+    : "本集分镜";
 });
+const episodeHeading = computed(() => episodeLabel.value);
 const workspacePath = computed(() =>
   `/projects/${projectId.value}/episodes/${episodeId.value}`,
 );

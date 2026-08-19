@@ -3,7 +3,7 @@
     <PageState
       :loading="loading"
       :error="error"
-      loading-text="正在返回 Episode Workspace…"
+      loading-text="正在返回本集工作台…"
       :on-retry="redirectToWorkspace"
     />
   </section>
@@ -26,7 +26,7 @@ async function redirectToWorkspace() {
   try {
     await navigateTo(workspacePath(episodeId.value), { replace: true });
   } catch (err) {
-    error.value = err instanceof Error ? err.message : "返回 Episode Workspace 失败";
+    error.value = err instanceof Error ? err.message : "返回本集工作台失败";
   } finally {
     loading.value = false;
   }

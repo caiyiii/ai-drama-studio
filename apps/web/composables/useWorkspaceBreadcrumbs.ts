@@ -9,6 +9,16 @@ export type BreadcrumbItem = {
   to?: string;
 };
 
+const PAGE_LABELS: Record<string, string> = {
+  plan: "剧集规划",
+  script: "剧本",
+  storyboard: "分镜",
+  assets: "素材",
+  timeline: "时间线",
+  render: "成片",
+  overview: "概览",
+};
+
 export function useWorkspaceBreadcrumbs() {
   const route = useRoute();
   const { project, projectId, isProjectRoute } = useCurrentProject();
@@ -48,87 +58,105 @@ export function useWorkspaceBreadcrumbs() {
     const suffix = route.path
       .replace(`/projects/${projectId.value}`, "")
       .replace(/^\//, "");
-    if (suffix) {
-      const parts = suffix.split("/").filter(Boolean);
-      const page = parts[0] ?? "";
-      const nav = WORKSPACE_NAV.find((item) => item.path === page);
-      const section =
-        page === "world" && typeof route.query.section === "string"
-          ? route.query.section
-          : "";
-      const worldItem =
-        section && section !== "overview"
-          ? WORLD_NAV.find((item) => item.key === section)
-          : null;
-      crumbs.push({
-        label: nav?.label ?? page,
-        to:
-          worldItem || parts.length > 1
-            ? `/projects/${projectId.value}/${page}`
-            : undefined,
-      });
-      const seasonIdParam = String(route.params.seasonId || "");
-      const episodeIdParam = String(route.params.episodeId || parts[1] || "");
-      const episode =
-        storyStore.episode?.id === episodeIdParam
-          ? storyStore.episode
-          : storyStore.projectEpisodes.find((item) => item.id === episodeIdParam) ?? null;
-      const season =
-        storyStore.season?.id === seasonIdParam ||
-        storyStore.season?.id === episode?.seasonId
-          ? storyStore.season
-          : storyStore.seasons.find((item) => item.id === (seasonIdParam || episode?.seasonId)) ?? null;
-      const episodeLabel = episode
-        ? `E${String(episode.number).padStart(2, "0")} · ${episode.title}`
-        : "Episode Workspace";
-      if (worldItem) {
-        crumbs.push({ label: worldItem.label });
-      } else if (page === "characters" && parts[1]) {
-        crumbs.push({ label: "详情" });
-      } else if (page === "episodes" && parts[1]) {
-        crumbs.push({
-          label: season?.title || "Season",
-          to: season?.id ? `/projects/${projectId.value}/seasons/${season.id}` : `/projects/${projectId.value}/episodes`,
-        });
-        crumbs.push({
-          label: episodeLabel,
-          to: `/projects/${projectId.value}/episodes/${parts[1]}`,
-        });
-        if (parts[2]) {
-          crumbs.push({
-            label:
-              parts[2] === "plan"
-                ? "剧集规划"
-                : parts[2] === "storyboard"
-                  ? "分镜"
-                  : parts[2] === "assets"
-                    ? "素材"
-                    : parts[2] === "timeline"
-                      ? "时间线"
-                      : parts[2] === "render"
-                        ? "成片"
-                        : parts[2] === "overview"
-                          ? "概览"
-                          : "剧本",
-          });
-        }
-      } else if (page === "seasons" && parts[1]) {
-        crumbs.push({
-          label: season?.title || "Season",
-          to: parts[3] ? `/projects/${projectId.value}/seasons/${parts[1]}` : undefined,
-        });
-        if (parts[3]) {
-          crumbs.push({
-            label: episodeLabel,
-            to:
-              parts[4]
-                ? `/projects/${projectId.value}/episodes/${parts[3]}`
-                : undefined,
-          });
-        }
-      }
+    if (!suffix) {
+      return crumbs;
     }
 
+    const parts = suffix.split("/").filter(Boolean);
+    const page = parts[0] ?? "";
+    const nav = WORKSPACE_NAV.find((item) => item.path === page);
+    const section =
+      page === "world" && typeof route.query.section === "string"
+        ? route.query.section
+        : "";
+    const worldItem =
+      section && section !== "overview"
+        ? WORLD_NAV.find((item) => item.key === section)
+        : null;
+    const seasonIdParam = String(route.params.seasonId || "");
+    const episodeIdParam = String(route.params.episodeId || (page === "episodes" ? parts[1] : "") || "");
+    const episode =
+      storyStore.episode?.id === episodeIdParam
+        ? storyStore.episode
+        : storyStore.projectEpisodes.find((item) => item.id === episodeIdParam) ?? null;
+    const season =
+      storyStore.season?.id === seasonIdParam ||
+      storyStore.season?.id === episode?.seasonId
+        ? storyStore.season
+        : storyStore.seasons.find((item) => item.id === (seasonIdParam || episode?.seasonId)) ?? null;
+    const episodeLabel = episode
+      ? `E${String(episode.number).padStart(2, "0")} · ${episode.title}`
+      : "Episode Workspace";
+    const seasonLabel = season
+      ? `第${season.number}季 · ${season.title}`
+      : seasonIdParam
+        ? "Season"
+        : "第一季";
+
+    if (worldItem) {
+      crumbs.push({
+        label: nav?.label ?? page,
+        to: `/projects/${projectId.value}/${page}`,
+      });
+      crumbs.push({ label: worldItem.label });
+      return crumbs;
+    }
+
+    if (page === "characters" && parts[1]) {
+      crumbs.push({
+        label: nav?.label ?? page,
+        to: `/projects/${projectId.value}/${page}`,
+      });
+      crumbs.push({ label: "详情" });
+      return crumbs;
+    }
+
+    if (page === "episodes") {
+      if (!parts[1]) {
+        crumbs.push({ label: "剧集工作台" });
+        return crumbs;
+      }
+      crumbs.push({
+        label: seasonLabel,
+        to: season?.id
+          ? `/projects/${projectId.value}/seasons/${season.id}`
+          : `/projects/${projectId.value}/episodes`,
+      });
+      crumbs.push({
+        label: episodeLabel,
+        to: parts[2] ? `/projects/${projectId.value}/episodes/${parts[1]}` : undefined,
+      });
+      if (parts[2]) {
+        crumbs.push({ label: PAGE_LABELS[parts[2]] || parts[2] });
+      }
+      return crumbs;
+    }
+
+    if (page === "seasons") {
+      if (!parts[1]) {
+        crumbs.push({ label: "季规划" });
+        return crumbs;
+      }
+      crumbs.push({
+        label: seasonLabel,
+        to: parts[3] ? `/projects/${projectId.value}/seasons/${parts[1]}` : undefined,
+      });
+      if (parts[3]) {
+        crumbs.push({
+          label: episodeLabel,
+          to: parts[4] ? `/projects/${projectId.value}/episodes/${parts[3]}` : undefined,
+        });
+        if (parts[4]) {
+          crumbs.push({ label: PAGE_LABELS[parts[4]] || parts[4] });
+        }
+      }
+      return crumbs;
+    }
+
+    crumbs.push({
+      label: nav?.label ?? page,
+      to: parts.length > 1 ? `/projects/${projectId.value}/${page}` : undefined,
+    });
     return crumbs;
   });
 
