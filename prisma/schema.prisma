@@ -141,6 +141,7 @@ enum GenerationTaskType {
   MUSIC
   SFX
   STORYBOARD
+  LOCATION
 }
 
 enum GenerationTaskStatus {
@@ -488,6 +489,8 @@ model Scene {
   number                   Int
   title                    String
   location                 String?
+  locationId               String?
+  locationRef              Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
   timeOfDay                String?
   summary                  String?
   purpose                  String?
@@ -501,6 +504,7 @@ model Scene {
 
   @@unique([scriptId, number])
   @@index([scriptId])
+  @@index([locationId])
 }
 
 model ScriptBlock {
@@ -613,8 +617,17 @@ model Location {
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name        String
   description String?
+  environment String?
+  atmosphere  String?
+  visualStyle String?
+  tags        Json?
+  metadata    Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  scenes      Scene[]
+
+  @@index([projectId])
+  @@index([projectId, name])
 }
 
 model Asset {

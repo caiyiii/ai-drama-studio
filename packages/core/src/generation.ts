@@ -52,6 +52,7 @@ const TYPE_LABELS: Record<GenerationTaskType, string> = {
   [GenerationTaskType.MUSIC]: "音乐",
   [GenerationTaskType.SFX]: "音效",
   [GenerationTaskType.STORYBOARD]: "分镜",
+  [GenerationTaskType.LOCATION]: "场景",
 };
 
 export function getGenerationTypeLabel(type: GenerationTaskType): string {

@@ -122,18 +122,29 @@
             <li
               v-for="item in store.episodes"
               :key="item.id"
-              draggable="true"
-              class="cursor-grab rounded-2xl border border-white/5 bg-ink-800/60 p-4"
-              @dragstart="onDragStart(item.id)"
-              @dragover.prevent
-              @drop="onDrop(item.id)"
+              class="rounded-2xl border border-white/5 bg-ink-800/60 p-4"
             >
-              <NuxtLink :to="`/projects/${projectId}/episodes/${item.id}`" class="block">
-                <p class="text-xs text-gold-300">E{{ String(item.number).padStart(2, "0") }}</p>
-                <h3 class="mt-1 font-display text-xl">{{ item.title }}</h3>
-                <p class="mt-1 text-sm text-zinc-500">{{ item.synopsis || "尚未填写简介" }}</p>
-                <p class="mt-3 text-sm text-gold-300">进入制作 →</p>
-              </NuxtLink>
+              <div class="flex items-start gap-3">
+                <button
+                  type="button"
+                  class="mt-1 shrink-0 cursor-grab rounded-lg border border-white/10 px-2 py-1 text-xs text-zinc-500"
+                  draggable="true"
+                  aria-label="拖动排序"
+                  @dragstart="onDragStart(item.id)"
+                  @dragover.prevent
+                  @drop="onDrop(item.id)"
+                >
+                  ⋮⋮
+                </button>
+                <NuxtLink :to="episodeWorkspacePath(item.id)" class="block min-w-0 flex-1">
+                  <p class="text-xs text-gold-300">E{{ String(item.number).padStart(2, "0") }}</p>
+                  <h3 class="mt-1 font-display text-xl">{{ item.title }}</h3>
+                  <p class="mt-1 text-sm text-zinc-500">{{ item.synopsis || "尚未填写简介" }}</p>
+                  <span class="mt-3 inline-flex rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950">
+                    进入制作
+                  </span>
+                </NuxtLink>
+              </div>
             </li>
           </ol>
         </div>
@@ -190,6 +201,10 @@ const latestPlanningLabel = computed(() => {
 
 function statusLabel(status: SeasonStatus) {
   return getSeasonStatusLabel(status);
+}
+
+function episodeWorkspacePath(episodeId: string) {
+  return `/projects/${projectId.value}/seasons/${seasonId.value}/episodes/${episodeId}`;
 }
 
 function syncForm() {

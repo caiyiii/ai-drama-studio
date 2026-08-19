@@ -144,6 +144,7 @@
             <EpisodeProductionNav
               :project-id="projectId"
               :episode-id="episodeId"
+              :season-id="seasonId"
               current="workspace"
             />
           </div>
@@ -219,6 +220,8 @@ import {
   type EpisodeOverview,
   type EpisodeProductionState,
 } from "@ai-drama-studio/types";
+import { computed, onMounted, ref, watch } from "vue";
+import { navigateTo, useRoute, useRuntimeConfig } from "#imports";
 import { episodeActionPath, episodeModulePath } from "~/composables/useEpisodeProduction";
 import { useCurrentProject } from "~/composables/useCurrentProject";
 import { useStoryStore } from "~/stores/story";
@@ -247,7 +250,7 @@ const completedCount = computed(
 );
 const primaryActionPath = computed(() =>
   overview.value
-    ? episodeActionPath(projectId.value, episodeId.value, overview.value.nextAction.type)
+    ? episodeActionPath(projectId.value, episodeId.value, overview.value.nextAction.type, seasonId.value)
     : pathFor("workspace"),
 );
 const visualReadyCount = computed(() => {
@@ -274,7 +277,7 @@ const secondaryAction = computed(() => {
 });
 
 function pathFor(module: "plan" | "script" | "storyboard" | "assets" | "timeline" | "render" | "workspace") {
-  return episodeModulePath(projectId.value, episodeId.value, module);
+  return episodeModulePath(projectId.value, episodeId.value, module, seasonId.value);
 }
 
 function stepMark(state: EpisodeProductionState) {

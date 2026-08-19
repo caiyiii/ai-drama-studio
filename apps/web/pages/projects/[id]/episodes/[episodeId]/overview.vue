@@ -3,36 +3,14 @@
     <PageState
       :loading="loading"
       :error="error"
-      loading-text="正在返回本集工作台…"
-      :on-retry="redirectToWorkspace"
+      loading-text="正在进入本集制作…"
+      :on-retry="redirectIfNeeded"
     />
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { navigateTo, useRoute } from "#imports";
-import { useEpisodeWorkspaceContext } from "~/composables/useEpisodeWorkspaceContext";
+import { useEpisodeCanonicalRedirect } from "~/composables/useEpisodeCanonicalRedirect";
 
-const route = useRoute();
-const { workspacePath } = useEpisodeWorkspaceContext();
-const episodeId = computed(() => String(route.params.episodeId || ""));
-const loading = ref(false);
-const error = ref<string | null>(null);
-
-async function redirectToWorkspace() {
-  loading.value = true;
-  error.value = null;
-  try {
-    await navigateTo(workspacePath(episodeId.value), { replace: true });
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : "返回本集工作台失败";
-  } finally {
-    loading.value = false;
-  }
-}
-
-onMounted(() => {
-  void redirectToWorkspace();
-});
+const { loading, error, redirectIfNeeded } = useEpisodeCanonicalRedirect("workspace");
 </script>

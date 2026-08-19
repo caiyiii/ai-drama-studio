@@ -81,6 +81,7 @@ export enum GenerationTaskType {
   MUSIC = "MUSIC",
   SFX = "SFX",
   STORYBOARD = "STORYBOARD",
+  LOCATION = "LOCATION",
 }
 
 export const GenerationType = GenerationTaskType;
@@ -376,8 +377,35 @@ export interface Location {
   projectId: string;
   name: string;
   description: string | null;
+  environment: string | null;
+  atmosphere: string | null;
+  visualStyle: string | null;
+  tags: string[];
+  metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreateLocationInput {
+  name: string;
+  description?: string;
+  environment?: string;
+  atmosphere?: string;
+  visualStyle?: string;
+  tags?: string[];
+}
+
+export type UpdateLocationInput = Partial<CreateLocationInput>;
+
+export interface LocationGenerationResult {
+  location: {
+    name: string;
+    description: string;
+    environment: string;
+    atmosphere: string;
+    visualStyle: string;
+    tags: string[];
+  };
 }
 
 export interface Asset {
@@ -658,6 +686,12 @@ export const CHARACTER_GENERATION_DETAIL_LEVELS = [
 
 export type CharacterGenerationDetailLevel =
   (typeof CHARACTER_GENERATION_DETAIL_LEVELS)[number];
+
+export interface LocationGenerationInput {
+  prompt: string;
+  style?: string;
+  detailLevel?: string;
+}
 
 export interface CharacterGenerationInput {
   prompt: string;
@@ -1075,8 +1109,12 @@ export interface StoryFactionSummary {
 }
 
 export interface StoryLocationSummary {
+  id?: string;
   name: string;
   description: string | null;
+  environment?: string | null;
+  atmosphere?: string | null;
+  visualStyle?: string | null;
 }
 
 export interface StoryPowerSystemSummary {
@@ -2514,6 +2552,7 @@ export interface EpisodeOverview {
     conflict: string | null;
     keyCharacters: string[];
     keyLocations: string[];
+    keyLocationIds?: string[];
     mood: string | null;
     pace: string | null;
     opening: string | null;

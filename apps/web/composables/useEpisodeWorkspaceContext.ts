@@ -13,7 +13,10 @@ export function useEpisodeWorkspaceContext() {
     return episode.seasonId;
   }
 
-  function workspacePath(episodeId: string) {
+  function workspacePath(episodeId: string, seasonId?: string | null) {
+    if (seasonId) {
+      return `/projects/${projectId.value}/seasons/${seasonId}/episodes/${episodeId}`;
+    }
     return `/projects/${projectId.value}/episodes/${episodeId}`;
   }
 

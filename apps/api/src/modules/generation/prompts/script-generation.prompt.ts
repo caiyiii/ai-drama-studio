@@ -37,6 +37,7 @@ Story Bible：
 宇宙背景：${input.context.world?.cosmicBackground || ""}
 核心冲突：${input.context.world?.coreConflict || ""}
 人物：${input.context.characters.map((item) => `${item.name}/${item.role || ""}/${item.identity || ""}/目标:${item.goal || ""}/冲突:${item.conflict || ""}`).join("；") || "暂无"}
+场景：${input.context.locations.map((item) => `${item.name}:${item.description || ""}${item.environment ? `/${item.environment}` : ""}${item.atmosphere ? `/${item.atmosphere}` : ""}`).join("；") || "暂无"}
 季：第${input.context.season?.number || "?"}季 ${input.context.season?.title || ""} ${input.context.season?.synopsis || ""}
 当前集：E${String(input.context.episode?.number || 0).padStart(2, "0")} ${input.context.episode?.title || ""}
 大纲：${input.context.episode?.outline || ""}

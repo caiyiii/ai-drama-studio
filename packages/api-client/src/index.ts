@@ -19,6 +19,7 @@ import type {
   CreateAIProviderInput,
   CreateCivilizationInput,
   CreateFactionInput,
+  CreateLocationInput,
   CreatePowerSystemInput,
   CreateProjectInput,
   CreateWorldHistoryInput,
@@ -26,6 +27,8 @@ import type {
   CreateWorldLocationInput,
   Faction,
   HealthResponse,
+  Location,
+  LocationGenerationInput,
   PowerSystem,
   Project,
   ProjectAIProvider,
@@ -34,6 +37,7 @@ import type {
   UpdateAIProviderInput,
   UpdateCivilizationInput,
   UpdateFactionInput,
+  UpdateLocationInput,
   UpdatePowerSystemInput,
   UpdateProjectInput,
   UpdateWorldHistoryInput,
@@ -300,6 +304,44 @@ export class ApiClient {
   async deleteWorldLocation(projectId: string, id: string): Promise<void> {
     await this.request<void>(`/projects/${projectId}/world/locations/${id}`, {
       method: "DELETE",
+    });
+  }
+
+  async getLocations(projectId: string): Promise<Location[]> {
+    return this.request<Location[]>(`/projects/${projectId}/locations`);
+  }
+
+  async createLocation(projectId: string, data: CreateLocationInput): Promise<Location> {
+    return this.request<Location>(`/projects/${projectId}/locations`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateLocation(
+    projectId: string,
+    id: string,
+    data: UpdateLocationInput,
+  ): Promise<Location> {
+    return this.request<Location>(`/projects/${projectId}/locations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteLocation(projectId: string, id: string): Promise<void> {
+    await this.request<void>(`/projects/${projectId}/locations/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async createLocationGeneration(
+    projectId: string,
+    data: LocationGenerationInput,
+  ): Promise<GenerationTask> {
+    return this.request<GenerationTask>(`/projects/${projectId}/generations/location`, {
+      method: "POST",
+      body: JSON.stringify(data),
     });
   }
 

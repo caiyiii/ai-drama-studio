@@ -30,7 +30,7 @@
             当前阶段：{{ stageLabel(recent.productionStage) }}
           </p>
           <NuxtLink
-            :to="`/projects/${projectId}/episodes/${recent.episode.id}`"
+            :to="recentPath"
             class="mt-4 inline-flex rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950"
           >
             继续制作
@@ -59,7 +59,7 @@
                 {{ overviews[item.id]?.nextAction.label || item.synopsis || "进入本集制作" }}
               </p>
               <NuxtLink
-                :to="`/projects/${projectId}/episodes/${item.id}`"
+                :to="`/projects/${projectId}/seasons/${season.id}/episodes/${item.id}`"
                 class="mt-4 inline-flex rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
               >
                 进入制作
@@ -85,6 +85,12 @@ const overviews = ref<Record<string, EpisodeOverview>>({});
 
 const recentId = ref("");
 const recent = computed(() => (recentId.value ? overviews.value[recentId.value] ?? null : null));
+const recentPath = computed(() => {
+  if (!recent.value) {
+    return `/projects/${projectId.value}/episodes`;
+  }
+  return `/projects/${projectId.value}/seasons/${recent.value.episode.seasonId}/episodes/${recent.value.episode.id}`;
+});
 
 onMounted(() => {
   void reload();

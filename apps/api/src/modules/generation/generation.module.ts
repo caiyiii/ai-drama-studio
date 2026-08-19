@@ -8,6 +8,7 @@ import { ImageGenerationService } from "./image-generation.service";
 import { TtsGenerationService } from "./tts-generation.service";
 import { EpisodeAudioGenerationService } from "./episode-audio-generation.service";
 import { VideoGenerationService } from "./video-generation.service";
+import { LocationGenerationService } from "./location-generation.service";
 import { ScriptGenerationService } from "./script-generation.service";
 import { StoryboardGenerationService } from "./storyboard-generation.service";
 import { StoryGenerationService } from "./story-generation.service";
@@ -20,6 +21,7 @@ import { WorldGenerationService } from "./world-generation.service";
     GenerationExecutor,
     WorldGenerationService,
     CharacterGenerationService,
+    LocationGenerationService,
     StoryGenerationService,
     ScriptGenerationService,
     StoryboardGenerationService,

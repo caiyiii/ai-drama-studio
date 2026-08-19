@@ -18,6 +18,8 @@ import {
   CreateVideoGenerationDto,
 } from "./dto/create-video-generation.dto";
 import { CreateStoryboardGenerationDto } from "./dto/create-storyboard-generation.dto";
+import { CreateLocationGenerationDto } from "./dto/create-location-generation.dto";
+import { LocationGenerationService } from "./location-generation.service";
 import { ImageGenerationService } from "./image-generation.service";
 import { TtsGenerationService } from "./tts-generation.service";
 import { EpisodeAudioGenerationService } from "./episode-audio-generation.service";
@@ -32,6 +34,7 @@ export class GenerationController {
   constructor(
     private readonly worldGeneration: WorldGenerationService,
     private readonly characterGeneration: CharacterGenerationService,
+    private readonly locationGeneration: LocationGenerationService,
     private readonly storyGeneration: StoryGenerationService,
     private readonly scriptGeneration: ScriptGenerationService,
     private readonly storyboardGeneration: StoryboardGenerationService,
@@ -60,6 +63,14 @@ export class GenerationController {
     @Body() dto: CreateCharacterGenerationDto,
   ) {
     return this.characterGeneration.createCharacterGeneration(projectId, dto);
+  }
+
+  @Post("location")
+  createLocation(
+    @Param("projectId") projectId: string,
+    @Body() dto: CreateLocationGenerationDto,
+  ) {
+    return this.locationGeneration.createLocationGeneration(projectId, dto);
   }
 
   @Post("story-bible")
@@ -165,6 +176,9 @@ export class GenerationController {
     const task = await this.worldGeneration.getOne(projectId, id);
     if (task.type === GenerationTaskType.CHARACTER) {
       return this.characterGeneration.apply(projectId, id);
+    }
+    if (task.type === GenerationTaskType.LOCATION) {
+      return this.locationGeneration.apply(projectId, id);
     }
     if (
       task.type === GenerationTaskType.STORY_BIBLE ||

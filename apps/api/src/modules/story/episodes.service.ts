@@ -359,12 +359,15 @@ function extractEpisodePlan(episode: ReturnType<EpisodesService["getInSeason"]> 
     const value = metadata[key];
     return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [];
   };
+  const keyLocationIds = readList("keyLocationIds");
+  const keyLocations = keyLocationIds.length > 0 ? keyLocationIds : readList("keyLocations");
   return {
     ready: Boolean(episode.synopsis?.trim() || episode.outline?.trim()),
     goal: read("goal"),
     conflict: read("conflict"),
     keyCharacters: readList("keyCharacters"),
-    keyLocations: readList("keyLocations"),
+    keyLocations,
+    keyLocationIds,
     mood: read("mood"),
     pace: read("pace"),
     opening: read("opening"),

@@ -11,6 +11,7 @@ import type {
   StoryCharacterSummary,
   StoryContext,
   StoryEpisodeSummary,
+  StoryLocationSummary,
 } from "@ai-drama-studio/types";
 import { PrismaService } from "../../prisma/prisma.service";
 import { asStoryState, mapSeason, mapStoryBible } from "./story.mapper";
@@ -162,10 +163,16 @@ export class StoryContextBuilder {
   }
 
   async buildProjectContext(projectId: string): Promise<StoryContext> {
-    const [bible, world, characters, seasons] = await Promise.all([
+    const [bible, world, characters, projectLocations, seasons] = await Promise.all([
       this.buildStoryBibleContext(projectId),
       this.buildWorldContext(projectId),
       this.buildCharacterContext(projectId),
+      this.prisma.location?.findMany
+        ? this.prisma.location.findMany({
+            where: { projectId },
+            orderBy: { name: "asc" },
+          })
+        : Promise.resolve([]),
       this.prisma.season.findMany({
         where: { projectId },
         orderBy: { number: "asc" },
@@ -190,7 +197,7 @@ export class StoryContextBuilder {
       world: world.world,
       civilizations: world.civilizations,
       factions: world.factions,
-      locations: world.locations,
+      locations: mergeStoryLocations(world.locations, projectLocations),
       powerSystems: world.powerSystems,
       characters: characters.characters,
       relationships: characters.relationships,
@@ -488,3 +495,31 @@ function summarizeStoryState(value: StoryEpisodeSummary["storyState"] | null | u
 }
 
 type PrismaJson = Parameters<typeof asStoryState>[0];
+
+function mergeStoryLocations(
+  worldLocations: StoryLocationSummary[],
+  projectLocations: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    environment: string | null;
+    atmosphere: string | null;
+    visualStyle: string | null;
+  }>,
+): StoryLocationSummary[] {
+  const byName = new Map<string, StoryLocationSummary>();
+  for (const item of worldLocations) {
+    byName.set(item.name.toLowerCase(), item);
+  }
+  for (const item of projectLocations) {
+    byName.set(item.name.toLowerCase(), {
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      environment: item.environment,
+      atmosphere: item.atmosphere,
+      visualStyle: item.visualStyle,
+    });
+  }
+  return [...byName.values()];
+}

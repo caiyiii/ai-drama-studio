@@ -18,16 +18,17 @@ import { episodeModulePath } from "~/composables/useEpisodeProduction";
 const props = defineProps<{
   projectId: string;
   episodeId: string;
+  seasonId?: string | null;
   current: "workspace" | "plan" | "script" | "storyboard" | "assets" | "timeline" | "render";
 }>();
 
 const items = computed(() => [
-  { id: "workspace" as const, label: "概览", to: episodeModulePath(props.projectId, props.episodeId, "workspace") },
-  { id: "plan" as const, label: "剧集规划", to: episodeModulePath(props.projectId, props.episodeId, "plan") },
-  { id: "script" as const, label: "剧本", to: episodeModulePath(props.projectId, props.episodeId, "script") },
-  { id: "storyboard" as const, label: "分镜", to: episodeModulePath(props.projectId, props.episodeId, "storyboard") },
-  { id: "assets" as const, label: "素材", to: episodeModulePath(props.projectId, props.episodeId, "assets") },
-  { id: "timeline" as const, label: "时间线", to: episodeModulePath(props.projectId, props.episodeId, "timeline") },
-  { id: "render" as const, label: "成片", to: episodeModulePath(props.projectId, props.episodeId, "render") },
+  { id: "workspace" as const, label: "概览", to: episodeModulePath(props.projectId, props.episodeId, "workspace", props.seasonId) },
+  { id: "plan" as const, label: "剧集规划", to: episodeModulePath(props.projectId, props.episodeId, "plan", props.seasonId) },
+  { id: "script" as const, label: "剧本", to: episodeModulePath(props.projectId, props.episodeId, "script", props.seasonId) },
+  { id: "storyboard" as const, label: "分镜", to: episodeModulePath(props.projectId, props.episodeId, "storyboard", props.seasonId) },
+  { id: "assets" as const, label: "素材", to: episodeModulePath(props.projectId, props.episodeId, "assets", props.seasonId) },
+  { id: "timeline" as const, label: "时间线", to: episodeModulePath(props.projectId, props.episodeId, "timeline", props.seasonId) },
+  { id: "render" as const, label: "成片", to: episodeModulePath(props.projectId, props.episodeId, "render", props.seasonId) },
 ]);
 </script>
