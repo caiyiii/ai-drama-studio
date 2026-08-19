@@ -8,29 +8,21 @@ export function buildStoryboardGenerationPrompt(input: {
   const bible = input.context.storyBible;
   const script = input.context.script;
   const system = `你是一名专业动画导演、分镜师、摄影指导。
-根据 Story Bible、World、Characters、Episode、Script，将完整剧本转换为可执行 Storyboard。
-必须：
-1. 不改变原故事
-2. 不新增未经剧本支持的主要剧情
-3. 不改变角色关系
-4. 不改变角色身份
-5. 不随意改变场景地点
-6. 不随意修改对白
-7. 不删除关键对白
-8. 不改变事件顺序
-9. 可以将一个 ScriptBlock 拆成多个 Shot
-10. 每个 Shot 必须有明确视觉目的
-11. 必须考虑镜头连续性、人物位置连续性、视线方向与镜头轴线
-12. 必须考虑景别变化，避免连续镜头全部使用同一种景别
-13. 对关键剧情使用视觉强化
-14. 对对白设计适合口型与镜头的构图
-15. 为未来 Image Generation 生成 imagePrompt
-16. 为未来 Video Generation 生成 videoPrompt
-Storyboard 描述如何拍，而不是复述剧本。
-scriptBlockIds 必须使用上下文中给出的真实 ScriptBlock id。
-characterIds 必须使用上下文中给出的真实 Character id。
-sceneNumber 必须对应剧本中的场景编号。
-只输出 JSON，不要 markdown。`;
+任务：把当前 Episode Script 转成可执行 Storyboard。
+
+硬性规则：
+1. 只依据当前剧本，不新增主剧情，不改变事件顺序。
+2. scriptBlockIds 必须使用上下文给出的真实 id。
+3. characterIds 必须使用上下文给出的真实 id。
+4. sceneNumber 必须对应当前剧本场景编号。
+5. 每个 shot 都要有明确视觉目的。
+6. 默认每个 ScriptBlock 只生成 1 个 Shot，只有确实必要时才拆成 2 个 Shot。
+7. 所有字符串都写成单行短句，不要换行。
+8. 所有字符串里不要出现双引号字符 "。
+9. 只输出一个合法 JSON 对象，不要 markdown，不要解释，不要代码围栏。
+10. 如果某个可选字段不需要，输出空字符串或空数组，不要输出额外字段。
+
+Storyboard 描述怎么拍，不是复述剧本。`;
 
   const scenes = (script?.scenes ?? [])
     .map((scene) => {
@@ -47,42 +39,22 @@ sceneNumber 必须对应剧本中的场景编号。
   const characters = input.context.characters
     .map(
       (item) =>
-        `${item.id}/${item.name}/${item.role || ""}/${item.identity || ""}/外观:${item.appearance || item.visualSummary || ""}/能力:${item.abilities || ""}/目标:${item.goal || ""}/冲突:${item.conflict || ""}`,
+        `${item.id}/${item.name}/${item.role || ""}/${item.identity || ""}`,
     )
     .join("；");
 
-  const prompt = `项目：${input.context.project?.name || ""} ${input.context.project?.genre || ""}
-${input.context.project?.description || ""}
-用户要求：${input.prompt?.trim() || "将本集完整剧本转换为可执行分镜"}
+  const prompt = `用户要求：${input.prompt?.trim() || "将本集完整剧本转换为可执行分镜"}
 附加说明：${input.additionalInstructions?.trim() || "无"}
 
-Story Bible：
-一句话：${bible?.logline || ""}
-前提：${bible?.premise || ""}
-主题：${bible?.theme || ""}
-基调：${bible?.tone || ""}
-风格：${bible?.style || ""}
-故事承诺：${bible?.storyPromise || ""}
-规则：${bible?.rules ? JSON.stringify(bible.rules) : ""}
-连续性：${bible?.continuityNotes || ""}
-
-世界：${input.context.world?.title || ""} ${input.context.world?.summary || ""}
-宇宙背景：${input.context.world?.cosmicBackground || ""}
-核心冲突：${input.context.world?.coreConflict || ""}
-
-人物：${characters || "暂无"}
-
-季：第${input.context.season?.number || "?"}季 ${input.context.season?.title || ""} ${input.context.season?.synopsis || ""}
+项目：${input.context.project?.name || ""} / ${input.context.project?.genre || ""}
 当前集：E${String(input.context.episode?.number || 0).padStart(2, "0")} ${input.context.episode?.title || ""}
-大纲：${input.context.episode?.outline || ""}
-本集状态：${input.context.episode?.storyState ? JSON.stringify(input.context.episode.storyState) : "无"}
+本集大纲：${input.context.episode?.outline || ""}
 本集连续性：${input.context.episode?.continuityNotes || "无"}
-上一集：${input.context.previousEpisode ? `E${String(input.context.previousEpisode.number).padStart(2, "0")} ${input.context.previousEpisode.title}` : "无"}
-上一集状态：${input.context.previousEpisode?.storyState ? JSON.stringify(input.context.previousEpisode.storyState) : "无"}
-上一集连续性：${input.context.previousEpisode?.continuityNotes || "无"}
+故事基调：${bible?.tone || ""} / ${bible?.style || ""}
+主要人物：${characters || "暂无"}
 
 剧本：${script ? `${script.title} v${script.version} ${script.status}` : "缺失"}
-Scenes / ScriptBlocks：
+当前剧本场景与段落：
 ${scenes || "无"}
 
 输出结构：
@@ -106,22 +78,29 @@ ${scenes || "无"}
       "characterIds": ["真实 Character id"],
       "location": "string",
       "action": "string",
-      "dialogue": "string",
-      "narration": "string",
-      "direction": "string",
+      "dialogue": "",
+      "narration": "",
+      "direction": "",
       "durationSeconds": 5,
       "transition": "CUT | FADE_IN | FADE_OUT | DISSOLVE | WIPE | MATCH_CUT | SMASH_CUT",
-      "lighting": "string",
-      "mood": "string",
-      "visualStyle": "string",
+      "lighting": "",
+      "mood": "",
+      "visualStyle": "",
       "imagePrompt": "string",
       "videoPrompt": "string",
-      "negativePrompt": "string",
-      "continuityNotes": "string"
+      "negativePrompt": "",
+      "continuityNotes": ""
     }
   ]
 }
 
-shotNumber 必须从 1 连续递增。durationSeconds 必须大于 0。不要发明人物、场景或 ScriptBlock id。`;
+额外要求：
+1. shotNumber 必须从 1 连续递增。
+2. durationSeconds 必须大于 0。
+3. 不要发明人物、场景或 ScriptBlock id。
+4. 每个字符串尽量简短，建议不超过 40 个字。
+5. 必须重点填好 visualDescription / location / action / imagePrompt / videoPrompt。
+6. 其余可选字段如果不必要，直接输出空字符串。
+7. 返回前自行检查 JSON 是否能被 JSON.parse 解析。`;
   return { system, prompt };
 }

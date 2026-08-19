@@ -232,7 +232,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
         body: JSON.stringify({
           model,
           messages,
-          temperature: 0.7,
+          temperature: jsonObject ? 0.2 : 0.7,
           ...("maxTokens" in request && typeof request.maxTokens === "number"
             ? { max_tokens: request.maxTokens }
             : {}),
