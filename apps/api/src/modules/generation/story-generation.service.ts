@@ -111,11 +111,16 @@ export class StoryGenerationService {
       projectId,
       dto.seasonId,
     );
+    const mode =
+      dto.mode ||
+      (context.episodes.length > 0 ? "CONTINUE" : "INITIAL");
     const input = {
       seasonId: dto.seasonId,
+      mode,
       instruction: dto.instruction?.trim() || undefined,
       episodeCount: dto.episodeCount || 12,
       targetDurationSeconds: dto.targetDurationSeconds || 300,
+      replanConfirmed: dto.replanConfirmed === true,
     };
     const task = await this.prisma.generationTask.create({
       data: {
@@ -230,6 +235,8 @@ export class StoryGenerationService {
             id,
             result,
             Number(input.targetDurationSeconds || 300),
+            String(input.mode || "INITIAL") as "INITIAL" | "CONTINUE" | "REPLAN",
+            input.replanConfirmed === true,
           );
           return;
         }

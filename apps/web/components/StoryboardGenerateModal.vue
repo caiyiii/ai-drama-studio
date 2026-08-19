@@ -22,7 +22,7 @@
           v-if="hasExistingStoryboard"
           class="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-200"
         >
-          应用新的 AI 分镜将替换当前分镜内容，并生成新版本。
+          应用新的 AI 分镜将替换当前分镜内容，并生成新版本。已有 Timeline 会标记为 STALE，不会自动删除。
         </p>
         <form class="mt-6 space-y-3" @submit.prevent="onGenerate">
           <label class="block text-sm">

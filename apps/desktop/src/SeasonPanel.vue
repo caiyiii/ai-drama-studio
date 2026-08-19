@@ -44,6 +44,9 @@
         </button>
         <div v-if="episode">
           <h3>{{ episode.title }}</h3>
+          <p v-if="episodeNextStep" class="hint">
+            下一步：{{ episodeNextStep.label }} · {{ episodeNextStep.description }}
+          </p>
           <textarea v-model="outline" />
           <button type="button" @click="saveEpisode">保存大纲</button>
         </div>
@@ -55,7 +58,7 @@
 <script setup lang="ts">
 import { API_DEFAULT_BASE_URL } from "@ai-drama-studio/config";
 import { createApiClient } from "@ai-drama-studio/api-client";
-import type { Episode, Project, Season } from "@ai-drama-studio/types";
+import type { Episode, EpisodeNextAction, EpisodeOverview, Project, Season } from "@ai-drama-studio/types";
 import { computed, onMounted, ref } from "vue";
 
 const api = createApiClient(import.meta.env.VITE_API_BASE || API_DEFAULT_BASE_URL);
@@ -70,6 +73,7 @@ const message = ref("");
 const newSeasonTitle = ref("");
 const synopsis = ref("");
 const outline = ref("");
+const episodeNextStep = ref<EpisodeNextAction | null>(null);
 
 const season = computed(() => seasons.value.find((item) => item.id === seasonId.value) ?? null);
 const episode = computed(() => episodes.value.find((item) => item.id === episodeId.value) ?? null);
@@ -111,11 +115,24 @@ async function selectSeason(id: string) {
   synopsis.value = season.value?.synopsis || "";
   episodeId.value = episodes.value[0]?.id ?? "";
   outline.value = episode.value?.outline || "";
+  await loadEpisodeWorkflow();
 }
 
-function selectEpisode(id: string) {
+async function selectEpisode(id: string) {
   episodeId.value = id;
   outline.value = episode.value?.outline || "";
+  await loadEpisodeWorkflow();
+}
+
+async function loadEpisodeWorkflow() {
+  if (!projectId.value || !episode.value) {
+    episodeNextStep.value = null;
+    return;
+  }
+  const overview = await api.getEpisodeProductionOverview(projectId.value, episode.value.id).catch(
+    () => null as EpisodeOverview | null,
+  );
+  episodeNextStep.value = overview?.nextAction ?? null;
 }
 
 async function createSeason() {

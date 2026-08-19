@@ -17,6 +17,16 @@
       <div v-else>
         <p class="hint">AI 生成本集大纲与完整剧本请使用 Web 工作台。</p>
         <p class="meta">E{{ String(episode.number).padStart(2, "0") }} · {{ episode.durationSeconds || 0 }} 秒</p>
+        <section class="block">
+          <p class="eyebrow">Production Progress</p>
+          <p class="meta">{{ overview?.productionStage || "PLANNING" }} · {{ completedStepCount }}/7 已完成</p>
+          <p class="hint">下一步：{{ nextLabel }}。复杂编辑请在 Web 端完成。</p>
+          <p v-if="overview" class="hint">
+            视觉 {{ overview.assets.images.ready + overview.assets.videos.ready > 0 ? Math.max(overview.storyboard.shotCount - overview.missing.visual.length, 0) : 0 }}/{{ overview.storyboard.shotCount }}
+            · 对白 {{ overview.assets.voices.ready }}/{{ overview.assets.voices.total }}
+            · 音乐 {{ overview.assets.music.ready }}/{{ overview.assets.music.total }}
+          </p>
+        </section>
         <ion-item>
           <ion-input v-model="title" label="标题" label-placement="stacked" />
         </ion-item>
@@ -75,9 +85,13 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/vue";
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { AudioAssetRole, type EpisodeAudioAsset } from "@ai-drama-studio/types";
+import {
+  AudioAssetRole,
+  type EpisodeAudioAsset,
+  type EpisodeOverview,
+} from "@ai-drama-studio/types";
 import { useStory } from "../composables/useStory";
 import { api } from "../api";
 
@@ -91,6 +105,12 @@ const synopsis = ref("");
 const outline = ref("");
 const musicItems = ref<EpisodeAudioAsset[]>([]);
 const sfxItems = ref<EpisodeAudioAsset[]>([]);
+const overview = ref<EpisodeOverview | null>(null);
+
+const completedStepCount = computed(
+  () => overview.value?.progress.filter((item) => item.state === "COMPLETED" || item.state === "LOCKED").length ?? 0,
+);
+const nextLabel = computed(() => overview.value?.nextAction.label || "查看本集");
 
 function reload() {
   void loadEpisode(projectId, seasonId, episodeId);
@@ -99,15 +119,18 @@ function reload() {
 
 async function loadAudio() {
   try {
-    const [music, sfx] = await Promise.all([
+    const [music, sfx, loadedOverview] = await Promise.all([
       api.getEpisodeAudioAssets(projectId, episodeId, AudioAssetRole.MUSIC),
       api.getEpisodeAudioAssets(projectId, episodeId, AudioAssetRole.SFX),
+      api.getEpisodeProductionOverview(projectId, episodeId).catch(() => null),
     ]);
     musicItems.value = music;
     sfxItems.value = sfx;
+    overview.value = loadedOverview;
   } catch {
     musicItems.value = [];
     sfxItems.value = [];
+    overview.value = null;
   }
 }
 

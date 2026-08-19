@@ -106,8 +106,9 @@ describe("Apply story generation transaction", () => {
         "proj-1",
         "season-1",
         "task-1",
-        validSeasonOutlineGeneration,
+        { ...validSeasonOutlineGeneration, existingEpisodes: [] },
         300,
+        "INITIAL",
       ),
     );
     expect(db.store.episodes).toHaveLength(3);
@@ -125,8 +126,9 @@ describe("Apply story generation transaction", () => {
           "proj-1",
           "season-1",
           "task-1",
-          validSeasonOutlineGeneration,
+          { ...validSeasonOutlineGeneration, existingEpisodes: [] },
           300,
+          "INITIAL",
         ),
       ),
     ).rejects.toThrow("episode write failed");
@@ -146,10 +148,60 @@ describe("Apply story generation transaction", () => {
           "task-1",
           validSeasonOutlineGeneration,
           300,
+          "INITIAL",
         ),
       ),
     ).rejects.toMatchObject({ code: ErrorCodes.EPISODE_NUMBER_CONFLICT });
     expect(db.store.episodes).toHaveLength(1);
+  });
+
+  it("creates only new episodes in CONTINUE mode", async () => {
+    const db = createFakeDb();
+    db.store.episodes.push({ id: "ep-old-1", number: 1, title: "E01" });
+    db.store.episodes.push({ id: "ep-old-2", number: 2, title: "E02" });
+    await db.transaction((client) =>
+      applySeasonOutlineGeneration(
+        client as never,
+        "proj-1",
+        "season-1",
+        "task-1",
+        {
+          ...validSeasonOutlineGeneration,
+          existingEpisodes: [
+            { number: 1, title: "E01", synopsis: "旧 1" },
+            { number: 2, title: "E02", synopsis: "旧 2" },
+          ],
+          newEpisodes: validSeasonOutlineGeneration.newEpisodes.map((item, index) => ({
+            ...item,
+            number: index + 3,
+          })),
+        },
+        300,
+        "CONTINUE",
+      ),
+    );
+    expect(db.store.episodes).toHaveLength(5);
+    expect(db.store.episodes[0]?.title).toBe("E01");
+    expect(db.store.episodes[1]?.title).toBe("E02");
+    expect(db.store.episodes[2]?.number).toBe(3);
+  });
+
+  it("requires explicit confirmation for REPLAN", async () => {
+    const db = createFakeDb();
+    await expect(
+      db.transaction((client) =>
+        applySeasonOutlineGeneration(
+          client as never,
+          "proj-1",
+          "season-1",
+          "task-1",
+          { ...validSeasonOutlineGeneration, existingEpisodes: [] },
+          300,
+          "REPLAN",
+          false,
+        ),
+      ),
+    ).rejects.toMatchObject({ code: ErrorCodes.INVALID_REQUEST });
   });
 
   it("updates an existing episode outline", async () => {

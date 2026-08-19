@@ -7,7 +7,9 @@ import { validEpisodeOutlineGeneration } from "./story/episode-outline-generatio
 import { validSeasonOutlineGeneration } from "./story/season-outline-generation.schema.spec";
 import { validStoryBibleGeneration } from "./story/story-bible-generation.schema.spec";
 
-function emptyContext() {
+function emptyContext(
+  episodes: Array<{ id: string; number: number; title: string; synopsis?: string }> = [],
+) {
   return {
     storyBible: null,
     world: { title: "星河碰撞", summary: "碰撞", cosmicBackground: "", coreConflict: "修仙与赛博" },
@@ -18,7 +20,7 @@ function emptyContext() {
     characters: [{ id: "c1", name: "沈星河", role: "主角", identity: null, personality: null, goal: null, conflict: null }],
     relationships: [],
     seasons: [],
-    episodes: [],
+    episodes,
     season: { id: "season-1", number: 1, title: "星河初遇", synopsis: "", outline: "", status: "DRAFT" },
     episode: { id: "ep-1", number: 1, title: "草稿", synopsis: "", outline: "", status: "DRAFT", storyState: null },
     previousEpisode: null,
@@ -28,6 +30,7 @@ function emptyContext() {
 function createService(options?: {
   generate?: () => Promise<unknown>;
   type?: "STORY_BIBLE" | "SEASON_OUTLINE" | "EPISODE_OUTLINE";
+  contextEpisodes?: Array<{ id: string; number: number; title: string; synopsis?: string }>;
 }) {
   const createdTasks: Array<Record<string, unknown>> = [];
   const createdEpisodes: Array<Record<string, unknown>> = [];
@@ -114,7 +117,7 @@ function createService(options?: {
     status: "SUCCEEDED",
     output:
       options?.type === "SEASON_OUTLINE"
-        ? validSeasonOutlineGeneration
+        ? { ...validSeasonOutlineGeneration, existingEpisodes: [] }
         : options?.type === "EPISODE_OUTLINE"
           ? validEpisodeOutlineGeneration
           : validStoryBibleGeneration,
@@ -150,9 +153,9 @@ function createService(options?: {
     }),
   };
   const contextBuilder = {
-    buildProjectContext: async () => emptyContext(),
-    buildSeasonContext: async () => emptyContext(),
-    buildEpisodeContext: async () => emptyContext(),
+    buildProjectContext: async () => emptyContext(options?.contextEpisodes ?? []),
+    buildSeasonContext: async () => emptyContext(options?.contextEpisodes ?? []),
+    buildEpisodeContext: async () => emptyContext(options?.contextEpisodes ?? []),
   };
   const service = new StoryGenerationService(
     prisma as never,
@@ -249,6 +252,19 @@ describe("Story generation uses ProviderResolver", () => {
     const applied = await service.apply("proj-1", "task-1");
     expect(createdEpisodes).toHaveLength(3);
     expect(applied.appliedAt).toBeTruthy();
+  });
+
+  it("defaults season planning mode to CONTINUE when the season already has episodes", async () => {
+    const { service, createdTasks } = createService({
+      type: "SEASON_OUTLINE",
+      contextEpisodes: [{ id: "ep-1", number: 1, title: "E01", synopsis: "已有" }],
+    });
+    await service.createSeasonOutlineGeneration("proj-1", {
+      seasonId: "season-1",
+      episodeCount: 2,
+      targetDurationSeconds: 300,
+    });
+    expect(createdTasks[0]?.input).toMatchObject({ mode: "CONTINUE" });
   });
 
   it("applies episode outline onto an existing draft", async () => {

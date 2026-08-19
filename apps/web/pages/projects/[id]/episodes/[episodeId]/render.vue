@@ -18,6 +18,12 @@
           </div>
           <div class="flex flex-wrap gap-2">
             <NuxtLink
+              :to="`/projects/${projectId}/episodes/${episodeId}`"
+              class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
+            >
+              返回 Episode Workspace
+            </NuxtLink>
+            <NuxtLink
               :to="`/projects/${projectId}/episodes/${episodeId}/timeline`"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
@@ -29,7 +35,7 @@
               :disabled="!canRender || creating"
               @click="onRender"
             >
-              {{ canRender ? "Render Episode" : "请先锁定时间线" }}
+              {{ renderButtonLabel }}
             </button>
             <button
               v-if="activeJob && (activeJob.status === 'QUEUED' || activeJob.status === 'PREPARING' || activeJob.status === 'RENDERING' || activeJob.status === 'CANCEL_REQUESTED')"
@@ -48,6 +54,16 @@
               重试失败任务
             </button>
           </div>
+        </div>
+
+        <div
+          v-if="renderPrerequisiteMessage"
+          class="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+        >
+          {{ renderPrerequisiteMessage }}
+          <NuxtLink :to="renderPrerequisiteTo" class="ml-2 text-gold-300">
+            {{ renderPrerequisiteLabel }}
+          </NuxtLink>
         </div>
 
         <article v-if="activeJob" class="rounded-2xl border border-white/5 bg-ink-800/60 p-4">
@@ -122,10 +138,11 @@ import {
 } from "@ai-drama-studio/core";
 import {
   RenderJobStatus,
-  TimelineStatus,
+  type EpisodeOverview,
   type EpisodeTimeline,
   type RenderJob,
 } from "@ai-drama-studio/types";
+import { ApiError } from "@ai-drama-studio/api-client";
 import { useCurrentProject } from "~/composables/useCurrentProject";
 
 const route = useRoute();
@@ -137,19 +154,56 @@ const loading = ref(false);
 const creating = ref(false);
 const error = ref<string | null>(null);
 const timeline = ref<EpisodeTimeline | null>(null);
+const overview = ref<EpisodeOverview | null>(null);
 const jobs = ref<RenderJob[]>([]);
 let poll: ReturnType<typeof setInterval> | null = null;
 
-const canRender = computed(
-  () => timeline.value?.status === TimelineStatus.LOCKED && !timeline.value.stale,
-);
+const canRender = computed(() => Boolean(overview.value?.readiness.canRender));
+const renderButtonLabel = computed(() => {
+  if (canRender.value) return "Render Episode";
+  if (!timeline.value) return "尚未创建时间线";
+  if (timeline.value.stale) return "时间线已过期";
+  if (timeline.value.status !== "LOCKED") return "请先锁定时间线";
+  return "缺少必要素材";
+});
 const statusLabel = computed(() =>
-  getTimelineStatusLabel(timeline.value?.computedStatus || timeline.value?.status || TimelineStatus.DRAFT),
+  getTimelineStatusLabel(timeline.value?.computedStatus || timeline.value?.status || "DRAFT"),
 );
 const activeJob = computed(() => jobs.value[0] || null);
 const latestFailed = computed(
   () => jobs.value.find((item) => item.status === RenderJobStatus.FAILED) || null,
 );
+const renderPrerequisiteMessage = computed(() => {
+  if (overview.value?.readiness.renderBlockedReason) {
+    return overview.value.readiness.renderBlockedReason;
+  }
+  if (!timeline.value) {
+    return "当前 Episode 还没有时间线，无法直接生成成片。";
+  }
+  if (timeline.value.stale) {
+    return "时间线已过期，请重新构建或检查时间线。";
+  }
+  if (timeline.value.status !== "LOCKED") {
+    return "Timeline 尚未锁定。";
+  }
+  return "";
+});
+const renderPrerequisiteTo = computed(() => {
+  const reason = overview.value?.readiness.renderBlockedReason || "";
+  if (reason.includes("Shot")) {
+    return `/projects/${projectId.value}/episodes/${episodeId.value}/assets`;
+  }
+  if (reason.includes("对白") || reason.includes("ScriptBlock")) {
+    return `/projects/${projectId.value}/episodes/${episodeId.value}/script`;
+  }
+  return `/projects/${projectId.value}/episodes/${episodeId.value}/timeline`;
+});
+const renderPrerequisiteLabel = computed(() => {
+  const reason = overview.value?.readiness.renderBlockedReason || "";
+  if (reason.includes("Shot")) return "去补齐视觉素材";
+  if (reason.includes("对白") || reason.includes("ScriptBlock")) return "去补齐对白";
+  return "先去处理时间线";
+});
 
 function jobStatus(status: string) {
   return getRenderJobStatusLabel(status);
@@ -168,8 +222,19 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    timeline.value = await $api.getEpisodeTimeline(projectId.value, episodeId.value);
-    jobs.value = await $api.getRenderJobs(projectId.value, episodeId.value);
+    const [currentTimeline, currentJobs, currentOverview] = await Promise.all([
+      $api.getEpisodeTimeline(projectId.value, episodeId.value).catch((err) => {
+        if (err instanceof ApiError && err.code === "TIMELINE_NOT_FOUND") {
+          return null;
+        }
+        throw err;
+      }),
+      $api.getRenderJobs(projectId.value, episodeId.value),
+      $api.getEpisodeProductionOverview(projectId.value, episodeId.value).catch(() => null),
+    ]);
+    timeline.value = currentTimeline;
+    jobs.value = currentJobs;
+    overview.value = currentOverview;
   } catch (err) {
     error.value = err instanceof Error ? err.message : "加载 Render 失败";
   } finally {
@@ -182,11 +247,18 @@ async function refreshJobs() {
 }
 
 async function onRender() {
+  if (!canRender.value) {
+    error.value = renderPrerequisiteMessage.value || "当前还不能 Render。";
+    return;
+  }
   creating.value = true;
   error.value = null;
   try {
     const job = await $api.createRenderJob(projectId.value, episodeId.value);
     jobs.value = [job, ...jobs.value.filter((item) => item.id !== job.id)];
+    overview.value = await $api.getEpisodeProductionOverview(projectId.value, episodeId.value).catch(
+      () => overview.value,
+    );
   } catch (err) {
     error.value = err instanceof Error ? err.message : "创建 Render 失败";
   } finally {

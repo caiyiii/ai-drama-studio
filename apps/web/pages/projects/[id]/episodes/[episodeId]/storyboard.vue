@@ -23,16 +23,16 @@
           </div>
           <div class="flex flex-wrap gap-2">
             <NuxtLink
-              :to="`/projects/${projectId}/episodes/${episodeId}/timeline`"
-              class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-sm text-gold-300"
-            >
-              进入时间线
-            </NuxtLink>
-            <NuxtLink
-              :to="`/projects/${projectId}/episodes/${episodeId}/script`"
+              :to="workspacePath"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
-              返回剧本
+              返回 Episode Workspace
+            </NuxtLink>
+            <NuxtLink
+              :to="`/projects/${projectId}/episodes/${episodeId}/storyboard`"
+              class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-sm text-gold-300"
+            >
+              继续生成画面
             </NuxtLink>
             <StoryboardGenerateModal
               :project-id="projectId"
@@ -48,6 +48,21 @@
             >
               创建空白分镜
             </button>
+            <button
+              v-if="store.storyboard && !store.locked && store.storyboard.status !== StoryboardStatus.READY"
+              type="button"
+              class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
+              @click="onConfirm"
+            >
+              确认分镜
+            </button>
+            <NuxtLink
+              v-if="store.storyboard && (store.storyboard.status === StoryboardStatus.READY || store.locked)"
+              :to="`/projects/${projectId}/episodes/${episodeId}/assets`"
+              class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
+            >
+              生成视觉素材
+            </NuxtLink>
             <button
               v-if="store.storyboard && !store.locked"
               type="button"
@@ -73,6 +88,24 @@
         >
           剧本已更新，当前分镜可能已过期。建议重新生成或核对镜头与 ScriptBlock 的对应关系。
         </p>
+        <div
+          v-if="script.missing"
+          class="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+        >
+          生成分镜前，需要先完成剧本。
+          <NuxtLink :to="`/projects/${projectId}/episodes/${episodeId}/script`" class="ml-2 text-gold-300">
+            先去完成剧本
+          </NuxtLink>
+        </div>
+        <div
+          v-else-if="!scriptReady"
+          class="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+        >
+          剧本还未进入 READY / LOCKED 状态，暂时不能生成分镜。
+          <NuxtLink :to="`/projects/${projectId}/episodes/${episodeId}/script`" class="ml-2 text-gold-300">
+            先去确认剧本
+          </NuxtLink>
+        </div>
         <p v-if="store.actionError" class="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {{ store.actionError }}
         </p>
@@ -241,6 +274,7 @@ import {
   CameraMovement,
   GenerationTaskStatus,
   GenerationTaskType,
+  ScriptStatus,
   StoryboardShotSize,
   StoryboardShotType,
   StoryboardStatus,
@@ -301,6 +335,15 @@ const episodeLabel = computed(() => {
   const current = episode.value;
   return current ? `E${String(current.number).padStart(2, "0")} · 分镜工作台` : "分镜工作台";
 });
+const workspacePath = computed(() =>
+  `/projects/${projectId.value}/episodes/${episodeId.value}`,
+);
+const scriptReady = computed(
+  () =>
+    Boolean(script.script) &&
+    (script.script?.status === ScriptStatus.READY ||
+      script.script?.status === ScriptStatus.LOCKED),
+);
 
 const imageConfigured = computed(
   () => Boolean(aiStore.projectAiConfig?.IMAGE?.configured),
@@ -474,6 +517,10 @@ async function onCreateBlank() {
     title: `${episode.value?.title || "未命名"} · 分镜`,
   });
   await reload();
+}
+
+async function onConfirm() {
+  await store.update(projectId.value, episodeId.value, { status: StoryboardStatus.READY });
 }
 
 async function onLock() {

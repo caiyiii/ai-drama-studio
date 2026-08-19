@@ -27,7 +27,7 @@
             <NuxtLink
               v-for="item in episodesOf(season.id)"
               :key="item.id"
-              :to="`/projects/${projectId}/seasons/${season.id}/episodes/${item.id}`"
+              :to="`/projects/${projectId}/episodes/${item.id}`"
               class="rounded-2xl border border-white/5 bg-ink-800/60 p-4 hover:border-gold-400/30"
             >
               <p class="text-xs text-gold-300">E{{ String(item.number).padStart(2, "0") }}</p>

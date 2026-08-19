@@ -2,6 +2,7 @@ import { WORKSPACE_NAV, WORLD_NAV } from "@ai-drama-studio/config";
 import { getWorkspacePath } from "@ai-drama-studio/core";
 import { useCurrentProject } from "./useCurrentProject";
 import { useProjectStore } from "~/stores/project";
+import { useStoryStore } from "~/stores/story";
 
 export type BreadcrumbItem = {
   label: string;
@@ -12,6 +13,7 @@ export function useWorkspaceBreadcrumbs() {
   const route = useRoute();
   const { project, projectId, isProjectRoute } = useCurrentProject();
   const projectStore = useProjectStore();
+  const storyStore = useStoryStore();
 
   const items = computed<BreadcrumbItem[]>(() => {
     if (route.path === "/ai-providers") {
@@ -65,23 +67,64 @@ export function useWorkspaceBreadcrumbs() {
             ? `/projects/${projectId.value}/${page}`
             : undefined,
       });
+      const seasonIdParam = String(route.params.seasonId || "");
+      const episodeIdParam = String(route.params.episodeId || parts[1] || "");
+      const episode =
+        storyStore.episode?.id === episodeIdParam
+          ? storyStore.episode
+          : storyStore.projectEpisodes.find((item) => item.id === episodeIdParam) ?? null;
+      const season =
+        storyStore.season?.id === seasonIdParam ||
+        storyStore.season?.id === episode?.seasonId
+          ? storyStore.season
+          : storyStore.seasons.find((item) => item.id === (seasonIdParam || episode?.seasonId)) ?? null;
+      const episodeLabel = episode
+        ? `E${String(episode.number).padStart(2, "0")} · ${episode.title}`
+        : "Episode Workspace";
       if (worldItem) {
         crumbs.push({ label: worldItem.label });
       } else if (page === "characters" && parts[1]) {
         crumbs.push({ label: "详情" });
       } else if (page === "episodes" && parts[1]) {
         crumbs.push({
-          label: "剧集",
-          to: `/projects/${projectId.value}/episodes`,
+          label: season?.title || "Season",
+          to: season?.id ? `/projects/${projectId.value}/seasons/${season.id}` : `/projects/${projectId.value}/episodes`,
         });
-        crumbs.push({ label: parts[2] === "storyboard" ? "分镜" : parts[2] === "timeline" ? "时间线" : "剧本" });
+        crumbs.push({
+          label: episodeLabel,
+          to: `/projects/${projectId.value}/episodes/${parts[1]}`,
+        });
+        if (parts[2]) {
+          crumbs.push({
+            label:
+              parts[2] === "plan"
+                ? "剧集规划"
+                : parts[2] === "storyboard"
+                  ? "分镜"
+                  : parts[2] === "assets"
+                    ? "素材"
+                    : parts[2] === "timeline"
+                      ? "时间线"
+                      : parts[2] === "render"
+                        ? "成片"
+                        : parts[2] === "overview"
+                          ? "概览"
+                          : "剧本",
+          });
+        }
       } else if (page === "seasons" && parts[1]) {
         crumbs.push({
-          label: "季详情",
+          label: season?.title || "Season",
           to: parts[3] ? `/projects/${projectId.value}/seasons/${parts[1]}` : undefined,
         });
         if (parts[3]) {
-          crumbs.push({ label: "剧集详情" });
+          crumbs.push({
+            label: episodeLabel,
+            to:
+              parts[4]
+                ? `/projects/${projectId.value}/episodes/${parts[3]}`
+                : undefined,
+          });
         }
       }
     }

@@ -43,6 +43,13 @@ export class ScriptGenerationService {
         "剧集不属于当前项目",
       );
     }
+    if (!episode.synopsis?.trim() && !episode.outline?.trim()) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.INVALID_REQUEST,
+        "请先完成本集规划，再生成正式剧本",
+      );
+    }
     const continuity = await this.continuity.validateEpisodeContinuity(
       projectId,
       episode.seasonId,

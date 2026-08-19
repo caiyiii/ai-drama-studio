@@ -5,10 +5,16 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const origins = (process.env.API_CORS_ORIGINS ?? "http://localhost:3010")
+  const defaultOrigins = [
+    "http://localhost:3010",
+    "http://127.0.0.1:3010",
+    "http://[::1]:3010",
+  ];
+  const configuredOrigins = (process.env.API_CORS_ORIGINS ?? "")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const origins = [...new Set([...defaultOrigins, ...configuredOrigins])];
 
   app.enableCors({ origin: origins });
   app.useGlobalPipes(

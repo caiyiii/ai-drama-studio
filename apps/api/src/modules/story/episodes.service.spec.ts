@@ -98,14 +98,32 @@ function createService() {
       findFirst: async ({
         where,
       }: {
-        where: { seasonId: string; number: number; id?: { not: string } };
-      }) =>
-        store.episodes.find(
-          (item) =>
-            item.seasonId === where.seasonId &&
-            item.number === where.number &&
-            (!where.id || item.id !== where.id.not),
-        ) ?? null,
+        where: {
+          id?: string | { not: string };
+          projectId?: string;
+          seasonId?: string;
+          number?: number;
+        };
+      }) => {
+        if (typeof where.id === "string") {
+          return (
+            store.episodes.find(
+              (item) =>
+                item.id === where.id &&
+                (!where.projectId || item.projectId === where.projectId),
+            ) ?? null
+          );
+        }
+        const excludeId = typeof where.id === "object" ? where.id.not : undefined;
+        return (
+          store.episodes.find(
+            (item) =>
+              item.seasonId === where.seasonId &&
+              item.number === where.number &&
+              (!excludeId || item.id !== excludeId),
+          ) ?? null
+        );
+      },
       create: async ({ data }: { data: Record<string, unknown> }) => {
         const row: EpisodeRow = {
           id: `ep-${store.episodes.length + 1}`,
@@ -153,6 +171,15 @@ function createService() {
     },
     storyboard: {
       findUnique: async () => null,
+    },
+    episodeTimeline: {
+      findUnique: async () => null,
+    },
+    episodeAudioAsset: {
+      findMany: async () => [],
+    },
+    renderJob: {
+      findMany: async () => [],
     },
     $transaction: async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
   };
@@ -217,5 +244,23 @@ describe("EpisodesService", () => {
     });
     expect(reordered.map((item) => item.title)).toEqual(["B", "A"]);
     expect(reordered.map((item) => item.number)).toEqual([1, 2]);
+  });
+
+  it("overview is project-isolated and does not leak secrets", async () => {
+    const { service } = createService();
+    const created = await service.create("proj-a", "season-a", {
+      number: 1,
+      title: "星门初现",
+      synopsis: "发现星门",
+      outline: "夜课开场",
+    });
+    await expect(service.getOverviewByEpisode("proj-b", created.id)).rejects.toMatchObject({
+      code: ErrorCodes.EPISODE_NOT_IN_PROJECT,
+    });
+    const overview = await service.getOverview("proj-a", "season-a", created.id);
+    expect(overview.productionStage).toBe("SCRIPTING");
+    expect(overview.nextAction.type).toBe("GENERATE_SCRIPT");
+    expect(JSON.stringify(overview)).not.toContain("encryptedApiKey");
+    expect(JSON.stringify(overview)).not.toContain("sk-");
   });
 });

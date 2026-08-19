@@ -14,11 +14,6 @@
             <p class="mt-2 text-sm text-zinc-500">{{ statusLabel(store.season.status) }}</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <SeasonOutlineGenerateModal
-              :project-id="projectId"
-              :season-id="seasonId"
-              @applied="reload"
-            />
             <button type="button" class="rounded-xl border border-white/10 px-3 py-1.5 text-sm" @click="showEpisode = true">
               创建剧集
             </button>
@@ -32,6 +27,82 @@
           {{ store.actionError }}
         </p>
 
+        <div class="grid gap-4 rounded-3xl border border-white/5 bg-ink-900/60 p-5 tablet:grid-cols-[1.3fr_0.9fr]">
+          <div class="space-y-3">
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Planning Center</p>
+              <h2 class="mt-1 font-display text-2xl">AI 规划中心</h2>
+              <p class="mt-1 text-sm text-zinc-500">
+                先预览，再确认 Apply。已有 Episode 不会被静默覆盖。
+              </p>
+            </div>
+            <div class="grid gap-3 tablet:grid-cols-3">
+              <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
+                <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">首次规划</p>
+                <p class="mt-2 text-sm text-zinc-400">
+                  适合空白 Season，从 E01 开始建立整季节奏。
+                </p>
+                <div class="mt-4">
+                  <SeasonOutlineGenerateModal
+                    :project-id="projectId"
+                    :season-id="seasonId"
+                    mode="INITIAL"
+                    @applied="reload"
+                  />
+                </div>
+              </div>
+              <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
+                <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">继续规划</p>
+                <p class="mt-2 text-sm text-zinc-400">
+                  保留已有剧集，从 E{{ String(nextEpisodeNumber).padStart(2, "0") }} 开始追加新集。
+                </p>
+                <div class="mt-4">
+                  <SeasonOutlineGenerateModal
+                    :project-id="projectId"
+                    :season-id="seasonId"
+                    mode="CONTINUE"
+                    @applied="reload"
+                  />
+                </div>
+              </div>
+              <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
+                <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">重新规划</p>
+                <p class="mt-2 text-sm text-zinc-400">
+                  重新生成整季方案，但仍需要你显式确认后才会应用。
+                </p>
+                <div class="mt-4">
+                  <SeasonOutlineGenerateModal
+                    :project-id="projectId"
+                    :season-id="seasonId"
+                    mode="REPLAN"
+                    @applied="reload"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
+            <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">当前规划状态</p>
+            <dl class="mt-3 space-y-3 text-sm">
+              <div class="flex items-center justify-between gap-3">
+                <dt class="text-zinc-500">已有剧集</dt>
+                <dd class="text-white">{{ store.episodes.length }}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <dt class="text-zinc-500">下一建议集数</dt>
+                <dd class="text-white">E{{ String(nextEpisodeNumber).padStart(2, "0") }}</dd>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <dt class="text-zinc-500">最近一次规划</dt>
+                <dd class="text-white">{{ latestPlanningLabel }}</dd>
+              </div>
+            </dl>
+            <p class="mt-4 text-xs text-zinc-500">
+              Preview 会区分“已有剧集”和“本次新增剧集”，便于你确认哪些内容会写入。
+            </p>
+          </div>
+        </div>
+
         <form class="space-y-3" @submit.prevent="onSave">
           <input v-model="form.title" class="studio-field" />
           <textarea v-model="form.synopsis" rows="3" class="studio-field resize-none" placeholder="简介" />
@@ -42,9 +113,11 @@
         </form>
 
         <div>
-          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Episode Timeline</p>
-          <h2 class="mt-1 font-display text-2xl">剧集时间线</h2>
-          <p class="mt-1 text-xs text-zinc-500">拖动排序会通过后端事务重编号。</p>
+          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Episode List</p>
+          <h2 class="mt-1 font-display text-2xl">已规划剧集</h2>
+          <p class="mt-1 text-xs text-zinc-500">
+            这里是当前 Season 的可执行剧集列表。拖动排序会通过后端事务重编号。
+          </p>
           <ol class="mt-4 space-y-2">
             <li
               v-for="item in store.episodes"
@@ -55,7 +128,7 @@
               @dragover.prevent
               @drop="onDrop(item.id)"
             >
-              <NuxtLink :to="`/projects/${projectId}/seasons/${seasonId}/episodes/${item.id}`" class="block">
+              <NuxtLink :to="`/projects/${projectId}/episodes/${item.id}`" class="block">
                 <p class="text-xs text-gold-300">E{{ String(item.number).padStart(2, "0") }}</p>
                 <h3 class="mt-1 font-display text-xl">{{ item.title }}</h3>
                 <p class="mt-1 text-sm text-zinc-500">{{ item.synopsis || "尚未填写简介" }}</p>
@@ -103,6 +176,16 @@ const showEpisode = ref(false);
 const confirmDelete = ref(false);
 const form = reactive({ title: "", synopsis: "", outline: "" });
 const episodeForm = reactive({ number: 1, title: "", synopsis: "", durationSeconds: 300 });
+const nextEpisodeNumber = computed(() =>
+  store.episodes.reduce((max, item) => Math.max(max, item.number), 0) + 1,
+);
+const latestPlanningLabel = computed(() => {
+  const task = store.seasonOutlineGenerations[0];
+  if (!task?.createdAt) {
+    return "尚无记录";
+  }
+  return new Date(task.createdAt).toLocaleString("zh-CN");
+});
 
 function statusLabel(status: SeasonStatus) {
   return getSeasonStatusLabel(status);

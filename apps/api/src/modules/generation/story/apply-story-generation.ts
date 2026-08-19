@@ -46,6 +46,8 @@ export async function applySeasonOutlineGeneration(
   taskId: string,
   result: SeasonGenerationResult,
   durationSeconds: number,
+  mode: "INITIAL" | "CONTINUE" | "REPLAN" = "INITIAL",
+  replanConfirmed = false,
 ) {
   const season = await tx.season.findFirst({
     where: { id: seasonId, projectId },
@@ -59,7 +61,7 @@ export async function applySeasonOutlineGeneration(
   }
   const existing = await tx.episode.findMany({ where: { seasonId } });
   const existingNumbers = new Set(existing.map((item) => item.number));
-  const incomingNumbers = result.episodes.map((item) => item.number);
+  const incomingNumbers = result.newEpisodes.map((item) => item.number);
   if (new Set(incomingNumbers).size !== incomingNumbers.length) {
     throw new AppError(
       HttpStatus.CONFLICT,
@@ -67,7 +69,15 @@ export async function applySeasonOutlineGeneration(
       "生成结果中存在重复集数",
     );
   }
-  for (const episode of result.episodes) {
+  if (mode === "REPLAN" && !replanConfirmed) {
+    throw new AppError(
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.INVALID_REQUEST,
+      "重新规划整季需要明确确认后才能应用",
+    );
+  }
+  const maxExistingNumber = existing.reduce((max, item) => Math.max(max, item.number), 0);
+  for (const episode of result.newEpisodes) {
     if (existingNumbers.has(episode.number)) {
       throw new AppError(
         HttpStatus.CONFLICT,
@@ -75,8 +85,15 @@ export async function applySeasonOutlineGeneration(
         `该季已经存在第 ${episode.number} 集`,
       );
     }
+    if (mode === "CONTINUE" && episode.number <= maxExistingNumber) {
+      throw new AppError(
+        HttpStatus.CONFLICT,
+        ErrorCodes.EPISODE_NUMBER_CONFLICT,
+        `继续规划必须从第 ${maxExistingNumber + 1} 集开始新增`,
+      );
+    }
   }
-  for (const episode of result.episodes) {
+  for (const episode of result.newEpisodes) {
     await tx.episode.create({
       data: {
         projectId,

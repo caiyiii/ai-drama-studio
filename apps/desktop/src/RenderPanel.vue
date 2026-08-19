@@ -18,6 +18,7 @@
       </select>
     </label>
     <p v-if="message" class="hint">{{ message }}</p>
+    <p v-else-if="renderHint" class="hint">{{ renderHint }}</p>
     <div class="actions">
       <button type="button" :disabled="!canRender" @click="onRender">
         {{ canRender ? "Render Episode" : "请先锁定时间线" }}
@@ -42,7 +43,15 @@
 <script setup lang="ts">
 import { API_DEFAULT_BASE_URL } from "@ai-drama-studio/config";
 import { createApiClient } from "@ai-drama-studio/api-client";
-import { TimelineStatus, type Episode, type Project, type RenderJob } from "@ai-drama-studio/types";
+import { isEpisodeReadyForRender } from "@ai-drama-studio/core";
+import {
+  type Episode,
+  type EpisodeProductionInput,
+  type EpisodeTimeline,
+  type Project,
+  type RenderJob,
+  EpisodeStatus,
+} from "@ai-drama-studio/types";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
 const api = createApiClient(import.meta.env.VITE_API_BASE || API_DEFAULT_BASE_URL);
@@ -51,17 +60,38 @@ const episodeId = ref("");
 const projects = ref<Project[]>([]);
 const episodes = ref<Episode[]>([]);
 const jobs = ref<RenderJob[]>([]);
-const timelineLocked = ref(false);
+const timelineSummary = ref<Pick<EpisodeTimeline, "status" | "computedStatus" | "stale"> | null>(null);
 const message = ref("");
 let poll: ReturnType<typeof setInterval> | null = null;
 
-const canRender = computed(() => Boolean(projectId.value && episodeId.value && timelineLocked.value));
+const productionInput = computed<EpisodeProductionInput>(() => ({
+  episode: episodeId.value
+    ? { id: episodeId.value, status: EpisodeStatus.IN_PRODUCTION }
+    : null,
+  timeline: timelineSummary.value,
+}));
+const canRender = computed(() => Boolean(projectId.value && episodeId.value && isEpisodeReadyForRender(productionInput.value)));
 const activeRunning = computed(() =>
   jobs.value.some((item) =>
     ["QUEUED", "PREPARING", "RENDERING", "CANCEL_REQUESTED"].includes(item.status),
   ),
 );
 const latestFailed = computed(() => jobs.value.find((item) => item.status === "FAILED") || null);
+const renderHint = computed(() => {
+  if (!episodeId.value) {
+    return "";
+  }
+  if (!timelineSummary.value) {
+    return "当前剧集还没有时间线，请先在 Timeline 工作台构建。";
+  }
+  if (timelineSummary.value.stale) {
+    return "当前时间线已经过期，请先回 Timeline 工作台重新检查并锁定。";
+  }
+  if (!canRender.value) {
+    return "请先锁定时间线，再开始成片 Render。";
+  }
+  return "";
+});
 
 async function loadProjects() {
   projects.value = await api.getProjects();
@@ -70,7 +100,7 @@ async function loadProjects() {
 async function loadEpisodes() {
   episodeId.value = "";
   jobs.value = [];
-  timelineLocked.value = false;
+  timelineSummary.value = null;
   if (!projectId.value) {
     episodes.value = [];
     return;
@@ -80,14 +110,18 @@ async function loadEpisodes() {
 
 async function load() {
   jobs.value = [];
-  timelineLocked.value = false;
+  timelineSummary.value = null;
   message.value = "";
   if (!projectId.value || !episodeId.value) {
     return;
   }
   try {
     const timeline = await api.getEpisodeTimeline(projectId.value, episodeId.value);
-    timelineLocked.value = timeline.status === TimelineStatus.LOCKED && !timeline.stale;
+    timelineSummary.value = {
+      status: timeline.status,
+      computedStatus: timeline.computedStatus ?? timeline.status,
+      stale: timeline.stale ?? false,
+    };
     jobs.value = await api.getRenderJobs(projectId.value, episodeId.value);
   } catch (error) {
     message.value = error instanceof Error ? error.message : "加载失败";

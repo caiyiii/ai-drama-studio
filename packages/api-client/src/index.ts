@@ -45,6 +45,7 @@ import type {
   WorldGenerationInput,
   GenerationTask,
   Episode,
+  EpisodeOverview,
   EpisodeGenerationInput,
   EpisodeInput,
   ReorderEpisodesInput,
@@ -468,6 +469,23 @@ export class ApiClient {
   ): Promise<Episode> {
     return this.request<Episode>(
       `/projects/${projectId}/seasons/${seasonId}/episodes/${episodeId}`,
+    );
+  }
+
+  async getEpisodeOverview(
+    projectId: string,
+    seasonId: string,
+    episodeId: string,
+  ): Promise<EpisodeOverview> {
+    return this.getEpisodeProductionOverview(projectId, episodeId);
+  }
+
+  async getEpisodeProductionOverview(
+    projectId: string,
+    episodeId: string,
+  ): Promise<EpisodeOverview> {
+    return this.request<EpisodeOverview>(
+      `/projects/${projectId}/episodes/${episodeId}/overview`,
     );
   }
 

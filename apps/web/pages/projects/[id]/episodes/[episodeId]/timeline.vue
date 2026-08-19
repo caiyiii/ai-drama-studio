@@ -21,10 +21,10 @@
           </div>
           <div class="flex flex-wrap gap-2">
             <NuxtLink
-              :to="`/projects/${projectId}/seasons`"
+              :to="`/projects/${projectId}/episodes/${episodeId}`"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
-              返回剧集
+              返回 Episode Workspace
             </NuxtLink>
             <button
               type="button"
@@ -43,12 +43,20 @@
               重新构建
             </button>
             <button
-              v-if="locked"
+              v-if="locked && !stale"
               type="button"
               class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
               @click="goRender"
             >
               Render Episode
+            </button>
+            <button
+              v-else-if="locked"
+              type="button"
+              class="rounded-xl border border-white/10 px-3 py-1.5 text-sm text-zinc-500"
+              disabled
+            >
+              时间线已过期，无法渲染
             </button>
             <button
               v-else
@@ -72,7 +80,7 @@
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
               @click="onLock"
             >
-              锁定
+              锁定时间线
             </button>
           </div>
         </div>
@@ -80,6 +88,23 @@
         <p class="rounded-xl border border-gold-400/20 bg-gold-400/5 px-4 py-3 text-sm text-gold-200">
           {{ preview?.readyMessage || COMPOSITION_PREVIEW_DISCLAIMER }}
         </p>
+
+        <div
+          v-if="timelinePrerequisiteMessage"
+          class="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+        >
+          {{ timelinePrerequisiteMessage }}
+          <NuxtLink :to="timelinePrerequisiteCta.to" class="ml-2 text-gold-300">
+            {{ timelinePrerequisiteCta.label }}
+          </NuxtLink>
+        </div>
+
+        <div
+          v-if="staleMessage"
+          class="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+        >
+          {{ staleMessage }}
+        </div>
 
         <div v-if="missingLines.length" class="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
           <p class="font-medium">时间线存在缺失素材。</p>
@@ -189,6 +214,15 @@ const edit = reactive({
 });
 
 const locked = computed(() => timeline.value?.status === TimelineStatus.LOCKED);
+const stale = computed(
+  () =>
+    Boolean(timeline.value?.stale) ||
+    timeline.value?.computedStatus === TimelineStatus.STALE ||
+    timeline.value?.status === TimelineStatus.STALE,
+);
+const staleMessage = computed(() =>
+  stale.value ? "上游内容发生变化，当前时间线需要重新检查。" : "",
+);
 const statusLabel = computed(() =>
   getTimelineStatusLabel(timeline.value?.computedStatus || timeline.value?.status || TimelineStatus.DRAFT),
 );
@@ -199,19 +233,51 @@ const missingLines = computed(() => {
     return [];
   }
   const lines: string[] = [];
-  if (missing.visual.length > 0) {
-    lines.push(`视觉素材缺失：${missing.visual.length} 个 Shot`);
+  for (const shot of missing.visual) {
+    lines.push(
+      shot.shotNumber
+        ? `缺失视觉素材：Shot ${String(shot.shotNumber).padStart(3, "0")}`
+        : `缺失视觉素材：${shot.shotId}`,
+    );
   }
-  if (missing.dialogue.length > 0) {
-    lines.push(`对白音频缺失：${missing.dialogue.length} 条`);
-  }
+  missing.dialogue.forEach((block, index) => {
+    lines.push(
+      block.blockIndex
+        ? `缺失对白：ScriptBlock ${String(block.blockIndex).padStart(2, "0")}`
+        : `缺失对白：ScriptBlock ${index + 1}`,
+    );
+  });
   if (missing.music) {
-    lines.push("音乐缺失");
+    lines.push("缺失音乐");
   }
   if (missing.sfx) {
-    lines.push("音效缺失");
+    lines.push("缺失音效");
   }
   return lines;
+});
+const timelinePrerequisiteMessage = computed(() => {
+  if (!timeline.value) {
+    return "当前 Episode 还没有时间线。建议先完成剧本、分镜和素材准备，再来构建时间线。";
+  }
+  if (stale.value) {
+    return "时间线已过期，请重新构建或检查时间线。";
+  }
+  if (missingLines.value.length > 0) {
+    return "当前 Episode 还有缺失素材，暂不推荐直接进入时间线定稿。";
+  }
+  return "";
+});
+const timelinePrerequisiteCta = computed(() => {
+  if (!timeline.value) {
+    return {
+      label: "返回 Episode Workspace",
+      to: `/projects/${projectId.value}/episodes/${episodeId.value}`,
+    };
+  }
+  return {
+    label: "继续补齐分镜与素材",
+    to: `/projects/${projectId.value}/episodes/${episodeId.value}/storyboard`,
+  };
 });
 
 function barClass(type: TimelineTrackType | string) {

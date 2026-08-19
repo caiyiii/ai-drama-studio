@@ -49,6 +49,9 @@ export class CreateEpisodeDto {
   storyState?: Record<string, unknown> | null;
 
   @IsOptional()
+  metadata?: Record<string, unknown> | null;
+
+  @IsOptional()
   @IsString()
   @MaxLength(4000)
   continuityNotes?: string | null;
@@ -91,6 +94,9 @@ export class UpdateEpisodeDto {
 
   @IsOptional()
   storyState?: Record<string, unknown> | null;
+
+  @IsOptional()
+  metadata?: Record<string, unknown> | null;
 
   @IsOptional()
   @IsString()

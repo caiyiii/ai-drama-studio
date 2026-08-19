@@ -9,4 +9,12 @@ export class ProjectEpisodesController {
   list(@Param("projectId") projectId: string) {
     return this.episodes.list(projectId);
   }
+
+  @Get(":episodeId/overview")
+  overview(
+    @Param("projectId") projectId: string,
+    @Param("episodeId") episodeId: string,
+  ) {
+    return this.episodes.getOverviewByEpisode(projectId, episodeId);
+  }
 }

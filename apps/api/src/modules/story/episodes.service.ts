@@ -7,6 +7,7 @@ import {
   ReorderEpisodesDto,
   UpdateEpisodeDto,
 } from "./dto/episode.dto";
+import { buildEpisodeOverview } from "./episode-overview.builder";
 import { SeasonsService } from "./seasons.service";
 import { mapEpisode } from "./story.mapper";
 
@@ -38,6 +39,82 @@ export class EpisodesService {
     return this.getInSeason(projectId, seasonId, episodeId);
   }
 
+  async getOverviewByEpisode(projectId: string, episodeId: string) {
+    const row = await this.prisma.episode.findFirst({
+      where: { id: episodeId, projectId },
+    });
+    if (!row) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.EPISODE_NOT_IN_PROJECT,
+        "剧集不属于当前项目",
+      );
+    }
+    return this.getOverview(projectId, row.seasonId, episodeId);
+  }
+
+  async getOverview(projectId: string, seasonId: string, episodeId: string) {
+    const [season, episode, script, storyboard, timeline, musicAssets, sfxAssets, renderJobs, generationTasks] =
+      await Promise.all([
+        this.seasons.getInProject(projectId, seasonId),
+        this.getInSeason(projectId, seasonId, episodeId),
+        this.prisma.script.findUnique({
+          where: { episodeId },
+          include: {
+            scenes: { include: { blocks: { include: { blockAssets: { include: { asset: true } } } } } },
+          },
+        }),
+        this.prisma.storyboard.findUnique({
+          where: { episodeId },
+          include: { shots: { include: { shotAssets: { include: { asset: true } } } } },
+        }),
+        this.prisma.episodeTimeline.findUnique({ where: { episodeId } }),
+        this.prisma.episodeAudioAsset.findMany({
+          where: { episodeId, role: "MUSIC" },
+        }),
+        this.prisma.episodeAudioAsset.findMany({
+          where: { episodeId, role: "SFX" },
+        }),
+        this.prisma.renderJob.findMany({
+          where: { projectId, episodeId },
+          include: { artifacts: { orderBy: { createdAt: "desc" as const } } },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        }),
+        this.prisma.generationTask.findMany({
+          where: {
+            projectId,
+            input: { path: ["episodeId"], equals: episodeId },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+    return buildEpisodeOverview({
+      season: {
+        id: season.id,
+        number: season.number,
+        title: season.title,
+        status: season.status,
+      },
+      episode,
+      plan: extractEpisodePlan(episode),
+      script,
+      storyboard,
+      timeline,
+      musicAssets,
+      sfxAssets,
+      renderJobs,
+      generationTasks,
+    });
+  }
+
   async create(projectId: string, seasonId: string, dto: CreateEpisodeDto) {
     await this.seasons.getInProject(projectId, seasonId);
     await this.assertUniqueNumber(seasonId, dto.number);
@@ -53,6 +130,7 @@ export class EpisodesService {
         status: dto.status ?? "DRAFT",
         durationSeconds: dto.durationSeconds ?? null,
         storyState: (dto.storyState ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+        metadata: (dto.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
         continuityNotes: emptyToNull(dto.continuityNotes) ?? null,
       },
     });
@@ -88,6 +166,11 @@ export class EpisodesService {
           ? {
               storyState: (dto.storyState ??
                 Prisma.JsonNull) as Prisma.InputJsonValue,
+            }
+          : {}),
+        ...(dto.metadata !== undefined
+          ? {
+              metadata: (dto.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
             }
           : {}),
         ...(dto.continuityNotes !== undefined
@@ -264,4 +347,32 @@ function emptyToNull(value?: string | null): string | null | undefined {
     return null;
   }
   return value.trim();
+}
+
+function extractEpisodePlan(episode: ReturnType<EpisodesService["getInSeason"]> extends Promise<infer T> ? T : never) {
+  const metadata = (episode.metadata ?? {}) as Record<string, unknown>;
+  const read = (key: string) => {
+    const value = metadata[key];
+    return typeof value === "string" && value.trim() ? value : null;
+  };
+  const readList = (key: string) => {
+    const value = metadata[key];
+    return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [];
+  };
+  return {
+    ready: Boolean(episode.synopsis?.trim() || episode.outline?.trim()),
+    goal: read("goal"),
+    conflict: read("conflict"),
+    keyCharacters: readList("keyCharacters"),
+    keyLocations: readList("keyLocations"),
+    mood: read("mood"),
+    pace: read("pace"),
+    opening: read("opening"),
+    climax: read("climax") ?? read("middle"),
+    ending: read("ending"),
+    startState: read("startState"),
+    endState: read("endState"),
+    previousEpisode: read("previousEpisode"),
+    nextEpisode: read("nextEpisode"),
+  };
 }

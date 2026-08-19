@@ -176,17 +176,27 @@ export function assertRenderReady(missing: TimelineMissingAssets): {
   errorCode?: string;
   message?: string;
 } {
-  const visual = missing.visual?.length ?? 0;
-  const dialogue = missing.dialogue?.length ?? 0;
-  if (visual > 0 || dialogue > 0) {
+  const visualItems = missing.visual ?? [];
+  const dialogueItems = missing.dialogue ?? [];
+  if (visualItems.length > 0 || dialogueItems.length > 0) {
+    const visual = visualItems[0];
+    const dialogue = dialogueItems[0];
     const parts = [
-      visual > 0 ? `缺少 ${visual} 个视觉素材` : "",
-      dialogue > 0 ? `缺少 ${dialogue} 个对白音频` : "",
+      visual
+        ? visual.shotNumber
+          ? `Shot ${String(visual.shotNumber).padStart(3, "0")} 缺少视频或图片素材。`
+          : `缺少 ${visualItems.length} 个视觉素材`
+        : "",
+      dialogue
+        ? dialogue.blockIndex
+          ? `ScriptBlock ${String(dialogue.blockIndex).padStart(2, "0")} 缺少对白音频。`
+          : `缺少 ${dialogueItems.length} 个对白音频`
+        : "",
     ].filter(Boolean);
     return {
       ok: false,
       errorCode: "RENDER_MISSING_REQUIRED_ASSET",
-      message: parts.join("，"),
+      message: parts.join(" "),
     };
   }
   return { ok: true };

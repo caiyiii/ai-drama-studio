@@ -129,6 +129,13 @@ export class StoryboardsService {
         "生成分镜前必须先有剧本",
       );
     }
+    if (script.status !== "READY" && script.status !== "LOCKED") {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.INVALID_REQUEST,
+        "请先确认剧本，再生成分镜",
+      );
+    }
     return script;
   }
 

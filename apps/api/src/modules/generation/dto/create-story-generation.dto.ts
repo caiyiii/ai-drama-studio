@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 import { Type } from "class-transformer";
 
 export class CreateStoryBibleGenerationDto {
@@ -30,6 +30,11 @@ export class CreateSeasonOutlineGenerationDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(["INITIAL", "CONTINUE", "REPLAN"])
+  mode?: "INITIAL" | "CONTINUE" | "REPLAN";
+
+  @IsOptional()
+  @IsString()
   @MaxLength(4000)
   instruction?: string;
 
@@ -46,6 +51,11 @@ export class CreateSeasonOutlineGenerationDto {
   @Min(30)
   @Max(3600)
   targetDurationSeconds?: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  replanConfirmed?: boolean;
 }
 
 export class CreateEpisodeOutlineGenerationDto {

@@ -17,7 +17,7 @@
         <h2 class="font-display text-2xl">AI 生成剧本</h2>
         <p class="mt-1 text-sm text-zinc-500">生成结果会先进入 Preview，确认后才会写入 Script / Scene / ScriptBlock。</p>
         <p v-if="hasExistingScript" class="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">
-          当前剧本已有内容，应用后将替换当前剧本。
+          重新生成剧本可能导致现有分镜失效。应用后将替换当前剧本，已有 Storyboard 会标记为 STALE，不会自动删除。
         </p>
         <form class="mt-6 space-y-3" @submit.prevent="onGenerate">
           <label class="block text-sm">

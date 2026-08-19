@@ -46,6 +46,24 @@ export class StoryboardGenerationService {
         "剧集不属于当前项目",
       );
     }
+    const script = await this.prisma.script.findUnique({
+      where: { episodeId: dto.episodeId },
+      select: { status: true, projectId: true },
+    });
+    if (!script || script.projectId !== projectId) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.SCRIPT_REQUIRED_FOR_STORYBOARD,
+        "请先完成本集剧本",
+      );
+    }
+    if (script.status !== "READY" && script.status !== "LOCKED") {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.INVALID_REQUEST,
+        "请先确认剧本，再生成正式分镜",
+      );
+    }
     await this.continuity.validateStoryboardContinuity(projectId, dto.episodeId);
     const resolved = await this.ai.resolveForCapability(
       projectId,

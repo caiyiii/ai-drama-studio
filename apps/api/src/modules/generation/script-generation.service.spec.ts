@@ -67,6 +67,8 @@ function createService(options?: { generate?: () => Promise<unknown> }) {
         seasonId: "season-1",
         durationSeconds: 300,
         status: "OUTLINED",
+        synopsis: "沈星河在问天宗夜课中察觉星轨异常。",
+        outline: "以问天宗夜课开场",
       }),
       update: async ({ data }: { data: Record<string, unknown> }) => data,
     },
@@ -241,7 +243,13 @@ describe("Script generation uses ProviderResolver", () => {
     const prisma = {
       project: { findUnique: async () => ({ id: "proj-1" }) },
       episode: {
-        findFirst: async () => ({ id: "ep-1", projectId: "proj-1", seasonId: "season-1" }),
+        findFirst: async () => ({
+          id: "ep-1",
+          projectId: "proj-1",
+          seasonId: "season-1",
+          synopsis: "沈星河在问天宗夜课中察觉星轨异常。",
+          outline: "以问天宗夜课开场",
+        }),
       },
       generationTask: { create: async () => ({ id: "should-not" }) },
     };
@@ -269,7 +277,13 @@ describe("Script generation uses ProviderResolver", () => {
     const prisma = {
       project: { findUnique: async () => ({ id: "proj-1" }) },
       episode: {
-        findFirst: async () => ({ id: "ep-1", projectId: "proj-1", seasonId: "season-1" }),
+        findFirst: async () => ({
+          id: "ep-1",
+          projectId: "proj-1",
+          seasonId: "season-1",
+          synopsis: "沈星河在问天宗夜课中察觉星轨异常。",
+          outline: "以问天宗夜课开场",
+        }),
       },
       generationTask: { create: async () => ({ id: "should-not" }) },
     };

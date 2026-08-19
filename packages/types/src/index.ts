@@ -1045,6 +1045,7 @@ export interface EpisodeInput {
   status?: EpisodeStatus;
   durationSeconds?: number | null;
   storyState?: EpisodeStoryState | null;
+  metadata?: Record<string, unknown> | null;
   continuityNotes?: string | null;
 }
 
@@ -1170,9 +1171,11 @@ export interface StoryBibleGenerationResult {
 
 export interface SeasonGenerationInput {
   seasonId: string;
+  mode?: "INITIAL" | "CONTINUE" | "REPLAN";
   instruction?: string;
   episodeCount?: number;
   targetDurationSeconds?: number;
+  replanConfirmed?: boolean;
 }
 
 export interface SeasonGenerationEpisode {
@@ -1196,7 +1199,12 @@ export interface SeasonGenerationResult {
     middle: string;
     ending: string;
   };
-  episodes: SeasonGenerationEpisode[];
+  existingEpisodes: Array<{
+    number: number;
+    title: string;
+    synopsis: string;
+  }>;
+  newEpisodes: SeasonGenerationEpisode[];
 }
 
 export interface EpisodeGenerationInput {
@@ -2054,7 +2062,7 @@ export interface TimelineClip {
 
 export interface TimelineMissingAssets {
   visual: Array<{ shotId: string; shotNumber?: number }>;
-  dialogue: Array<{ blockId: string }>;
+  dialogue: Array<{ blockId: string; blockIndex?: number }>;
   music: boolean;
   sfx: boolean;
 }
@@ -2345,4 +2353,237 @@ export interface RenderResult {
 }
 
 export const RENDER_FINAL_DISCLAIMER = "这是最终 Episode MP4 Render。";
+
+export enum EpisodeProductionStep {
+  OVERVIEW = "OVERVIEW",
+  SCRIPT = "SCRIPT",
+  STORYBOARD = "STORYBOARD",
+  VISUALS = "VISUALS",
+  VOICE = "VOICE",
+  AUDIO = "AUDIO",
+  TIMELINE = "TIMELINE",
+  RENDER = "RENDER",
+  COMPLETE = "COMPLETE",
+}
+
+export enum EpisodeProductionStage {
+  PLANNING = "PLANNING",
+  SCRIPTING = "SCRIPTING",
+  STORYBOARDING = "STORYBOARDING",
+  VISUAL_ASSETS = "VISUAL_ASSETS",
+  AUDIO_ASSETS = "AUDIO_ASSETS",
+  COMPOSING = "COMPOSING",
+  READY_TO_RENDER = "READY_TO_RENDER",
+  RENDERING = "RENDERING",
+  COMPLETED = "COMPLETED",
+}
+
+export enum EpisodeNextActionType {
+  EDIT_PLAN = "EDIT_PLAN",
+  GENERATE_SCRIPT = "GENERATE_SCRIPT",
+  CONFIRM_SCRIPT = "CONFIRM_SCRIPT",
+  GENERATE_STORYBOARD = "GENERATE_STORYBOARD",
+  CONFIRM_STORYBOARD = "CONFIRM_STORYBOARD",
+  GENERATE_MISSING_VISUAL_ASSETS = "GENERATE_MISSING_VISUAL_ASSETS",
+  GENERATE_MISSING_AUDIO_ASSETS = "GENERATE_MISSING_AUDIO_ASSETS",
+  OPEN_TIMELINE = "OPEN_TIMELINE",
+  LOCK_TIMELINE = "LOCK_TIMELINE",
+  RENDER_EPISODE = "RENDER_EPISODE",
+  VIEW_RENDER_JOB = "VIEW_RENDER_JOB",
+  RETRY_RENDER = "RETRY_RENDER",
+  VIEW_EPISODE = "VIEW_EPISODE",
+}
+
+export type EpisodeProductionState =
+  | "NOT_STARTED"
+  | "IN_PROGRESS"
+  | "READY"
+  | "STALE"
+  | "LOCKED"
+  | "COMPLETED"
+  | "BLOCKED";
+
+export interface EpisodeProductionInput {
+  episode?: Pick<Episode, "id" | "status"> | null;
+  plan?: { ready?: boolean } | null;
+  script?: (Pick<Script, "status"> & { sceneCount?: number; exists?: boolean }) | null;
+  storyboard?:
+    | (Pick<Storyboard, "status"> & {
+        shotCount?: number;
+        sceneCount?: number;
+        stale?: boolean;
+        exists?: boolean;
+      })
+    | null;
+  visuals?: {
+    shotCount?: number;
+    imageReadyCount?: number;
+    videoReadyCount?: number;
+    visualReadyCount?: number;
+    missingCount?: number;
+    missingRequired?: boolean;
+    missing?: Array<{ shotId?: string; shotNumber?: number }>;
+  } | null;
+  voice?: {
+    dialogueTotal?: number;
+    dialogueReadyCount?: number;
+    missingRequired?: boolean;
+    missing?: Array<{ blockId?: string; blockIndex?: number }>;
+  } | null;
+  audio?: {
+    musicReady?: boolean;
+    sfxReady?: boolean;
+    musicExpected?: number;
+    musicReadyCount?: number;
+    sfxExpected?: number;
+    sfxReadyCount?: number;
+  } | null;
+  timeline?:
+    | (Pick<EpisodeTimeline, "status" | "computedStatus" | "stale"> & {
+        exists?: boolean;
+        version?: number;
+        durationSeconds?: number;
+      })
+    | null;
+  render?: Pick<RenderJob, "status"> | null;
+}
+
+export interface EpisodeNextAction {
+  type: EpisodeNextActionType;
+  label: string;
+  description: string;
+  reason?: string;
+}
+
+export interface EpisodeProductionProgressItem {
+  id: "PLAN" | "SCRIPT" | "STORYBOARD" | "VISUAL" | "AUDIO" | "TIMELINE" | "RENDER";
+  label: string;
+  state: EpisodeProductionState;
+  description: string;
+}
+
+export interface EpisodeReadiness {
+  canGenerateScript: boolean;
+  canConfirmScript: boolean;
+  canGenerateStoryboard: boolean;
+  canConfirmStoryboard: boolean;
+  canComposeTimeline: boolean;
+  canLockTimeline: boolean;
+  canRender: boolean;
+  renderBlockedReason: string | null;
+  missingVisual: Array<{ shotId?: string; shotNumber?: number }>;
+  missingDialogue: Array<{ blockId?: string; blockIndex?: number }>;
+  stale: {
+    storyboard: boolean;
+    timeline: boolean;
+  };
+}
+
+export interface EpisodeProductionChecklistItem {
+  id: string;
+  label: string;
+  done: boolean;
+  detail?: string;
+}
+
+export interface EpisodeProductionStepSummary {
+  step: EpisodeProductionStep;
+  state: EpisodeProductionState;
+  label: string;
+  description: string;
+}
+
+export interface EpisodeNextStep {
+  step: EpisodeProductionStep;
+  label: string;
+  description: string;
+  actionLabel: string;
+}
+
+export interface EpisodeOverview {
+  season: Pick<Season, "id" | "number" | "title" | "status">;
+  episode: Episode;
+  productionStage: EpisodeProductionStage;
+  productionStep: EpisodeProductionStep;
+  nextAction: EpisodeNextAction;
+  plan: {
+    exists: boolean;
+    ready: boolean;
+    status: "READY" | "MISSING";
+    goal: string | null;
+    conflict: string | null;
+    keyCharacters: string[];
+    keyLocations: string[];
+    mood: string | null;
+    pace: string | null;
+    opening: string | null;
+    climax: string | null;
+    ending: string | null;
+    startState: string | null;
+    endState: string | null;
+    previousEpisode: string | null;
+    nextEpisode: string | null;
+  };
+  script: {
+    exists: boolean;
+    status: ScriptStatus | null;
+    version: number | null;
+    sceneCount: number;
+  };
+  storyboard: {
+    exists: boolean;
+    status: StoryboardStatus | null;
+    version: number | null;
+    sceneCount: number;
+    shotCount: number;
+    stale: boolean;
+  };
+  assets: {
+    images: { total: number; ready: number; missing: number };
+    videos: { total: number; ready: number; missing: number };
+    voices: { total: number; ready: number; missing: number };
+    music: { total: number; ready: number; missing: number };
+    sfx: { total: number; ready: number; missing: number };
+  };
+  missing: {
+    visual: Array<{ shotId: string; shotNumber?: number }>;
+    dialogue: Array<{ blockId: string; blockIndex?: number }>;
+  };
+  timeline: {
+    exists: boolean;
+    status: TimelineStatus | null;
+    version: number | null;
+    durationSeconds: number | null;
+    stale: boolean;
+  };
+  render: {
+    latestJob: Pick<
+      RenderJob,
+      "id" | "status" | "progress" | "timelineVersion" | "createdAt" | "errorMessage"
+    > | null;
+    latestArtifact: Pick<
+      RenderArtifact,
+      "id" | "url" | "durationSeconds" | "width" | "height" | "fps" | "fileSize"
+    > | null;
+    status: RenderJobStatus | null;
+    history: Array<{
+      id: string;
+      status: RenderJobStatus;
+      timelineVersion: number;
+      createdAt: string;
+      hasArtifact: boolean;
+    }>;
+  };
+  progress: EpisodeProductionProgressItem[];
+  checklist: EpisodeProductionChecklistItem[];
+  readiness: EpisodeReadiness;
+  activity: Array<{
+    id: string;
+    kind: "GENERATION" | "RENDER";
+    type: string;
+    status: string;
+    label: string;
+    createdAt: string;
+  }>;
+}
 

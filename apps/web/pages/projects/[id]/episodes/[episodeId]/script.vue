@@ -20,16 +20,16 @@
           </div>
           <div class="flex flex-wrap gap-2">
             <NuxtLink
-              :to="`/projects/${projectId}/episodes/${episodeId}/timeline`"
-              class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-sm text-gold-300"
+              :to="workspacePath"
+              class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
-              进入时间线
+              返回 Episode Workspace
             </NuxtLink>
             <NuxtLink
               :to="`/projects/${projectId}/episodes/${episodeId}/storyboard`"
               class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-sm text-gold-300"
             >
-              进入分镜
+              继续制作分镜
             </NuxtLink>
             <ScriptGenerateModal
               :project-id="projectId"
@@ -55,6 +55,22 @@
               保存
             </button>
             <button
+              v-if="store.script && !store.locked && store.script.status !== ScriptStatus.READY"
+              type="button"
+              class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
+              :disabled="store.saving"
+              @click="onConfirm"
+            >
+              确认剧本
+            </button>
+            <NuxtLink
+              v-if="store.script && (store.script.status === ScriptStatus.READY || store.locked)"
+              :to="`/projects/${projectId}/episodes/${episodeId}/storyboard`"
+              class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
+            >
+              生成分镜
+            </NuxtLink>
+            <button
               v-if="store.script && !store.locked"
               type="button"
               class="rounded-xl border border-amber-400/30 px-3 py-1.5 text-sm text-amber-200"
@@ -68,6 +84,13 @@
         <p v-if="store.actionError" class="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {{ store.actionError }}
         </p>
+        <div
+          v-if="!hasEpisodeOutline"
+          class="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+        >
+          这一集还没有稳定的大纲。请先补全 Episode Plan，再进入剧本生成。
+          <NuxtLink :to="`/projects/${projectId}/episodes/${episodeId}/plan`" class="ml-2 text-gold-300">去补全规划</NuxtLink>
+        </div>
 
         <div v-if="store.script" class="grid gap-4 desktop:grid-cols-[220px_1fr_260px]">
           <aside class="rounded-2xl border border-white/5 bg-ink-800/60 p-3">
@@ -264,6 +287,12 @@ const episodeLabel = computed(() => {
   const current = episode.value;
   return current ? `E${String(current.number).padStart(2, "0")} · 剧本工作台` : "剧本工作台";
 });
+const workspacePath = computed(() =>
+  `/projects/${projectId.value}/episodes/${episodeId.value}`,
+);
+const hasEpisodeOutline = computed(
+  () => Boolean(episode.value?.synopsis?.trim() || episode.value?.outline?.trim()),
+);
 
 function statusLabel(status: ScriptStatusType) {
   return getScriptStatusLabel(status);
@@ -331,6 +360,10 @@ async function onSave() {
     logline: form.logline,
     summary: form.summary,
   });
+}
+
+async function onConfirm() {
+  await store.update(projectId.value, episodeId.value, { status: ScriptStatus.READY });
 }
 
 async function onLock() {

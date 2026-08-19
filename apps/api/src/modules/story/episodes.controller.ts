@@ -54,6 +54,15 @@ export class EpisodesController {
     return this.episodes.get(projectId, seasonId, episodeId);
   }
 
+  @Get(":episodeId/overview")
+  overview(
+    @Param("projectId") projectId: string,
+    @Param("seasonId") seasonId: string,
+    @Param("episodeId") episodeId: string,
+  ) {
+    return this.episodes.getOverview(projectId, seasonId, episodeId);
+  }
+
   @Patch(":episodeId")
   update(
     @Param("projectId") projectId: string,

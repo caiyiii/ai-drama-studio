@@ -110,6 +110,7 @@ function createService(options?: {
               episodeId: "ep-1",
               projectId: "proj-1",
               version: 1,
+              status: "READY",
               scenes: [
                 {
                   id: "scene-1",

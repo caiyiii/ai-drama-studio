@@ -12,7 +12,14 @@ export const validSeasonOutlineGeneration: SeasonGenerationResult = {
     middle: "接触与误判。",
     ending: "临时盟友。",
   },
-  episodes: [
+  existingEpisodes: [
+    {
+      number: 1,
+      title: "已存在的第一集",
+      synopsis: "旧剧集不会被覆盖。",
+    },
+  ],
+  newEpisodes: [
     {
       number: 1,
       title: "星系碰撞",
@@ -61,9 +68,9 @@ export const validSeasonOutlineGeneration: SeasonGenerationResult = {
 
 describe("Season outline generation schema", () => {
   it("accepts a valid structured result", () => {
-    expect(validateSeasonOutlineGenerationResult(validSeasonOutlineGeneration).episodes).toHaveLength(
-      3,
-    );
+    const result = validateSeasonOutlineGenerationResult(validSeasonOutlineGeneration);
+    expect(result.existingEpisodes).toHaveLength(1);
+    expect(result.newEpisodes).toHaveLength(3);
   });
 
   it("rejects unknown fields", () => {
@@ -79,9 +86,9 @@ describe("Season outline generation schema", () => {
     expect(() =>
       validateSeasonOutlineGenerationResult({
         ...validSeasonOutlineGeneration,
-        episodes: [
-          validSeasonOutlineGeneration.episodes[0],
-          { ...validSeasonOutlineGeneration.episodes[1], number: 1 },
+        newEpisodes: [
+          validSeasonOutlineGeneration.newEpisodes[0],
+          { ...validSeasonOutlineGeneration.newEpisodes[1], number: 1 },
         ],
       }),
     ).toThrow(AiProviderError);

@@ -67,8 +67,8 @@ function createServices() {
       { id: "ep-b", projectId: "proj-b" },
     ],
     scripts: [
-      { id: "script-a", episodeId: "ep-a", projectId: "proj-a", version: 1 },
-      { id: "script-a2", episodeId: "ep-a2", projectId: "proj-a", version: 2 },
+      { id: "script-a", episodeId: "ep-a", projectId: "proj-a", version: 1, status: "READY" },
+      { id: "script-a2", episodeId: "ep-a2", projectId: "proj-a", version: 2, status: "READY" },
     ],
     scenes: [
       { id: "scene-a", scriptId: "script-a" },

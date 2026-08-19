@@ -9,31 +9,39 @@ export const BREAKPOINTS = {
   desktopMin: 1200,
 } as const;
 
+export const WORKSPACE_NAV_GROUPS = {
+  FOUNDATION: "创作基础",
+  PLANNING: "内容规划",
+  LIBRARY: "素材库",
+  SYSTEM: "系统",
+} as const;
+
 export const WORKSPACE_NAV = [
-  { key: "overview", label: "项目概览", short: "览", path: "", step: null },
-  { key: "world", label: "世界观", short: "界", path: "world", step: "WORLD" },
-  { key: "characters", label: "人物", short: "人", path: "characters", step: "CHARACTERS" },
-  { key: "story-bible", label: "故事圣经", short: "经", path: "story-bible", step: null },
-  { key: "locations", label: "场景", short: "场", path: "locations", step: "LOCATIONS" },
-  { key: "seasons", label: "季", short: "季", path: "seasons", step: "EPISODES" },
-  { key: "episodes", label: "剧集", short: "集", path: "episodes", step: null },
-  { key: "script", label: "剧本", short: "本", path: "script", step: "SCRIPT" },
+  { key: "overview", label: "项目概览", short: "览", path: "", step: null, group: WORKSPACE_NAV_GROUPS.FOUNDATION },
+  { key: "world", label: "世界观", short: "界", path: "world", step: "WORLD", group: WORKSPACE_NAV_GROUPS.FOUNDATION },
+  { key: "characters", label: "人物", short: "人", path: "characters", step: "CHARACTERS", group: WORKSPACE_NAV_GROUPS.FOUNDATION },
+  { key: "story-bible", label: "故事圣经", short: "经", path: "story-bible", step: null, group: WORKSPACE_NAV_GROUPS.FOUNDATION },
+  { key: "locations", label: "场景", short: "场", path: "locations", step: "LOCATIONS", group: WORKSPACE_NAV_GROUPS.FOUNDATION },
+  { key: "seasons", label: "季规划", short: "季", path: "seasons", step: "EPISODES", group: WORKSPACE_NAV_GROUPS.PLANNING },
+  { key: "episodes", label: "剧集工作台", short: "集", path: "episodes", step: null, group: WORKSPACE_NAV_GROUPS.PLANNING },
+  { key: "script", label: "剧本", short: "本", path: "script", step: "SCRIPT", group: WORKSPACE_NAV_GROUPS.PLANNING },
   {
     key: "storyboard",
     label: "分镜",
     short: "镜",
     path: "storyboard",
     step: "STORYBOARD",
+    group: WORKSPACE_NAV_GROUPS.PLANNING,
   },
-  { key: "images", label: "图片", short: "图", path: "images", step: "IMAGES" },
-  { key: "videos", label: "视频", short: "影", path: "videos", step: "VIDEOS" },
-  { key: "voices", label: "配音", short: "音", path: "voices", step: "VOICES" },
-  { key: "music", label: "音乐", short: "乐", path: "music", step: null },
-  { key: "sfx", label: "音效", short: "效", path: "sfx", step: null },
-  { key: "timeline", label: "时间线", short: "轴", path: "timeline", step: null },
-  { key: "render", label: "成片", short: "片", path: "render", step: "RENDER" },
-  { key: "assets", label: "素材", short: "材", path: "assets", step: null },
-  { key: "settings", label: "设置", short: "设", path: "settings", step: null },
+  { key: "timeline", label: "时间线", short: "轴", path: "timeline", step: null, group: WORKSPACE_NAV_GROUPS.PLANNING },
+  { key: "render", label: "成片", short: "片", path: "render", step: "RENDER", group: WORKSPACE_NAV_GROUPS.PLANNING },
+  { key: "images", label: "图片库", short: "图", path: "images", step: "IMAGES", group: WORKSPACE_NAV_GROUPS.LIBRARY },
+  { key: "videos", label: "视频库", short: "影", path: "videos", step: "VIDEOS", group: WORKSPACE_NAV_GROUPS.LIBRARY },
+  { key: "voices", label: "配音库", short: "音", path: "voices", step: "VOICES", group: WORKSPACE_NAV_GROUPS.LIBRARY },
+  { key: "music", label: "音乐库", short: "乐", path: "music", step: null, group: WORKSPACE_NAV_GROUPS.LIBRARY },
+  { key: "sfx", label: "音效库", short: "效", path: "sfx", step: null, group: WORKSPACE_NAV_GROUPS.LIBRARY },
+  { key: "assets", label: "素材总览", short: "材", path: "assets", step: null, group: WORKSPACE_NAV_GROUPS.LIBRARY },
+  { key: "settings", label: "设置", short: "设", path: "settings", step: null, group: WORKSPACE_NAV_GROUPS.SYSTEM },
 ] as const;
 
 export const MOBILE_TAB_NAV = [
