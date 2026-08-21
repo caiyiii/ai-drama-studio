@@ -27,13 +27,7 @@
               :to="pathFor('workspace')"
               class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
             >
-              返回本集工作台
-            </NuxtLink>
-            <NuxtLink
-              :to="pathFor('storyboard')"
-              class="rounded-xl border border-gold-400/30 px-3 py-1.5 text-sm text-gold-300"
-            >
-              继续制作分镜
+              返回本集
             </NuxtLink>
             <ScriptGenerateModal
               :project-id="projectId"
@@ -41,23 +35,6 @@
               :has-existing-script="Boolean(store.script && (store.script.scenes?.length || 0) > 0)"
               @applied="reload"
             />
-            <button
-              v-if="store.missing"
-              type="button"
-              class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
-              @click="onCreateBlank"
-            >
-              创建空白剧本
-            </button>
-            <button
-              v-if="store.script && !store.locked"
-              type="button"
-              class="rounded-xl border border-white/10 px-3 py-1.5 text-sm"
-              :disabled="store.saving"
-              @click="onSave"
-            >
-              保存
-            </button>
             <button
               v-if="store.script && !store.locked && store.script.status !== ScriptStatus.READY"
               type="button"
@@ -72,16 +49,40 @@
               :to="pathFor('storyboard')"
               class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
             >
-              生成分镜
+              ✨ AI生成分镜
             </NuxtLink>
-            <button
-              v-if="store.script && !store.locked"
-              type="button"
-              class="rounded-xl border border-amber-400/30 px-3 py-1.5 text-sm text-amber-200"
-              @click="confirmLock = true"
-            >
-              锁定
-            </button>
+            <details class="relative">
+              <summary class="cursor-pointer list-none rounded-xl border border-white/10 px-3 py-1.5 text-sm">
+                更多
+              </summary>
+              <div class="absolute right-0 z-20 mt-2 min-w-[10rem] rounded-xl border border-white/10 bg-ink-900 p-2 text-sm shadow-xl">
+                <button
+                  v-if="store.script && !store.locked"
+                  type="button"
+                  class="block w-full rounded-lg px-3 py-2 text-left hover:bg-white/5 disabled:opacity-40"
+                  :disabled="store.saving"
+                  @click="onSave"
+                >
+                  保存
+                </button>
+                <button
+                  v-if="store.missing"
+                  type="button"
+                  class="block w-full rounded-lg px-3 py-2 text-left hover:bg-white/5"
+                  @click="onCreateBlank"
+                >
+                  创建空白剧本
+                </button>
+                <button
+                  v-if="store.script && !store.locked"
+                  type="button"
+                  class="block w-full rounded-lg px-3 py-2 text-left text-amber-200 hover:bg-white/5"
+                  @click="confirmLock = true"
+                >
+                  锁定剧本
+                </button>
+              </div>
+            </details>
           </div>
         </div>
 

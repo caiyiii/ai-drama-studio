@@ -115,10 +115,10 @@ const form = reactive({
 const planningMode = computed(() => props.mode || "INITIAL");
 const triggerLabel = computed(() =>
   planningMode.value === "CONTINUE"
-    ? "AI 继续规划"
+    ? "✨ AI继续生成剧集"
     : planningMode.value === "REPLAN"
       ? "重新规划整季"
-      : "AI 规划剧集",
+      : "✨ AI生成季规划",
 );
 const dialogTitle = computed(() => triggerLabel.value);
 const dialogDescription = computed(() =>

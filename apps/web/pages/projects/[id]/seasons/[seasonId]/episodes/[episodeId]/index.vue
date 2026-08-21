@@ -18,33 +18,33 @@
             <h1 class="mt-1 font-display text-3xl">
               E{{ String(overview.episode.number).padStart(2, "0") }} · {{ overview.episode.title }}
             </h1>
-            <p class="mt-2 text-sm text-zinc-500">
-              状态：{{ productionStatusLabel }}
-              · 当前阶段：{{ stageLabel }}
-            </p>
-            <p class="mt-1 text-xs text-zinc-600">
-              AI 生成使用当前项目配置的 Provider / Model，不会自动批量生成。
-            </p>
+            <p class="mt-2 text-sm text-zinc-500">剧集生产 · {{ currentStepLabel }}</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <NuxtLink
-              :to="primaryActionPath"
-              class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950"
-            >
-              {{ overview.nextAction.label }}
-            </NuxtLink>
-            <EpisodeOutlineGenerateModal
-              :project-id="projectId"
-              :episode-id="episodeId"
-              @applied="reload"
-            />
-            <button
-              type="button"
-              class="rounded-xl border border-red-500/30 px-3 py-1.5 text-sm text-red-300"
-              @click="confirmDelete = true"
-            >
-              删除
-            </button>
+            <details class="relative">
+              <summary
+                class="cursor-pointer list-none rounded-xl border border-white/10 px-3 py-1.5 text-sm"
+              >
+                更多
+              </summary>
+              <div
+                class="absolute right-0 z-20 mt-2 min-w-[10rem] rounded-xl border border-white/10 bg-ink-900 p-2 text-sm shadow-xl"
+              >
+                <NuxtLink :to="pathFor('timeline')" class="block rounded-lg px-3 py-2 hover:bg-white/5">
+                  高级时间线
+                </NuxtLink>
+                <NuxtLink :to="pathFor('render')" class="block rounded-lg px-3 py-2 hover:bg-white/5">
+                  成片记录
+                </NuxtLink>
+                <button
+                  type="button"
+                  class="block w-full rounded-lg px-3 py-2 text-left text-red-300 hover:bg-white/5"
+                  @click="confirmDelete = true"
+                >
+                  删除本集
+                </button>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -56,92 +56,10 @@
         </p>
 
         <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Production Steps</p>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span
-              v-for="item in overview.progress"
-              :key="item.id"
-              class="rounded-full border px-3 py-1 text-sm"
-              :class="stepChipClass(item.state)"
-            >
-              {{ stepMark(item.state) }} {{ item.label }}
-            </span>
-          </div>
-          <p class="mt-3 text-sm text-zinc-500">
-            {{ completedCount }} / {{ overview.progress.length }} stages completed
-          </p>
-        </section>
-
-        <div class="grid gap-4 desktop:grid-cols-[1.2fr_0.8fr]">
-          <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">当前任务</p>
-            <p class="mt-2 text-sm text-zinc-500">当前阶段：{{ stageLabel }}</p>
-            <h2 class="mt-1 font-display text-2xl">{{ overview.nextAction.label }}</h2>
-            <p class="mt-2 text-sm text-zinc-400">{{ overview.nextAction.description }}</p>
-            <p v-if="overview.nextAction.reason" class="mt-2 text-sm text-amber-200">
-              {{ overview.nextAction.reason }}
-            </p>
-            <div class="mt-4 flex flex-wrap gap-2">
-              <NuxtLink
-                :to="primaryActionPath"
-                class="rounded-xl bg-gold-400 px-4 py-2 text-sm font-medium text-ink-950"
-              >
-                {{ overview.nextAction.label }}
-              </NuxtLink>
-              <NuxtLink
-                v-if="secondaryAction"
-                :to="secondaryAction.to"
-                class="rounded-xl border border-white/10 px-4 py-2 text-sm"
-              >
-                {{ secondaryAction.label }}
-              </NuxtLink>
-            </div>
-          </section>
-
-          <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Asset Readiness</p>
-            <div class="mt-3 space-y-2 text-sm text-zinc-300">
-              <p>视觉素材：{{ overview.assets.images.ready + overview.assets.videos.ready > 0 ? `${visualReadyCount} / ${overview.storyboard.shotCount || 0}` : `0 / ${overview.storyboard.shotCount || 0}` }}</p>
-              <p>对白：{{ overview.assets.voices.ready }} / {{ overview.assets.voices.total }}</p>
-              <p>音乐：{{ overview.assets.music.ready }} / {{ overview.assets.music.total }}</p>
-              <p>音效：{{ overview.assets.sfx.ready }} / {{ overview.assets.sfx.total }}</p>
-            </div>
-            <div v-if="overview.missing.visual.length || overview.missing.dialogue.length" class="mt-3 text-sm text-amber-200">
-              <p v-for="item in overview.missing.visual.slice(0, 4)" :key="item.shotId">
-                缺失视觉素材：Shot {{ String(item.shotNumber || "").padStart(3, "0") }}
-              </p>
-              <p v-for="item in overview.missing.dialogue.slice(0, 4)" :key="item.blockId">
-                缺失对白：ScriptBlock {{ String(item.blockIndex || "").padStart(2, "0") }}
-              </p>
-            </div>
-            <p
-              v-if="overview.readiness.stale.storyboard || overview.readiness.stale.timeline"
-              class="mt-3 text-sm text-amber-200"
-            >
-              上游内容发生变化，当前时间线需要重新检查。
-            </p>
-          </section>
-        </div>
-
-        <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Production Checklist</p>
-          <div class="mt-3 grid gap-2 tablet:grid-cols-2 desktop:grid-cols-5">
-            <p
-              v-for="item in overview.checklist"
-              :key="item.id"
-              class="text-sm"
-              :class="item.done ? 'text-emerald-300' : 'text-zinc-500'"
-            >
-              {{ item.done ? "☑" : "☐" }} {{ item.label }}
-              <span v-if="item.detail" class="text-xs text-zinc-500">{{ item.detail }}</span>
-            </p>
-          </div>
-        </section>
-
-        <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">本集制作导航</p>
-          <div class="mt-3">
-            <EpisodeProductionNav
+          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">生产进度</p>
+          <div class="mt-4">
+            <ProductionStepBar
+              :overview="overview"
               :project-id="projectId"
               :episode-id="episodeId"
               :season-id="seasonId"
@@ -150,55 +68,51 @@
           </div>
         </section>
 
+        <ProductionNextActionCard
+          :action="overview.nextAction"
+          :current-step-label="currentStepLabel"
+          :detail="actionDetail"
+          :primary-to="primaryActionPath"
+          mode="link"
+          :secondary="secondaryAction"
+          :blocker="blocker"
+        />
+
+        <div class="grid gap-4 desktop:grid-cols-3">
+          <article class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">画面</p>
+            <p class="mt-2 font-display text-2xl">{{ visual.label }}</p>
+            <p class="mt-1 text-sm text-zinc-500">{{ visual.total }} 个镜头</p>
+          </article>
+          <article class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">配音</p>
+            <p class="mt-2 font-display text-2xl">{{ audio.label }}</p>
+            <p class="mt-1 text-sm text-zinc-500">{{ audio.total }} 条对白</p>
+          </article>
+          <article class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">成片</p>
+            <p class="mt-2 font-display text-2xl">
+              {{ overview.render.latestArtifact ? "已生成" : "未生成" }}
+            </p>
+            <p class="mt-1 text-sm text-zinc-500">
+              {{ overview.readiness.canRender ? "可以生成成片" : overview.readiness.renderBlockedReason || "等待素材完成" }}
+            </p>
+          </article>
+        </div>
+
         <div v-if="overview.render.latestArtifact" class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Episode MP4</p>
+          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">本集成片</p>
           <video
             :src="artifactSrc(overview.render.latestArtifact.url)"
             controls
             class="mt-4 w-full max-w-3xl rounded-xl bg-black"
           />
-          <p class="mt-2 text-sm text-zinc-500">
-            {{ overview.render.latestArtifact.durationSeconds ?? 0 }}s
-            · {{ overview.render.latestArtifact.width }}x{{ overview.render.latestArtifact.height }}
-            · {{ overview.render.latestArtifact.fps }}fps
-          </p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <NuxtLink :to="pathFor('render')" class="rounded-xl bg-gold-400 px-3 py-1.5 text-sm font-medium text-ink-950">
-              再次渲染
-            </NuxtLink>
+          <div class="mt-3">
             <NuxtLink :to="pathFor('render')" class="rounded-xl border border-white/10 px-3 py-1.5 text-sm">
-              查看 Render History
+              查看成片页
             </NuxtLink>
           </div>
         </div>
-
-        <section v-if="overview.render.history.length" class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Render History</p>
-          <div class="mt-3 space-y-2">
-            <article
-              v-for="item in overview.render.history"
-              :key="item.id"
-              class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/5 bg-ink-800/70 px-4 py-3 text-sm"
-            >
-              <p>
-                Timeline v{{ item.timelineVersion }} · {{ item.status }}
-                <span class="text-zinc-500"> · {{ item.createdAt.slice(0, 10) }}</span>
-              </p>
-              <div class="flex gap-3">
-                <NuxtLink :to="pathFor('render')" class="text-gold-300">查看</NuxtLink>
-                <NuxtLink v-if="item.hasArtifact" :to="pathFor('render')" class="text-gold-300">播放</NuxtLink>
-                <NuxtLink v-if="item.status === 'FAILED'" :to="pathFor('render')" class="text-amber-200">Retry</NuxtLink>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section v-if="overview.activity.length" class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
-          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Recent Activity</p>
-          <ul class="mt-3 space-y-2 text-sm text-zinc-400">
-            <li v-for="item in overview.activity" :key="item.id">{{ item.label }}</li>
-          </ul>
-        </section>
       </div>
     </PageState>
 
@@ -216,13 +130,17 @@
 import { getEpisodeProductionStageLabel } from "@ai-drama-studio/core";
 import {
   EpisodeNextActionType,
-  EpisodeProductionStage,
   type EpisodeOverview,
-  type EpisodeProductionState,
 } from "@ai-drama-studio/types";
 import { computed, onMounted, ref, watch } from "vue";
 import { navigateTo, useRoute, useRuntimeConfig } from "#imports";
-import { episodeActionPath, episodeModulePath } from "~/composables/useEpisodeProduction";
+import { episodeModulePath } from "~/composables/useEpisodeProduction";
+import {
+  audioReadyLabel,
+  mapNextActionToUi,
+  nextActionPath,
+  visualReadyLabel,
+} from "~/composables/useProductionUx";
 import { useCurrentProject } from "~/composables/useCurrentProject";
 import { useStoryStore } from "~/stores/story";
 import { useNuxtApp } from "#app";
@@ -240,59 +158,71 @@ const error = ref<string | null>(null);
 const actionError = ref<string | null>(null);
 const overview = ref<EpisodeOverview | null>(null);
 
-const stageLabel = computed(() =>
-  overview.value ? getEpisodeProductionStageLabel(overview.value.productionStage) : "",
+const uiAction = computed(() =>
+  overview.value ? mapNextActionToUi(overview.value.nextAction) : null,
 );
-const productionStatusLabel = computed(() =>
-  overview.value?.productionStage === EpisodeProductionStage.COMPLETED ? "已完成" : "制作中",
-);
-const completedCount = computed(
-  () => overview.value?.progress.filter((item) => item.state === "COMPLETED" || item.state === "LOCKED").length ?? 0,
-);
+const currentStepLabel = computed(() => {
+  if (!overview.value) return "";
+  const ui = uiAction.value;
+  if (ui?.step === "visual") return "画面";
+  if (ui?.step === "audio") return "配音";
+  if (ui?.step === "render") return "成片";
+  if (ui?.step === "storyboard") return "分镜";
+  if (ui?.step === "script") return "剧本";
+  if (ui?.step === "outline") return "大纲";
+  return getEpisodeProductionStageLabel(overview.value.productionStage);
+});
 const primaryActionPath = computed(() =>
   overview.value
-    ? episodeActionPath(projectId.value, episodeId.value, overview.value.nextAction.type, seasonId.value)
+    ? nextActionPath(projectId.value, episodeId.value, overview.value.nextAction, seasonId.value)
     : pathFor("workspace"),
 );
-const visualReadyCount = computed(() => {
-  if (!overview.value) return 0;
-  const shotCount = overview.value.storyboard.shotCount;
-  const missing = overview.value.missing.visual.length;
-  return Math.max(shotCount - missing, 0);
+const visual = computed(() =>
+  overview.value ? visualReadyLabel(overview.value) : { ready: 0, total: 0, label: "0 / 0" },
+);
+const audio = computed(() =>
+  overview.value ? audioReadyLabel(overview.value) : { ready: 0, total: 0, label: "0 / 0" },
+);
+const actionDetail = computed(() => {
+  if (!overview.value || !uiAction.value) return null;
+  if (uiAction.value.step === "visual") {
+    return `画面进度 ${visual.value.label}`;
+  }
+  if (uiAction.value.step === "audio") {
+    return `配音进度 ${audio.value.label}`;
+  }
+  return null;
 });
 const secondaryAction = computed(() => {
   const type = overview.value?.nextAction.type;
   if (type === EpisodeNextActionType.CONFIRM_SCRIPT) {
-    return { label: "返回剧本", to: pathFor("script") };
-  }
-  if (type === EpisodeNextActionType.GENERATE_STORYBOARD) {
-    return { label: "返回剧本", to: pathFor("script") };
+    return { label: "查看剧本", to: pathFor("script") };
   }
   if (type === EpisodeNextActionType.CONFIRM_STORYBOARD) {
-    return { label: "返回分镜", to: pathFor("storyboard") };
+    return { label: "查看分镜", to: pathFor("storyboard") };
   }
-  if (type === EpisodeNextActionType.RENDER_EPISODE) {
-    return { label: "打开时间线", to: pathFor("timeline") };
+  if (
+    type === EpisodeNextActionType.GENERATE_MISSING_VISUAL_ASSETS ||
+    type === EpisodeNextActionType.GENERATE_MISSING_AUDIO_ASSETS
+  ) {
+    return null;
+  }
+  return null;
+});
+const blocker = computed(() => {
+  if (!overview.value) return null;
+  const type = overview.value.nextAction.type;
+  if (type === EpisodeNextActionType.GENERATE_MISSING_VISUAL_ASSETS) {
+    return null;
+  }
+  if (type === EpisodeNextActionType.GENERATE_MISSING_AUDIO_ASSETS) {
+    return null;
   }
   return null;
 });
 
 function pathFor(module: "plan" | "script" | "storyboard" | "assets" | "timeline" | "render" | "workspace") {
   return episodeModulePath(projectId.value, episodeId.value, module, seasonId.value);
-}
-
-function stepMark(state: EpisodeProductionState) {
-  if (state === "COMPLETED" || state === "LOCKED") return "✓";
-  if (state === "STALE") return "!";
-  if (state === "IN_PROGRESS" || state === "READY") return "●";
-  return "○";
-}
-
-function stepChipClass(state: EpisodeProductionState) {
-  if (state === "COMPLETED" || state === "LOCKED") return "border-emerald-500/30 text-emerald-300";
-  if (state === "IN_PROGRESS" || state === "READY") return "border-gold-400/40 text-gold-300";
-  if (state === "STALE") return "border-amber-500/30 text-amber-200";
-  return "border-white/10 text-zinc-500";
 }
 
 function artifactSrc(url: string) {
@@ -318,22 +248,22 @@ async function reload() {
   }
 }
 
+async function onDelete() {
+  confirmDelete.value = false;
+  actionError.value = null;
+  try {
+    await store.removeEpisode(projectId.value, seasonId.value, episodeId.value);
+    await navigateTo(`/projects/${projectId.value}/seasons/${seasonId.value}`);
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : "删除失败";
+  }
+}
+
 onMounted(() => {
   void reload();
 });
 
-watch([seasonId, episodeId], () => {
+watch(episodeId, () => {
   void reload();
 });
-
-async function onDelete() {
-  confirmDelete.value = false;
-  const sid = overview.value?.season.id || seasonId.value;
-  const ok = await store.removeEpisode(projectId.value, sid, episodeId.value);
-  if (!ok) {
-    actionError.value = store.actionError;
-    return;
-  }
-  await navigateTo(`/projects/${projectId.value}/seasons/${sid}`);
-}
 </script>

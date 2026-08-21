@@ -17,9 +17,20 @@
             <button type="button" class="rounded-xl border border-white/10 px-3 py-1.5 text-sm" @click="showEpisode = true">
               创建剧集
             </button>
-            <button type="button" class="rounded-xl border border-red-500/30 px-3 py-1.5 text-sm text-red-300" @click="confirmDelete = true">
-              删除季
-            </button>
+            <details class="relative">
+              <summary class="cursor-pointer list-none rounded-xl border border-white/10 px-3 py-1.5 text-sm">
+                更多
+              </summary>
+              <div class="absolute right-0 z-20 mt-2 min-w-[9rem] rounded-xl border border-white/10 bg-ink-900 p-2 text-sm shadow-xl">
+                <button
+                  type="button"
+                  class="block w-full rounded-lg px-3 py-2 text-left text-red-300 hover:bg-white/5"
+                  @click="confirmDelete = true"
+                >
+                  删除季
+                </button>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -27,80 +38,67 @@
           {{ store.actionError }}
         </p>
 
-        <div class="grid gap-4 rounded-3xl border border-white/5 bg-ink-900/60 p-5 tablet:grid-cols-[1.3fr_0.9fr]">
-          <div class="space-y-3">
+        <div class="rounded-3xl border border-white/5 bg-ink-900/60 p-5">
+          <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Planning Center</p>
-              <h2 class="mt-1 font-display text-2xl">AI 规划中心</h2>
-              <p class="mt-1 text-sm text-zinc-500">
-                先预览，再确认 Apply。已有 Episode 不会被静默覆盖。
+              <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">季规划</p>
+              <h2 class="mt-1 font-display text-2xl">
+                {{ store.episodes.length ? "第一季规划已就绪" : "还没有季规划" }}
+              </h2>
+              <p class="mt-2 text-sm text-zinc-500">
+                {{
+                  store.episodes.length
+                    ? `已有 ${store.episodes.length} 集。可以继续追加剧集，或重新规划整季。`
+                    : "让 AI 先规划这一季有哪些剧集。"
+                }}
               </p>
             </div>
-            <div class="grid gap-3 tablet:grid-cols-3">
-              <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
-                <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">首次规划</p>
-                <p class="mt-2 text-sm text-zinc-400">
-                  适合空白 Season，从 E01 开始建立整季节奏。
-                </p>
-                <div class="mt-4">
-                  <SeasonOutlineGenerateModal
-                    :project-id="projectId"
-                    :season-id="seasonId"
-                    mode="INITIAL"
-                    @applied="reload"
-                  />
-                </div>
-              </div>
-              <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
-                <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">继续规划</p>
-                <p class="mt-2 text-sm text-zinc-400">
-                  保留已有剧集，从 E{{ String(nextEpisodeNumber).padStart(2, "0") }} 开始追加新集。
-                </p>
-                <div class="mt-4">
-                  <SeasonOutlineGenerateModal
-                    :project-id="projectId"
-                    :season-id="seasonId"
-                    mode="CONTINUE"
-                    @applied="reload"
-                  />
-                </div>
-              </div>
-              <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
-                <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">重新规划</p>
-                <p class="mt-2 text-sm text-zinc-400">
-                  重新生成整季方案，但仍需要你显式确认后才会应用。
-                </p>
-                <div class="mt-4">
-                  <SeasonOutlineGenerateModal
-                    :project-id="projectId"
-                    :season-id="seasonId"
-                    mode="REPLAN"
-                    @applied="reload"
-                  />
-                </div>
-              </div>
+            <div class="flex flex-wrap gap-2">
+              <SeasonOutlineGenerateModal
+                v-if="!store.episodes.length"
+                :project-id="projectId"
+                :season-id="seasonId"
+                mode="INITIAL"
+                @applied="reload"
+              />
+              <template v-else>
+                <SeasonOutlineGenerateModal
+                  :project-id="projectId"
+                  :season-id="seasonId"
+                  mode="CONTINUE"
+                  @applied="reload"
+                />
+                <details class="relative">
+                  <summary class="cursor-pointer list-none rounded-xl border border-white/10 px-3 py-1.5 text-sm">
+                    更多规划
+                  </summary>
+                  <div class="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-white/10 bg-ink-900 p-3 shadow-xl">
+                    <SeasonOutlineGenerateModal
+                      :project-id="projectId"
+                      :season-id="seasonId"
+                      mode="REPLAN"
+                      @applied="reload"
+                    />
+                    <p class="mt-2 text-xs text-zinc-500">重新规划不会静默覆盖，仍需你确认 Apply。</p>
+                  </div>
+                </details>
+              </template>
             </div>
           </div>
-          <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
-            <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">当前规划状态</p>
-            <dl class="mt-3 space-y-3 text-sm">
-              <div class="flex items-center justify-between gap-3">
-                <dt class="text-zinc-500">已有剧集</dt>
-                <dd class="text-white">{{ store.episodes.length }}</dd>
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <dt class="text-zinc-500">下一建议集数</dt>
-                <dd class="text-white">E{{ String(nextEpisodeNumber).padStart(2, "0") }}</dd>
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <dt class="text-zinc-500">最近一次规划</dt>
-                <dd class="text-white">{{ latestPlanningLabel }}</dd>
-              </div>
-            </dl>
-            <p class="mt-4 text-xs text-zinc-500">
-              Preview 会区分“已有剧集”和“本次新增剧集”，便于你确认哪些内容会写入。
-            </p>
-          </div>
+          <dl class="mt-4 grid gap-3 text-sm tablet:grid-cols-3">
+            <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
+              <dt class="text-zinc-500">已有剧集</dt>
+              <dd class="mt-1 text-white">{{ store.episodes.length }}</dd>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
+              <dt class="text-zinc-500">下一建议集数</dt>
+              <dd class="mt-1 text-white">E{{ String(nextEpisodeNumber).padStart(2, "0") }}</dd>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-ink-800/70 p-4">
+              <dt class="text-zinc-500">最近一次规划</dt>
+              <dd class="mt-1 text-white">{{ latestPlanningLabel }}</dd>
+            </div>
+          </dl>
         </div>
 
         <form class="space-y-3" @submit.prevent="onSave">

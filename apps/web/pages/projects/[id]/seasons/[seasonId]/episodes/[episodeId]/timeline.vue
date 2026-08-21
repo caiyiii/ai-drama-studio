@@ -9,16 +9,16 @@
       <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">本集时间线</p>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">高级时间线</p>
             <h1 class="mt-1 font-display text-3xl">
               <template v-if="overview">
                 E{{ String(overview.episode.number).padStart(2, "0") }} · {{ overview.episode.title }}
               </template>
-              <template v-else>时间线</template>
+              <template v-else>高级时间线</template>
             </h1>
-            <p v-if="overview" class="mt-1 text-sm text-zinc-400">时间线</p>
+            <p v-if="overview" class="mt-1 text-sm text-zinc-400">专业编辑模式</p>
             <p class="mt-2 text-sm text-zinc-500">
-              把已生成的视觉和音频素材按时间排列。这是合成预览，不是最终视频导出。
+              普通生产请使用「成片」页的 AI生成成片。这里仅用于手动调整轨道与片段。
             </p>
             <p v-if="timeline" class="mt-1 text-xs text-zinc-500">
               v{{ timeline.version }} · {{ statusLabel }} · {{ Math.round(timeline.durationSeconds) }}s ·
