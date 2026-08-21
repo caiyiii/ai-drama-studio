@@ -221,74 +221,202 @@ export class OpenAiCompatibleProvider implements AiProvider {
       { role: "user", content: request.prompt },
     ];
 
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.config.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages,
-          temperature: jsonObject ? 0.2 : 0.7,
-          ...("maxTokens" in request && typeof request.maxTokens === "number"
-            ? { max_tokens: request.maxTokens }
-            : {}),
-          ...(jsonObject ? { response_format: { type: "json_object" } } : {}),
-        }),
-        signal: AbortSignal.timeout(120_000),
-      });
-    } catch (error) {
-      throw new AiProviderError(
-        `AI Provider 不可用：${sanitizeSecret(
-          error instanceof Error ? error.message : "网络错误",
-          this.config.apiKey,
-        )}`,
-        "UNAVAILABLE",
-      );
+    const maxTokens =
+      "maxTokens" in request && typeof request.maxTokens === "number"
+        ? request.maxTokens
+        : undefined;
+
+    // Prefer OpenAI-style json_object; if the compatible provider rejects it,
+    // fall back to prompt-only structured generation.
+    const attempts = jsonObject ? [true, false] : [false];
+    let lastError: AiProviderError | null = null;
+
+    for (const useResponseFormat of attempts) {
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.config.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature: jsonObject ? 0.2 : 0.7,
+            ...(typeof maxTokens === "number" ? { max_tokens: maxTokens } : {}),
+            ...(useResponseFormat
+              ? { response_format: { type: "json_object" } }
+              : {}),
+          }),
+          signal: AbortSignal.timeout(120_000),
+        });
+      } catch (error) {
+        if (isTimeoutError(error)) {
+          throw new AiProviderError("AI 请求超时。", "TIMEOUT");
+        }
+        throw new AiProviderError(
+          `AI Provider 不可用：${sanitizeSecret(
+            error instanceof Error ? error.message : "网络错误",
+            this.config.apiKey,
+          )}`,
+          "UNAVAILABLE",
+        );
+      }
+
+      const raw = await response.text();
+      const body = parseResponseBody(raw);
+
+      if (!response.ok) {
+        const mapped = mapHttpError(response.status, body, this.config.apiKey);
+        lastError = mapped;
+        if (
+          useResponseFormat &&
+          isResponseFormatUnsupported(response.status, body)
+        ) {
+          continue;
+        }
+        throw mapped;
+      }
+
+      const content = extractContent(body);
+      if (!content.trim()) {
+        throw new AiProviderError("AI 返回了空内容。", "INVALID_JSON");
+      }
+      return content;
     }
 
-    const raw = await response.text();
-    const body = parseResponseBody(raw);
-
-    if (!response.ok) {
-      throw mapHttpError(response.status, body, this.config.apiKey);
-    }
-
-    const content = extractContent(body);
-    if (!content.trim()) {
-      throw new AiProviderError("AI 返回了空内容。", "INVALID_JSON");
-    }
-    return content;
+    throw (
+      lastError ??
+      new AiProviderError("AI Provider 不可用：结构化输出请求失败。", "UNAVAILABLE")
+    );
   }
 }
 
 export function parseModelJson(content: string): unknown {
-  const candidates = [content.trim()];
-  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced?.[1]) {
-    candidates.unshift(fenced[1].trim());
-  }
-  const firstBrace = content.indexOf("{");
-  const lastBrace = content.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    candidates.push(content.slice(firstBrace, lastBrace + 1));
-  }
-
+  const candidates = collectJsonCandidates(content);
   let lastError: Error | null = null;
+
   for (const candidate of candidates) {
     try {
       return JSON.parse(candidate) as unknown;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error("JSON parse failed");
     }
+    const repaired = stripTrailingCommas(candidate);
+    if (repaired !== candidate) {
+      try {
+        return JSON.parse(repaired) as unknown;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("JSON parse failed");
+      }
+    }
   }
+
   throw new AiProviderError(
     `AI 返回非法 JSON：${lastError?.message ?? "无法解析"}`,
     "INVALID_JSON",
   );
+}
+
+export function collectJsonCandidates(content: string): string[] {
+  const trimmed = content.trim();
+  const candidates: string[] = [];
+  const push = (value: string | null | undefined) => {
+    const next = value?.trim();
+    if (!next) return;
+    if (!candidates.includes(next)) {
+      candidates.push(next);
+    }
+  };
+
+  push(trimmed);
+
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) {
+    push(fenced[1]);
+  }
+
+  push(extractBalancedJson(content, "{", "}"));
+  push(extractBalancedJson(content, "[", "]"));
+
+  return candidates;
+}
+
+export function stripTrailingCommas(input: string): string {
+  // Safe structural cleanup only: remove trailing commas before } or ].
+  return input.replace(/,\s*(?=[}\]])/g, "");
+}
+
+function extractBalancedJson(
+  content: string,
+  openChar: "{" | "[",
+  closeChar: "}" | "]",
+): string | null {
+  const start = content.indexOf(openChar);
+  if (start < 0) {
+    return null;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < content.length; i += 1) {
+    const ch = content[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === openChar) {
+      depth += 1;
+      continue;
+    }
+    if (ch === closeChar) {
+      depth -= 1;
+      if (depth === 0) {
+        return content.slice(start, i + 1);
+      }
+    }
+  }
+
+  // Truncated payloads are common; keep the outer-bound slice as a last resort
+  // candidate so trailing-comma repair still has a chance on nearly-complete JSON.
+  const end = content.lastIndexOf(closeChar);
+  if (end > start) {
+    return content.slice(start, end + 1);
+  }
+  return null;
+}
+
+function isResponseFormatUnsupported(
+  status: number,
+  body: ChatCompletionResponse,
+): boolean {
+  const detail = `${body.error?.message || ""} ${body.error?.code || ""} ${body.error?.type || ""}`.toLowerCase();
+  if (status === 400 || status === 422) {
+    return (
+      detail.includes("response_format") ||
+      detail.includes("json_object") ||
+      detail.includes("response format")
+    );
+  }
+  return false;
 }
 
 function parseResponseBody(raw: string): ChatCompletionResponse {

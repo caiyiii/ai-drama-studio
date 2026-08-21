@@ -4,33 +4,49 @@ export function buildStoryboardGenerationPrompt(input: {
   prompt?: string;
   additionalInstructions?: string;
   context: StoryContext;
+  retryReason?: string;
+  focusSceneNumber?: number;
 }): { system: string; prompt: string } {
   const bible = input.context.storyBible;
   const script = input.context.script;
+  const focusSceneNumber = input.focusSceneNumber;
   const system = `你是一名专业动画导演、分镜师、摄影指导。
-任务：把当前 Episode Script 转成可执行 Storyboard。
+任务：把当前 Episode Script 的指定场景转成可执行 Storyboard shots。
 
-硬性规则：
-1. 只依据当前剧本，不新增主剧情，不改变事件顺序。
+输出硬性规则：
+1. Return ONLY valid JSON.
+2. Do not use Markdown.
+3. Do not use \`\`\`json.
+4. Do not add explanations.
+5. Do not add comments.
+6. Do not add fields outside the requested schema.
+7. All strings must be valid JSON strings. If a string needs quotes, escape them as \\" .
+8. All arrays and objects must be properly closed.
+9. No trailing commas.
+10. Keep every string short (preferably under 40 Chinese characters).
+11. Prefer compact JSON. Do not invent filler text.
+
+业务硬性规则：
+1. 只依据当前场景剧本，不新增主剧情，不改变事件顺序。
 2. scriptBlockIds 必须使用上下文给出的真实 id。
 3. characterIds 必须使用上下文给出的真实 id。
-4. sceneNumber 必须对应当前剧本场景编号。
-5. 每个 shot 都要有明确视觉目的。
-6. 默认每个 ScriptBlock 只生成 1 个 Shot，只有确实必要时才拆成 2 个 Shot。
-7. 所有字符串都写成单行短句，不要换行。
-8. 所有字符串里不要出现双引号字符 "。
-9. 只输出一个合法 JSON 对象，不要 markdown，不要解释，不要代码围栏。
-10. 如果某个可选字段不需要，输出空字符串或空数组，不要输出额外字段。
-
-Storyboard 描述怎么拍，不是复述剧本。`;
+4. sceneNumber 必须等于当前指定场景编号。
+5. 每个关键 ScriptBlock 至少对应 1 个 Shot；可合并次要段落，单场景最多 8 个 Shot。
+6. 每个 Shot 必须有明确视觉目的。
+7. Storyboard 描述怎么拍，不是复述剧本。`;
 
   const scenes = (script?.scenes ?? [])
+    .filter((scene) =>
+      typeof focusSceneNumber === "number"
+        ? scene.number === focusSceneNumber
+        : true,
+    )
     .map((scene) => {
       const blocks = scene.blocks
-        .map(
-          (block) =>
-            `#${block.order} id=${block.id} ${block.type} ${block.characterName || ""} ${block.content}`,
-        )
+        .map((block) => {
+          const content = compactText(block.content, 80);
+          return `#${block.order} id=${block.id} ${block.type} ${block.characterName || ""} ${content}`;
+        })
         .join(" | ");
       return `Scene ${scene.number} id=${scene.id} ${scene.title} @${scene.location || ""} ${scene.timeOfDay || ""}\n${blocks}`;
     })
@@ -43,15 +59,43 @@ Storyboard 描述怎么拍，不是复述剧本。`;
     )
     .join("；");
 
-  const prompt = `用户要求：${input.prompt?.trim() || "将本集完整剧本转换为可执行分镜"}
+  const locations = (input.context.locations ?? [])
+    .slice(0, 12)
+    .map((item) => `${item.name}:${compactText(item.description || "", 40)}`)
+    .join("；");
+
+  const retryBlock = input.retryReason
+    ? `RETRY REQUIRED:
+Your previous response was invalid: ${input.retryReason}
+
+Return the same requested storyboard data again.
+Return ONLY valid JSON.
+Do not include markdown.
+Do not include explanations.
+Make sure all objects and arrays are properly closed.
+Make sure all strings are valid JSON strings.
+Do not add fields outside the requested schema.
+Prefer fewer shots and shorter strings so the JSON stays complete.
+
+`
+    : "";
+
+  const sceneScope =
+    typeof focusSceneNumber === "number"
+      ? `只生成 Scene ${focusSceneNumber} 的 shots。不要输出其他场景。`
+      : "生成本集全部场景的 shots。";
+
+  const prompt = `${retryBlock}用户要求：${input.prompt?.trim() || "将本集完整剧本转换为可执行分镜"}
 附加说明：${input.additionalInstructions?.trim() || "无"}
+场景范围：${sceneScope}
 
 项目：${input.context.project?.name || ""} / ${input.context.project?.genre || ""}
 当前集：E${String(input.context.episode?.number || 0).padStart(2, "0")} ${input.context.episode?.title || ""}
-本集大纲：${input.context.episode?.outline || ""}
-本集连续性：${input.context.episode?.continuityNotes || "无"}
+本集大纲：${compactText(input.context.episode?.outline || "", 160)}
+本集连续性：${compactText(input.context.episode?.continuityNotes || "无", 120)}
 故事基调：${bible?.tone || ""} / ${bible?.style || ""}
 主要人物：${characters || "暂无"}
+相关地点：${locations || "暂无"}
 
 剧本：${script ? `${script.title} v${script.version} ${script.status}` : "缺失"}
 当前剧本场景与段落：
@@ -67,7 +111,7 @@ ${scenes || "无"}
   "shots": [
     {
       "shotNumber": 1,
-      "sceneNumber": 1,
+      "sceneNumber": ${typeof focusSceneNumber === "number" ? focusSceneNumber : 1},
       "scriptBlockIds": ["真实 ScriptBlock id"],
       "shotType": "ESTABLISHING | WIDE | FULL | MEDIUM | MEDIUM_CLOSE_UP | CLOSE_UP | EXTREME_CLOSE_UP | OVER_SHOULDER | POV | TWO_SHOT | INSERT | AERIAL | DYNAMIC",
       "shotSize": "EXTREME_WIDE | WIDE | FULL | MEDIUM | MEDIUM_CLOSE_UP | CLOSE_UP | EXTREME_CLOSE_UP",
@@ -82,7 +126,7 @@ ${scenes || "无"}
       "narration": "",
       "direction": "",
       "durationSeconds": 5,
-      "transition": "CUT | FADE_IN | FADE_OUT | DISSOLVE | WIPE | MATCH_CUT | SMASH_CUT",
+      "transition": "CUT",
       "lighting": "",
       "mood": "",
       "visualStyle": "",
@@ -95,12 +139,20 @@ ${scenes || "无"}
 }
 
 额外要求：
-1. shotNumber 必须从 1 连续递增。
+1. 本响应内 shotNumber 从 1 开始连续递增。
 2. durationSeconds 必须大于 0。
 3. 不要发明人物、场景或 ScriptBlock id。
-4. 每个字符串尽量简短，建议不超过 40 个字。
-5. 必须重点填好 visualDescription / location / action / imagePrompt / videoPrompt。
-6. 其余可选字段如果不必要，直接输出空字符串。
-7. 返回前自行检查 JSON 是否能被 JSON.parse 解析。`;
+4. 必须重点填好 visualDescription / location / action / imagePrompt / videoPrompt。
+5. 其余可选字段如果不必要，直接输出空字符串。
+6. 单场景最多 8 个 Shot。
+7. 返回前自行检查 JSON 是否完整且可被 JSON.parse 解析。`;
   return { system, prompt };
+}
+
+function compactText(value: string, max: number): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= max) {
+    return normalized;
+  }
+  return `${normalized.slice(0, max - 1)}…`;
 }

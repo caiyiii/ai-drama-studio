@@ -119,7 +119,7 @@ export async function applyStoryboardGeneration(
     title: result.storyboard.title,
     description: result.storyboard.description || null,
     totalDurationSeconds,
-    status: "READY" as const,
+    status: "DRAFT" as const,
     sourceScriptVersion: script.version,
   };
 

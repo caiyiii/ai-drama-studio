@@ -14,6 +14,13 @@ describe("OpenAI-compatible provider", () => {
     expect(value).toEqual({ ok: true });
   });
 
+  it("strips prose and trailing commas before parsing", () => {
+    const value = parseModelJson(
+      'Here is the result:\n{"shots":[{"id":"1"},]}\nThanks',
+    );
+    expect(value).toEqual({ shots: [{ id: "1" }] });
+  });
+
   it("fails on invalid JSON", () => {
     expect(() => parseModelJson("not-json")).toThrow(AiProviderError);
     expect(() => parseModelJson("not-json")).toThrow(/非法 JSON/);

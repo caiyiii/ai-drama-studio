@@ -151,6 +151,7 @@ describe("Apply storyboard generation transaction", () => {
     expect(db.store.appliedAt).toBeInstanceOf(Date);
     expect(db.store.storyboards[0]?.sourceScriptVersion).toBe(1);
     expect(db.store.storyboards[0]?.version).toBe(1);
+    expect(db.store.storyboards[0]?.status).toBe("DRAFT");
   });
 
   it("increments version when replacing an existing storyboard", async () => {

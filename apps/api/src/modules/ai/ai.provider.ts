@@ -15,6 +15,7 @@ export interface AiStructuredRequest {
   system?: string;
   prompt: string;
   model?: string;
+  maxTokens?: number;
 }
 
 export interface AiImageRequest {

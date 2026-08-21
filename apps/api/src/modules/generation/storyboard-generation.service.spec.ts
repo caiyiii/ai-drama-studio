@@ -88,8 +88,12 @@ function createService(options?: {
   const createdTasks: Array<Record<string, unknown>> = [];
   const createdBoards: Array<Record<string, unknown>> = [];
   const createdShots: Array<Record<string, unknown>> = [];
-  const captured: Array<{ system?: string; prompt: string }> = [];
-  const taskState = { appliedAt: null as Date | null, usage: { durationMs: 180 } as Record<string, unknown> };
+  const captured: Array<{ system?: string; prompt: string; maxTokens?: number }> = [];
+  const taskState = {
+    appliedAt: null as Date | null,
+    usage: { durationMs: 180 } as Record<string, unknown>,
+    retryCount: 0,
+  };
   const hasScript = options?.hasScript !== false;
   const prisma = {
     project: { findUnique: async () => ({ id: "proj-1" }) },
@@ -159,6 +163,7 @@ function createService(options?: {
         status: "SUCCEEDED",
         output: validStoryboardGeneration,
         usage: taskState.usage,
+        retryCount: taskState.retryCount,
       }),
       update: async ({ data }: { data: Record<string, unknown> }) => {
         if (data.appliedAt) {
@@ -166,6 +171,9 @@ function createService(options?: {
         }
         if (data.usage) {
           taskState.usage = data.usage as Record<string, unknown>;
+        }
+        if (typeof data.retryCount === "number") {
+          taskState.retryCount = data.retryCount;
         }
         return { id: "task-1" };
       },
@@ -192,7 +200,10 @@ function createService(options?: {
       expect(capability).toBe("STRUCTURED_OUTPUT");
       return resolved;
     },
-    generateWith: async (_resolved: unknown, payload: { system?: string; prompt: string }) => {
+    generateWith: async (
+      _resolved: unknown,
+      payload: { system?: string; prompt: string; maxTokens?: number },
+    ) => {
       captured.push(payload);
       if (options?.generate) {
         return options.generate();
@@ -237,6 +248,7 @@ function createService(options?: {
       ...taskByStatus,
       appliedAt: taskState.appliedAt ?? taskByStatus.appliedAt,
       usage: taskState.usage,
+      retryCount: taskState.retryCount,
     }),
   };
   const continuity = {
@@ -309,6 +321,8 @@ describe("Storyboard generation uses ProviderResolver", () => {
     });
     expect(failedJson.status).toBe("FAILED");
     expect(invalid.createdBoards).toHaveLength(0);
+    expect(invalid.captured).toHaveLength(3);
+    expect(invalid.captured[1]?.prompt).toContain("RETRY REQUIRED");
 
     const schema = createService({
       generate: async () => ({ unexpected: true }),
@@ -319,6 +333,26 @@ describe("Storyboard generation uses ProviderResolver", () => {
     expect(failedSchema.status).toBe("FAILED");
     expect(String(failedSchema.error)).toMatch(/Schema Validation/);
     expect(schema.createdBoards).toHaveLength(0);
+    expect(schema.captured).toHaveLength(3);
+  });
+
+  it("retries invalid JSON then succeeds within 3 attempts", async () => {
+    let calls = 0;
+    const { service, captured, taskState } = createService({
+      generate: async () => {
+        calls += 1;
+        if (calls < 2) {
+          throw new AiProviderError("AI 返回非法 JSON", "INVALID_JSON");
+        }
+        return validStoryboardGeneration;
+      },
+    });
+    const task = await service.createStoryboardGeneration("proj-1", { episodeId: "ep-1" });
+    expect(task.status).toBe("SUCCEEDED");
+    expect(captured).toHaveLength(2);
+    expect(captured[0]?.maxTokens).toBe(8192);
+    expect(captured[1]?.prompt).toContain("RETRY REQUIRED");
+    expect(taskState.retryCount).toBe(1);
   });
 
   it("does not leak API keys", async () => {
