@@ -25,6 +25,7 @@ import {
   persistPreviewImages,
 } from "./image/apply-image-generation";
 import { validateImageGenerationResult } from "./image/image-generation.schema";
+import { assertNoActiveGeneration } from "./assert-no-active-generation";
 
 @Injectable()
 export class ImageGenerationService {
@@ -38,6 +39,12 @@ export class ImageGenerationService {
   async createImageGeneration(projectId: string, dto: CreateImageGenerationDto) {
     await this.ensureProject(projectId);
     const shot = await this.requireOwnedShot(projectId, dto.shotId);
+    await assertNoActiveGeneration(this.prisma, {
+      projectId,
+      type: GenerationTaskType.IMAGE,
+      match: (payload) => String(payload.shotId || "") === shot.id,
+      message: "该镜头已有图片生成任务正在进行中。",
+    });
     let count: number;
     let size: ReturnType<typeof resolveImageSize>;
     try {

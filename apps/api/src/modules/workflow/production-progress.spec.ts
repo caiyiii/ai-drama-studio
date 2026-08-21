@@ -65,14 +65,55 @@ describe("episode production progress", () => {
     ).toBe(EpisodeProductionStep.AUDIO);
   });
 
-  it("Voice ready -> AUDIO", () => {
+  it("Voice ready without music requirement -> TIMELINE", () => {
     expect(
       getEpisodeNextStep(
         input({
           script: { status: ScriptStatus.READY, sceneCount: 3 },
           storyboard: { status: StoryboardStatus.READY, shotCount: 8 },
-          visuals: { imageReadyCount: 3, videoReadyCount: 1 },
-          voice: { dialogueReadyCount: 5 },
+          visuals: {
+            shotCount: 8,
+            imageReadyCount: 8,
+            videoReadyCount: 0,
+            visualReadyCount: 8,
+            missingCount: 0,
+            missingRequired: false,
+            missing: [],
+          },
+          voice: {
+            dialogueTotal: 5,
+            dialogueReadyCount: 5,
+            missing: [],
+            missingRequired: false,
+          },
+          audio: { musicExpected: 0, sfxExpected: 0 },
+        }),
+      ).step,
+    ).toBe(EpisodeProductionStep.TIMELINE);
+  });
+
+  it("Voice incomplete -> AUDIO", () => {
+    expect(
+      getEpisodeNextStep(
+        input({
+          script: { status: ScriptStatus.READY, sceneCount: 3 },
+          storyboard: { status: StoryboardStatus.READY, shotCount: 8 },
+          visuals: {
+            shotCount: 8,
+            imageReadyCount: 8,
+            videoReadyCount: 0,
+            visualReadyCount: 8,
+            missingCount: 0,
+            missingRequired: false,
+            missing: [],
+          },
+          voice: {
+            dialogueTotal: 5,
+            dialogueReadyCount: 2,
+            missing: [{ blockId: "b3" }],
+            missingRequired: true,
+          },
+          audio: { musicExpected: 0, sfxExpected: 0 },
         }),
       ).step,
     ).toBe(EpisodeProductionStep.AUDIO);

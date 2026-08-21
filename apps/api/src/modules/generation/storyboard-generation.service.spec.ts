@@ -158,6 +158,7 @@ function createService(options?: {
         createdTasks.push(data);
         return { id: "task-1", ...data };
       },
+      findMany: async () => [],
       findUnique: async () => ({
         id: "task-1",
         status: "SUCCEEDED",

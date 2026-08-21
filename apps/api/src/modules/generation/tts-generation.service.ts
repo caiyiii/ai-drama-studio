@@ -30,6 +30,7 @@ import {
   persistPreviewAudio,
 } from "./tts/apply-tts-generation";
 import { validateTtsGenerationResult } from "./tts/tts-generation.schema";
+import { assertNoActiveGeneration } from "./assert-no-active-generation";
 
 @Injectable()
 export class TtsGenerationService {
@@ -47,6 +48,15 @@ export class TtsGenerationService {
       dto.episodeId,
       dto.scriptBlockId,
     );
+    await assertNoActiveGeneration(this.prisma, {
+      projectId,
+      type: GenerationTaskType.TTS,
+      match: (payload) =>
+        String(payload.scriptBlockId || "") === block.id ||
+        (String(payload.episodeId || "") === dto.episodeId &&
+          String(payload.scriptBlockId || "") === dto.scriptBlockId),
+      message: "该对白已有 TTS 生成任务正在进行中。",
+    });
     const text = normalizeTtsText(dto.text ?? block.content);
     try {
       validateTtsText(text);

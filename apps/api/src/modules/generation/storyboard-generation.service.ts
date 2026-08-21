@@ -27,6 +27,7 @@ import { CreateStoryboardGenerationDto } from "./dto/create-storyboard-generatio
 import { buildStoryboardGenerationPrompt } from "./prompts/storyboard-generation.prompt";
 import { applyStoryboardGeneration } from "./storyboard/apply-storyboard-generation";
 import { validateStoryboardGenerationResult } from "./storyboard/storyboard-generation.schema";
+import { assertNoActiveGeneration } from "./assert-no-active-generation";
 
 const MAX_STORYBOARD_ATTEMPTS = 3;
 const STORYBOARD_MAX_TOKENS = 8192;
@@ -77,6 +78,12 @@ export class StoryboardGenerationService {
       );
     }
     await this.continuity.validateStoryboardContinuity(projectId, dto.episodeId);
+    await assertNoActiveGeneration(this.prisma, {
+      projectId,
+      type: GenerationTaskType.STORYBOARD,
+      match: (payload) => String(payload.episodeId || "") === dto.episodeId,
+      message: "本集已有分镜生成任务正在进行中。",
+    });
     const resolved = await this.ai.resolveForCapability(
       projectId,
       AiCapability.STRUCTURED_OUTPUT,

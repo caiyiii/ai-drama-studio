@@ -143,7 +143,7 @@ export function isAudioComplete(input: EpisodeProductionInput): boolean {
     dialogueTotal && dialogueTotal > 0
       ? dialogueReady >= dialogueTotal && (voice?.missing?.length ?? 0) === 0
       : dialogueReady > 0 || dialogueTotal === 0;
-  const musicExpected = audio?.musicExpected ?? 1;
+  const musicExpected = audio?.musicExpected ?? 0;
   const musicReady =
     Boolean(audio?.musicReady) || (audio?.musicReadyCount ?? 0) > 0;
   const musicDone = musicExpected <= 0 ? true : musicReady;
@@ -329,7 +329,12 @@ export function resolveEpisodeReadiness(
       !isStoryboardConfirmed(input) &&
       isScriptConfirmed(input),
     canComposeTimeline: isVisualsComplete(input) && isAudioComplete(input),
-    canLockTimeline: Boolean(input.timeline) && !timelineStale && !isTimelineLocked(input),
+    canLockTimeline:
+      Boolean(input.timeline) &&
+      !timelineStale &&
+      !isTimelineLocked(input) &&
+      isVisualsComplete(input) &&
+      isAudioComplete(input),
     canRender: isTimelineLocked(input) && !visualMissing && !dialogueMissing,
     renderBlockedReason,
     missingVisual,

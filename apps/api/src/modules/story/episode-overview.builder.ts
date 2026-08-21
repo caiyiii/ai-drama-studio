@@ -179,9 +179,9 @@ export function buildEpisodeOverview(params: {
     audio: {
       musicReady: musicReadyCount > 0,
       sfxReady: sfxReadyCount > 0,
-      musicExpected: 1,
+      musicExpected: 0,
       musicReadyCount,
-      sfxExpected: sfxReadyCount,
+      sfxExpected: 0,
       sfxReadyCount,
     },
     timeline: params.timeline

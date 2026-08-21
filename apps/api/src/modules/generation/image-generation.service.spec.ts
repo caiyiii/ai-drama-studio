@@ -87,6 +87,7 @@ function createService(options?: {
         createdTasks.push(data);
         return { id: `task-${createdTasks.length}`, ...data };
       },
+      findMany: async () => [],
       findUnique: async () => ({ usage: taskState.usage }),
       update: async ({ data }: { data: Record<string, unknown> }) => {
         if (data.appliedAt) {

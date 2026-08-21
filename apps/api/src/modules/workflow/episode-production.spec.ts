@@ -242,6 +242,46 @@ describe("resolveEpisodeProductionStage / nextAction", () => {
     expect(resolveEpisodeReadiness(value).renderBlockedReason).toContain("Shot 003");
   });
 
+  it("blocks timeline lock while visual assets are incomplete", () => {
+    const value = input({
+      plan: { ready: true },
+      script: scriptReady,
+      storyboard: boardReady,
+      visuals: visualsPartial,
+      ...audioComplete,
+      timeline: { status: TimelineStatus.DRAFT, computedStatus: TimelineStatus.DRAFT, stale: false },
+    });
+    expect(resolveEpisodeReadiness(value).canLockTimeline).toBe(false);
+    expect(resolveEpisodeReadiness(value).canComposeTimeline).toBe(false);
+  });
+
+  it("does not require music when musicExpected is 0", () => {
+    const value = input({
+      plan: { ready: true },
+      script: scriptReady,
+      storyboard: boardReady,
+      visuals: visualsComplete,
+      voice: {
+        dialogueTotal: 2,
+        dialogueReadyCount: 2,
+        missing: [],
+        missingRequired: false,
+      },
+      audio: {
+        musicReady: false,
+        musicReadyCount: 0,
+        musicExpected: 0,
+        sfxReady: false,
+        sfxReadyCount: 0,
+        sfxExpected: 0,
+      },
+      timeline: { status: TimelineStatus.DRAFT, computedStatus: TimelineStatus.DRAFT, stale: false },
+    });
+    expect(resolveEpisodeProductionStage(value)).toBe(EpisodeProductionStage.COMPOSING);
+    expect(resolveEpisodeReadiness(value).canComposeTimeline).toBe(true);
+    expect(resolveEpisodeReadiness(value).canLockTimeline).toBe(true);
+  });
+
   it("Missing required dialogue -> Render blocked", () => {
     const value = input({
       plan: { ready: true },

@@ -677,8 +677,14 @@ describe("timeline engine", () => {
   });
 
   it("locks the timeline against edits and deletion until unlock", async () => {
-    const { builder, timelines } = createStack();
+    const { builder, timelines, store } = createStack();
     const built = await builder.build("proj-a", "ep-a");
+    // Lock requires no missing required assets in the built metadata.
+    store.timelines[0]!.metadata = {
+      ...(store.timelines[0]!.metadata as Record<string, unknown>),
+      missingVisualAsset: [],
+      missingDialogueAudio: [],
+    };
     const locked = await timelines.update("proj-a", "ep-a", { status: TimelineStatus.LOCKED });
     expect(locked.status).toBe(TimelineStatus.LOCKED);
     await expect(
@@ -695,6 +701,14 @@ describe("timeline engine", () => {
       muted: true,
       volume: 0.2,
     });
+  });
+
+  it("rejects lock when required visual or dialogue assets are missing", async () => {
+    const { builder, timelines } = createStack();
+    await builder.build("proj-a", "ep-a");
+    await expect(
+      timelines.update("proj-a", "ep-a", { status: TimelineStatus.LOCKED }),
+    ).rejects.toMatchObject({ code: ErrorCodes.TIMELINE_INCOMPLETE });
   });
 
   it("computes stale status on GET without writing the database", async () => {

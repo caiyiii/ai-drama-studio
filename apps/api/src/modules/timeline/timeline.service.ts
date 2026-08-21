@@ -61,6 +61,27 @@ export class TimelineService {
         "STALE 只能由版本检测计算，不能直接写入",
       );
     }
+    if (dto.status === TimelineStatus.LOCKED) {
+      const metadata =
+        current.metadata &&
+        typeof current.metadata === "object" &&
+        !Array.isArray(current.metadata)
+          ? (current.metadata as Record<string, unknown>)
+          : {};
+      const missingVisual = Array.isArray(metadata.missingVisualAsset)
+        ? metadata.missingVisualAsset
+        : [];
+      const missingDialogue = Array.isArray(metadata.missingDialogueAudio)
+        ? metadata.missingDialogueAudio
+        : [];
+      if (missingVisual.length > 0 || missingDialogue.length > 0) {
+        throw new AppError(
+          HttpStatus.BAD_REQUEST,
+          ErrorCodes.TIMELINE_INCOMPLETE,
+          "时间线仍有缺失素材，无法锁定。请先补齐视觉 / 对白素材后重建时间线。",
+        );
+      }
+    }
     const row = await this.prisma.episodeTimeline.update({
       where: { id: current.id },
       data: {

@@ -97,6 +97,41 @@
         </div>
 
         <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
+          <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Missing</p>
+          <div class="mt-4 grid gap-4 desktop:grid-cols-2">
+            <div>
+              <p class="text-sm text-zinc-300">
+                缺失视觉：{{ overview.missing.visual.length }} / {{ overview.storyboard.shotCount || 0 }}
+              </p>
+              <ul class="mt-2 space-y-1 text-sm text-amber-200">
+                <li v-for="item in overview.missing.visual.slice(0, 12)" :key="item.shotId">
+                  <NuxtLink :to="pathFor('storyboard')" class="hover:text-gold-300">
+                    Shot {{ String(item.shotNumber || "").padStart(3, "0") || item.shotId }}
+                  </NuxtLink>
+                </li>
+              </ul>
+              <p v-if="!overview.missing.visual.length" class="mt-2 text-sm text-emerald-300">视觉素材已齐全</p>
+            </div>
+            <div>
+              <p class="text-sm text-zinc-300">
+                缺失对白：{{ overview.missing.dialogue.length }} / {{ overview.assets.voices.total || 0 }}
+              </p>
+              <ul class="mt-2 space-y-1 text-sm text-amber-200">
+                <li v-for="item in overview.missing.dialogue.slice(0, 12)" :key="item.blockId">
+                  <NuxtLink :to="pathFor('script')" class="hover:text-gold-300">
+                    ScriptBlock {{ String(item.blockIndex || "").padStart(2, "0") || item.blockId }}
+                  </NuxtLink>
+                </li>
+              </ul>
+              <p v-if="!overview.missing.dialogue.length" class="mt-2 text-sm text-emerald-300">对白音频已齐全</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-zinc-500">
+            局部重生成：只处理缺失项。已成功的 Shot / ScriptBlock 不会被批量覆盖。
+          </p>
+        </section>
+
+        <section class="rounded-3xl border border-white/5 bg-ink-900/70 p-5">
           <p class="text-[11px] uppercase tracking-[0.2em] text-gold-400/80">Shots</p>
           <p class="mt-1 text-sm text-zinc-500">图片 / 视频按镜头归属，不进入全局素材库作为生产主入口。</p>
           <div class="mt-4 space-y-3">
