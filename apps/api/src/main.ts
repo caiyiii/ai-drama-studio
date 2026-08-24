@@ -5,6 +5,9 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // JSON API responses should not use browser ETag caching (304 breaks fetch clients).
+  app.getHttpAdapter().getInstance().set("etag", false);
+
   const defaultOrigins = [
     "http://localhost:3010",
     "http://127.0.0.1:3010",
