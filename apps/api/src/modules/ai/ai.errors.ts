@@ -26,7 +26,9 @@ export function sanitizeSecret(text: string, secret?: string): string {
   if (secret) {
     output = output.split(secret).join("[redacted]");
   }
-  return output.replace(/Bearer\s+\S+/gi, "Bearer [redacted]");
+  return output
+    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/\bKey\s+\S+/gi, "Key [redacted]");
 }
 
 export function userFacingAiError(error: unknown, secret?: string): string {

@@ -24,7 +24,7 @@
           :options="kindOptions"
         />
       </label>
-      <label class="block text-sm">
+      <label v-if="!isFal" class="block text-sm">
         <span class="text-xs uppercase tracking-[0.16em] text-zinc-500">Base URL</span>
         <input
           v-model="form.baseUrl"
@@ -33,6 +33,9 @@
           placeholder="https://api.deepseek.com"
         />
       </label>
+      <p v-else class="text-xs text-zinc-500">
+        FAL.ai 使用官方 Queue API（{{ falDefaultBaseUrl }}），无需填写 OpenAI 风格 Base URL。
+      </p>
       <label class="block text-sm">
         <span class="text-xs uppercase tracking-[0.16em] text-zinc-500">API Key</span>
         <input
@@ -41,7 +44,7 @@
           type="password"
           autocomplete="off"
           class="mt-2 w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm outline-none ring-gold-400/40 placeholder:text-zinc-600 focus:ring-2"
-          :placeholder="editing ? '••••••••••••••' : 'sk-…'"
+          :placeholder="editing ? '••••••••••••••' : isFal ? 'FAL_KEY' : 'sk-…'"
         />
       </label>
       <label class="block text-sm">
@@ -50,22 +53,29 @@
           v-model="form.model"
           required
           class="mt-2 w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm outline-none ring-gold-400/40 placeholder:text-zinc-600 focus:ring-2"
-          placeholder="deepseek-chat"
+          :placeholder="isFal ? 'fal-ai/flux/schnell' : 'deepseek-chat'"
         />
       </label>
       <div>
         <p class="text-xs uppercase tracking-[0.16em] text-zinc-500">Capabilities</p>
         <div class="mt-2 space-y-2">
-          <StudioCheckbox v-model="form.chat" label="Chat" />
-          <StudioCheckbox v-model="form.structured" label="Structured Output" />
+          <template v-if="!isFal">
+            <StudioCheckbox v-model="form.chat" label="Chat" />
+            <StudioCheckbox v-model="form.structured" label="Structured Output" />
+          </template>
           <StudioCheckbox v-model="form.image" label="Image" />
           <StudioCheckbox v-model="form.video" label="Video" />
           <StudioCheckbox v-model="form.imageToVideo" label="Image to Video" />
-          <StudioCheckbox v-model="form.tts" label="TTS" />
-          <StudioCheckbox v-model="form.music" label="Music" />
-          <StudioCheckbox v-model="form.sfx" label="SFX" />
-          <p class="text-xs text-zinc-600">Voice Clone 仍为架构预留（Coming Soon）。</p>
-          <p class="text-xs text-zinc-600">测试连接走 Chat Completions。纯图片 / 视频 / 语音 / 音乐 / 音效 Provider 可保存后在工作台验证生成。</p>
+          <template v-if="!isFal">
+            <StudioCheckbox v-model="form.tts" label="TTS" />
+            <StudioCheckbox v-model="form.music" label="Music" />
+            <StudioCheckbox v-model="form.sfx" label="SFX" />
+          </template>
+          <p v-if="isFal" class="text-xs text-zinc-600">
+            FAL.ai 本阶段支持 Image / Video / Image-to-Video。测试连接会发起一次最小图片生成请求。
+          </p>
+          <p v-else class="text-xs text-zinc-600">Voice Clone 仍为架构预留（Coming Soon）。</p>
+          <p v-if="!isFal" class="text-xs text-zinc-600">测试连接走 Chat Completions。纯图片 / 视频 / 语音 / 音乐 / 音效 Provider 可保存后在工作台验证生成。</p>
         </div>
       </div>
       <StudioCheckbox v-model="form.isDefault" label="设为默认" />
@@ -106,6 +116,7 @@ import {
   AIProviderKind,
   AI_PROVIDER_KIND_LABELS,
   AiCapability,
+  FAL_DEFAULT_BASE_URL,
   SUPPORTED_AI_PROVIDER_KINDS,
   type AIProvider,
 } from "@ai-drama-studio/types";
@@ -123,6 +134,7 @@ const emit = defineEmits<{
 
 const store = useAiProviderStore();
 const supported = SUPPORTED_AI_PROVIDER_KINDS;
+const falDefaultBaseUrl = FAL_DEFAULT_BASE_URL;
 
 const form = reactive({
   name: "",
@@ -144,16 +156,25 @@ const verifiedSnapshot = ref<string | null>(null);
 const testOk = ref(false);
 const localError = ref<string | null>(null);
 
+const isFal = computed(() => form.provider === AIProviderKind.FAL);
+
 const kindOptions = Object.values(AIProviderKind).map((kind) => ({
   value: kind,
   label: `${AI_PROVIDER_KIND_LABELS[kind]}${supported.includes(kind) ? "" : "（即将支持）"}`,
   disabled: !supported.includes(kind),
 }));
 
+function effectiveBaseUrl() {
+  if (isFal.value) {
+    return form.baseUrl.trim() || FAL_DEFAULT_BASE_URL;
+  }
+  return form.baseUrl.trim();
+}
+
 function connectionSnapshot() {
   return JSON.stringify({
     provider: form.provider,
-    baseUrl: form.baseUrl.trim(),
+    baseUrl: effectiveBaseUrl(),
     model: form.model.trim(),
     apiKey: form.apiKey.trim() || (props.editing ? "__kept__" : ""),
   });
@@ -161,12 +182,15 @@ function connectionSnapshot() {
 
 const canTest = computed(
   () =>
-    Boolean(form.baseUrl.trim() && form.model.trim()) &&
+    Boolean(form.model.trim() && (isFal.value || form.baseUrl.trim())) &&
     (Boolean(form.apiKey.trim()) || Boolean(props.editing?.hasApiKey)),
 );
 
 const canSave = computed(() => {
-  if (!form.name.trim() || !form.baseUrl.trim() || !form.model.trim()) {
+  if (!form.name.trim() || !form.model.trim()) {
+    return false;
+  }
+  if (!isFal.value && !form.baseUrl.trim()) {
     return false;
   }
   if (!props.editing && !form.apiKey.trim()) {
@@ -217,17 +241,52 @@ watch(
     form.apiKey = "";
     form.model = editing?.model ?? "";
     form.isDefault = editing?.isDefault ?? false;
-    form.chat = editing?.capabilities?.includes(AiCapability.CHAT) ?? true;
-    form.structured =
-      editing?.capabilities?.includes(AiCapability.STRUCTURED_OUTPUT) ?? true;
-    form.image = editing?.capabilities?.includes(AiCapability.IMAGE) ?? false;
-    form.video = editing?.capabilities?.includes(AiCapability.VIDEO) ?? false;
-    form.imageToVideo =
-      editing?.capabilities?.includes(AiCapability.IMAGE_TO_VIDEO) ?? false;
-    form.tts = editing?.capabilities?.includes(AiCapability.TTS) ?? false;
-    form.music = editing?.capabilities?.includes(AiCapability.MUSIC) ?? false;
-    form.sfx = editing?.capabilities?.includes(AiCapability.SFX) ?? false;
+    if ((editing?.provider ?? AIProviderKind.OPENAI_COMPATIBLE) === AIProviderKind.FAL) {
+      form.chat = false;
+      form.structured = false;
+      form.image = editing?.capabilities?.includes(AiCapability.IMAGE) ?? true;
+      form.video = editing?.capabilities?.includes(AiCapability.VIDEO) ?? false;
+      form.imageToVideo =
+        editing?.capabilities?.includes(AiCapability.IMAGE_TO_VIDEO) ?? false;
+      form.tts = false;
+      form.music = false;
+      form.sfx = false;
+      if (!form.baseUrl) form.baseUrl = FAL_DEFAULT_BASE_URL;
+    } else {
+      form.chat = editing?.capabilities?.includes(AiCapability.CHAT) ?? true;
+      form.structured =
+        editing?.capabilities?.includes(AiCapability.STRUCTURED_OUTPUT) ?? true;
+      form.image = editing?.capabilities?.includes(AiCapability.IMAGE) ?? false;
+      form.video = editing?.capabilities?.includes(AiCapability.VIDEO) ?? false;
+      form.imageToVideo =
+        editing?.capabilities?.includes(AiCapability.IMAGE_TO_VIDEO) ?? false;
+      form.tts = editing?.capabilities?.includes(AiCapability.TTS) ?? false;
+      form.music = editing?.capabilities?.includes(AiCapability.MUSIC) ?? false;
+      form.sfx = editing?.capabilities?.includes(AiCapability.SFX) ?? false;
+    }
     verifiedSnapshot.value = editing ? connectionSnapshot() : null;
+  },
+);
+
+watch(
+  () => form.provider,
+  (kind) => {
+    if (kind === AIProviderKind.FAL) {
+      form.chat = false;
+      form.structured = false;
+      form.tts = false;
+      form.music = false;
+      form.sfx = false;
+      if (!form.image && !form.video && !form.imageToVideo) {
+        form.image = true;
+      }
+      if (!form.baseUrl.trim()) {
+        form.baseUrl = FAL_DEFAULT_BASE_URL;
+      }
+      if (!form.model.trim()) {
+        form.model = "fal-ai/flux/schnell";
+      }
+    }
   },
 );
 
@@ -254,7 +313,7 @@ async function onTest() {
   }
   const result = await store.testProviderConfig({
     provider: form.provider as AIProviderKind,
-    baseUrl: form.baseUrl.trim(),
+    baseUrl: effectiveBaseUrl(),
     apiKey: form.apiKey.trim(),
     model: form.model.trim(),
   });
@@ -291,7 +350,7 @@ async function onSave() {
     const updated = await store.updateProvider(props.editing.id, {
       name: form.name.trim(),
       provider: form.provider as AIProviderKind,
-      baseUrl: form.baseUrl.trim(),
+      baseUrl: effectiveBaseUrl(),
       model: form.model.trim(),
       isDefault: form.isDefault,
       capabilities,
@@ -308,7 +367,7 @@ async function onSave() {
   const created = await store.createProvider({
     name: form.name.trim(),
     provider: form.provider as AIProviderKind,
-    baseUrl: form.baseUrl.trim(),
+    baseUrl: effectiveBaseUrl(),
     apiKey: form.apiKey.trim(),
     model: form.model.trim(),
     isDefault: form.isDefault,

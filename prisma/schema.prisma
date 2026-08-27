@@ -159,6 +159,7 @@ enum AiProviderKind {
   QWEN
   GEMINI
   CLAUDE
+  FAL
 }
 
 enum CharacterStatus {

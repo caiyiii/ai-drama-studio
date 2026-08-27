@@ -71,6 +71,12 @@ export function modelSupportsCapability(
 
 const KINDS_ALLOWING_MEDIA = new Set(["OPENAI_COMPATIBLE", "OPENAI"]);
 
+const FAL_MEDIA_CAPABILITIES = new Set([
+  AiCapability.IMAGE,
+  AiCapability.VIDEO,
+  AiCapability.IMAGE_TO_VIDEO,
+]);
+
 const MEDIA_CAPABILITIES = new Set([
   AiCapability.IMAGE,
   AiCapability.VIDEO,
@@ -84,6 +90,9 @@ export function kindAllowsCapability(
   kind: string,
   capability: string,
 ): boolean {
+  if (kind === "FAL") {
+    return FAL_MEDIA_CAPABILITIES.has(capability as AiCapability);
+  }
   if (isLegacyTextCapability(capability)) {
     return true;
   }

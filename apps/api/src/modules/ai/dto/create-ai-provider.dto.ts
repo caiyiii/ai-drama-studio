@@ -18,10 +18,10 @@ export class CreateAiProviderDto {
   @IsEnum(AiProviderKind)
   provider!: AiProviderKind;
 
+  @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(500)
-  baseUrl!: string;
+  baseUrl?: string;
 
   @IsString()
   @MinLength(1)
@@ -30,7 +30,7 @@ export class CreateAiProviderDto {
 
   @IsString()
   @MinLength(1)
-  @MaxLength(120)
+  @MaxLength(200)
   model!: string;
 
   @IsOptional()

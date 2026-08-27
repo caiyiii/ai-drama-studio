@@ -1,14 +1,14 @@
 import { AiProviderKind } from "@prisma/client";
-import { IsEnum, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class TestAiProviderDto {
   @IsEnum(AiProviderKind)
   provider!: AiProviderKind;
 
+  @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(500)
-  baseUrl!: string;
+  baseUrl?: string;
 
   @IsString()
   @MinLength(1)
@@ -17,6 +17,6 @@ export class TestAiProviderDto {
 
   @IsString()
   @MinLength(1)
-  @MaxLength(120)
+  @MaxLength(200)
   model!: string;
 }

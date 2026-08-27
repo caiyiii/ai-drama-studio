@@ -17,7 +17,7 @@ import { CryptoService } from "./crypto/crypto.service";
 import { CreateAiProviderDto } from "./dto/create-ai-provider.dto";
 import { TestAiProviderDto } from "./dto/test-ai-provider.dto";
 import { UpdateAiProviderDto } from "./dto/update-ai-provider.dto";
-import { isSupportedProviderKind } from "./providers/create-provider";
+import { isSupportedProviderKind, defaultBaseUrlForKind } from "./providers/create-provider";
 import { ProviderResolver } from "./provider-resolver";
 import { AiService } from "./ai.service";
 
@@ -52,6 +52,17 @@ export class AiProvidersService {
     const capabilities = this.normalizeCapabilities(dto.provider, dto.capabilities);
     const encryptedApiKey = this.crypto.encryptApiKey(dto.apiKey.trim());
     const model = dto.model.trim();
+    const baseUrl =
+      (dto.baseUrl?.trim() || "") ||
+      defaultBaseUrlForKind(dto.provider) ||
+      "";
+    if (!baseUrl) {
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.INVALID_REQUEST,
+        "请填写 Base URL。",
+      );
+    }
     const created = await this.prisma.$transaction(async (tx) => {
       if (dto.isDefault) {
         await tx.aiProvider.updateMany({
@@ -63,7 +74,7 @@ export class AiProvidersService {
         data: {
           name: dto.name.trim(),
           provider: dto.provider,
-          baseUrl: dto.baseUrl.trim(),
+          baseUrl,
           model,
           encryptedApiKey,
           isDefault: Boolean(dto.isDefault),
@@ -211,10 +222,19 @@ export class AiProvidersService {
   async testDraft(dto: TestAiProviderDto): Promise<AIProviderTestResult> {
     this.crypto.assertManagementEnabled();
     this.assertSupported(dto.provider);
+    const baseUrl =
+      dto.baseUrl?.trim() || defaultBaseUrlForKind(dto.provider) || "";
+    if (!baseUrl) {
+      return {
+        success: false,
+        code: ErrorCodes.INVALID_REQUEST,
+        message: "请填写 Base URL。",
+      };
+    }
     return this.runTest(
       {
         provider: dto.provider,
-        baseUrl: dto.baseUrl.trim(),
+        baseUrl,
         apiKey: dto.apiKey.trim(),
         model: dto.model.trim(),
       },
@@ -312,7 +332,7 @@ export class AiProvidersService {
       throw new AppError(
         HttpStatus.BAD_REQUEST,
         ErrorCodes.PROVIDER_NOT_SUPPORTED,
-        `当前仅支持 OpenAI Compatible Provider。`,
+        `当前支持 OpenAI Compatible 与 FAL.ai Provider。`,
       );
     }
   }
@@ -324,7 +344,9 @@ export class AiProvidersService {
     const next =
       capabilities && capabilities.length > 0
         ? Array.from(new Set(capabilities))
-        : [AiCapability.CHAT, AiCapability.STRUCTURED_OUTPUT];
+        : kind === AiProviderKind.FAL
+          ? [AiCapability.IMAGE]
+          : [AiCapability.CHAT, AiCapability.STRUCTURED_OUTPUT];
     for (const capability of next) {
       if (!kindAllowsCapability(kind, capability)) {
         throw new AppError(

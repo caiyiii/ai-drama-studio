@@ -553,6 +553,98 @@ describe("Capability Resolver", () => {
     ).rejects.toMatchObject({ code: ErrorCodes.NO_AI_PROVIDER_CONFIGURED });
   });
 
+  it("resolves FAL for IMAGE / VIDEO / IMAGE_TO_VIDEO and rejects CHAT", async () => {
+    const fal = makeProvider({
+      id: "fal-1",
+      name: "FAL.ai",
+      provider: AiProviderKind.FAL,
+      baseUrl: "https://queue.fal.run",
+      model: "fal-ai/flux/schnell",
+      capabilities: [
+        { capability: AiCapability.IMAGE, enabled: true },
+        { capability: AiCapability.VIDEO, enabled: true },
+        { capability: AiCapability.IMAGE_TO_VIDEO, enabled: true },
+      ],
+      models: [
+        {
+          id: "mdl-fal-1",
+          providerId: "fal-1",
+          name: "fal-ai/flux/schnell",
+          modelId: "fal-ai/flux/schnell",
+          capabilities: [
+            AiCapability.IMAGE,
+            AiCapability.VIDEO,
+            AiCapability.IMAGE_TO_VIDEO,
+          ],
+          enabled: true,
+        },
+      ],
+    });
+    const chat = makeProvider({ id: "chat-1", name: "DeepSeek Chat" });
+    const resolver = createResolver({
+      project: { id: "proj-1", aiProviderId: "chat-1" },
+      providers: [fal, chat],
+      configs: [
+        {
+          projectId: "proj-1",
+          capability: AiCapability.IMAGE,
+          providerId: "fal-1",
+          modelId: "mdl-fal-1",
+        },
+        {
+          projectId: "proj-1",
+          capability: AiCapability.VIDEO,
+          providerId: "fal-1",
+          modelId: "mdl-fal-1",
+        },
+        {
+          projectId: "proj-1",
+          capability: AiCapability.IMAGE_TO_VIDEO,
+          providerId: "fal-1",
+          modelId: "mdl-fal-1",
+        },
+      ],
+    });
+    const image = await resolver.resolveForCapability({
+      projectId: "proj-1",
+      capability: AiCapability.IMAGE,
+    });
+    const video = await resolver.resolveForCapability({
+      projectId: "proj-1",
+      capability: AiCapability.VIDEO,
+    });
+    const i2v = await resolver.resolveForCapability({
+      projectId: "proj-1",
+      capability: AiCapability.IMAGE_TO_VIDEO,
+    });
+    expect(image.kind).toBe(AiProviderKind.FAL);
+    expect(image.name).toBe("FAL.ai");
+    expect(video.kind).toBe(AiProviderKind.FAL);
+    expect(i2v.kind).toBe(AiProviderKind.FAL);
+
+    await expect(
+      resolver.resolveForCapability({
+        projectId: "proj-1",
+        capability: AiCapability.CHAT,
+      }),
+    ).resolves.toMatchObject({
+      kind: AiProviderKind.OPENAI_COMPATIBLE,
+      name: "DeepSeek Chat",
+    });
+
+    const falOnly = createResolver({
+      project: { id: "proj-2", aiProviderId: null },
+      providers: [fal],
+      env: {},
+    });
+    await expect(
+      falOnly.resolveForCapability({
+        projectId: "proj-2",
+        capability: AiCapability.CHAT,
+      }),
+    ).rejects.toMatchObject({ code: ErrorCodes.NO_AI_PROVIDER_CONFIGURED });
+  });
+
   it("resolves a project VIDEO provider separately from IMAGE", async () => {
     const image = makeProvider({
       id: "img",

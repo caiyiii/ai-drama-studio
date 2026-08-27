@@ -35,7 +35,7 @@ export class UpdateAiProviderDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @MaxLength(120)
+  @MaxLength(200)
   model?: string;
 
   @IsOptional()

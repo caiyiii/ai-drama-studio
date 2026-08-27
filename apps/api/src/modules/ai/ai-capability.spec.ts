@@ -62,6 +62,15 @@ describe("AiCapability", () => {
     expect(kindAllowsCapability("OPENAI_COMPATIBLE", AiCapability.SFX)).toBe(true);
   });
 
+  it("allows FAL media capabilities only", () => {
+    expect(kindAllowsCapability("FAL", AiCapability.IMAGE)).toBe(true);
+    expect(kindAllowsCapability("FAL", AiCapability.VIDEO)).toBe(true);
+    expect(kindAllowsCapability("FAL", AiCapability.IMAGE_TO_VIDEO)).toBe(true);
+    expect(kindAllowsCapability("FAL", AiCapability.CHAT)).toBe(false);
+    expect(kindAllowsCapability("FAL", AiCapability.STRUCTURED_OUTPUT)).toBe(false);
+    expect(kindAllowsCapability("FAL", AiCapability.TTS)).toBe(false);
+  });
+
   it("defaults new providers to text capabilities", () => {
     expect(defaultProviderCapabilities()).toEqual([
       AiCapability.CHAT,

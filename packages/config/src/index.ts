@@ -91,6 +91,7 @@ export const AI_PROVIDER_KINDS = [
   "QWEN",
   "GEMINI",
   "CLAUDE",
+  "FAL",
 ] as const;
 
 export const CHARACTER_GENDERS = ["男", "女", "非二元", "未知"] as const;
@@ -151,6 +152,14 @@ export const OPENAI_COMPATIBLE_CAPABILITIES = [
   "MUSIC",
   "SFX",
 ] as const satisfies readonly AiCapabilityId[];
+
+export const FAL_CAPABILITIES = [
+  "IMAGE",
+  "VIDEO",
+  "IMAGE_TO_VIDEO",
+] as const satisfies readonly AiCapabilityId[];
+
+export const FAL_DEFAULT_BASE_URL = "https://queue.fal.run";
 
 export const MUSIC_DURATION_MIN_SECONDS = 1;
 export const MUSIC_DURATION_MAX_SECONDS = 600;

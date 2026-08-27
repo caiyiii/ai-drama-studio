@@ -799,6 +799,7 @@ export enum AIProviderKind {
   QWEN = "QWEN",
   GEMINI = "GEMINI",
   CLAUDE = "CLAUDE",
+  FAL = "FAL",
 }
 
 export const AI_PROVIDER_KIND_LABELS: Record<AIProviderKind, string> = {
@@ -808,11 +809,15 @@ export const AI_PROVIDER_KIND_LABELS: Record<AIProviderKind, string> = {
   [AIProviderKind.QWEN]: "Qwen",
   [AIProviderKind.GEMINI]: "Gemini",
   [AIProviderKind.CLAUDE]: "Claude",
+  [AIProviderKind.FAL]: "FAL.ai",
 };
 
 export const SUPPORTED_AI_PROVIDER_KINDS: AIProviderKind[] = [
   AIProviderKind.OPENAI_COMPATIBLE,
+  AIProviderKind.FAL,
 ];
+
+export const FAL_DEFAULT_BASE_URL = "https://queue.fal.run";
 
 export const SYSTEM_AI_PROVIDER_ID = "system";
 
