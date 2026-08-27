@@ -54,11 +54,42 @@ export class FalProvider implements AiProvider {
   }
 
   async testConnection(): Promise<void> {
+    await this.testImageConnection();
+  }
+
+  /**
+   * Minimal IMAGE queue used by Provider Management "Test Connection".
+   * Always targets https://queue.fal.run/{model} — never the queue root.
+   */
+  async testImageConnection(): Promise<{
+    provider: "FAL";
+    capability: "IMAGE";
+    model: string;
+    requestId: string;
+    submitUrl: string;
+    message: string;
+  }> {
     this.assertReady();
-    await this.generateImage({
-      prompt: "A simple cinematic test image",
-      n: 1,
-    });
+    const model = this.model;
+    const { requestId, data, submitUrl } = await this.client.runModel(
+      model,
+      buildFalImageInput({
+        prompt: "A simple cinematic landscape",
+        n: 1,
+      }),
+    );
+    const images = extractFalImageUrls(data);
+    if (images.length === 0) {
+      throw new AiProviderError("FAL 图片生成未返回任何结果。", "UNAVAILABLE");
+    }
+    return {
+      provider: "FAL",
+      capability: "IMAGE",
+      model,
+      requestId,
+      submitUrl,
+      message: "FAL connection test successful",
+    };
   }
 
   async generateImage(request: AiImageRequest): Promise<ImageGenerationResult> {

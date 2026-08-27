@@ -942,6 +942,10 @@ export interface AIProviderTestResult {
   success: boolean;
   code?: string;
   message?: string;
+  provider?: string;
+  capability?: string;
+  model?: string;
+  requestId?: string;
 }
 
 export interface ProjectAIProvider {

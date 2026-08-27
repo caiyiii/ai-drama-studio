@@ -22,6 +22,33 @@ Project AI Config (capability)
 
 Generation Service（如 `ImageGenerationService`）**不会**直接调用 FAL。
 
+## Queue endpoints
+
+Submit:
+
+```http
+POST https://queue.fal.run/{model}
+Authorization: Key <FAL_KEY>
+Content-Type: application/json
+
+{ "prompt": "A simple cinematic landscape" }
+```
+
+Never call the bare root:
+
+```text
+https://queue.fal.run
+```
+
+Status / result:
+
+```text
+GET https://queue.fal.run/{model}/requests/{request_id}/status
+GET https://queue.fal.run/{model}/requests/{request_id}
+```
+
+Adapter code: `FalClient.submitRequest` / `getRequestStatus` / `getRequestResult`.
+
 ## 创建 Provider
 
 1. 打开 **AI Providers** 管理页
@@ -29,12 +56,18 @@ Generation Service（如 `ImageGenerationService`）**不会**直接调用 FAL�
    - **名称**：例如 `FAL.ai`
    - **类型**：`FAL.ai`
    - **API Key**：你的 FAL Key（仅服务端加密存储）
-   - **Model**：例如 `fal-ai/flux/schnell`（按能力选择真实模型）
+   - **Model**：例如 `fal-ai/nano-banana-2`（必须是 `owner/name` 形式）
    - **Capabilities**：勾选 `IMAGE` / `VIDEO` / `IMAGE_TO_VIDEO`
-3. 点击 **测试连接**（会发起一次最小 IMAGE 请求）
+3. 点击 **测试连接**（会发起一次最小 IMAGE Queue 请求并轮询至完成）
 4. 测试成功后保存
 
 Base URL 默认使用官方 Queue API：`https://queue.fal.run`。UI 不要求填写 OpenAI 风格 Base URL。
+
+若测试返回 HTTP 405，通常表示请求打到了错误 endpoint（例如缺少 model）。正确 endpoint 必须是：
+
+```text
+https://queue.fal.run/{model}
+```
 
 ## 绑定项目
 

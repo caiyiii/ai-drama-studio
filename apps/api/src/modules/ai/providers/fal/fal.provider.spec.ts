@@ -1,6 +1,13 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { AiProviderError } from "../../ai.errors";
-import { FalClient, mapFalHttpError, normalizeFalModelPath } from "./fal.client";
+import {
+  FalClient,
+  assertFalModelEndpoint,
+  buildFalQueueEndpoint,
+  mapFalHttpError,
+  normalizeFalModelPath,
+  requireFalModelPath,
+} from "./fal.client";
 import { FalProvider } from "./fal.provider";
 import {
   buildFalImageInput,
@@ -47,20 +54,63 @@ describe("fal.mapper", () => {
   });
 });
 
-describe("fal.client helpers", () => {
-  it("normalizes model path", () => {
-    expect(normalizeFalModelPath("fal-ai/flux/schnell")).toBe("fal-ai/flux/schnell");
-    expect(normalizeFalModelPath("https://queue.fal.run/fal-ai/flux/schnell")).toBe(
-      "fal-ai/flux/schnell",
+describe("fal endpoint construction", () => {
+  it("builds queue.fal.run/{model}", () => {
+    expect(buildFalQueueEndpoint("https://queue.fal.run", "fal-ai/nano-banana-2")).toBe(
+      "https://queue.fal.run/fal-ai/nano-banana-2",
+    );
+    expect(
+      buildFalQueueEndpoint("https://queue.fal.run/", "fal-ai/flux/schnell"),
+    ).toBe("https://queue.fal.run/fal-ai/flux/schnell");
+  });
+
+  it("normalizes full URL models", () => {
+    expect(
+      normalizeFalModelPath("https://queue.fal.run/fal-ai/nano-banana-2"),
+    ).toBe("fal-ai/nano-banana-2");
+  });
+
+  it("rejects empty model before any HTTP call", () => {
+    expect(() => requireFalModelPath("")).toThrow(/model endpoint is required/i);
+    expect(() => requireFalModelPath("https://queue.fal.run")).toThrow(
+      /model endpoint is required/i,
+    );
+    expect(() => buildFalQueueEndpoint("https://queue.fal.run", "")).toThrow(
+      /model endpoint is required/i,
     );
   });
 
-  it("maps http errors", () => {
-    expect(mapFalHttpError(401, {}, "secret").code).toBe("MISSING_API_KEY");
-    expect(mapFalHttpError(404, { error: "Model not found" }, "secret").code).toBe(
-      "MODEL_NOT_FOUND",
+  it("rejects owner-only model ids", () => {
+    expect(() => requireFalModelPath("fal-ai")).toThrow(/owner\/name/i);
+  });
+
+  it("rejects bare queue root endpoints", () => {
+    expect(() => assertFalModelEndpoint("https://queue.fal.run", "x")).toThrow(
+      /model endpoint is required/i,
     );
-    expect(mapFalHttpError(429, {}, "secret").message).toContain("频繁");
+  });
+});
+
+describe("fal.client helpers", () => {
+  it("maps http errors with diagnostics", () => {
+    expect(mapFalHttpError(401, {}, "secret").message).toMatch(/Invalid FAL API Key/i);
+    expect(mapFalHttpError(403, {}, "secret").message).toMatch(/permissions/i);
+    expect(
+      mapFalHttpError(404, {}, "secret", { modelPath: "fal-ai/missing" }).code,
+    ).toBe("MODEL_NOT_FOUND");
+    expect(
+      mapFalHttpError(405, {}, "secret", {
+        modelPath: "fal-ai/nano-banana-2",
+        endpoint: "https://queue.fal.run",
+      }).message,
+    ).toMatch(/FAL HTTP 405/);
+    expect(
+      mapFalHttpError(405, {}, "secret", {
+        modelPath: "fal-ai/nano-banana-2",
+        endpoint: "https://queue.fal.run",
+      }).message,
+    ).toMatch(/Expected: https:\/\/queue\.fal\.run\/\{model\}/);
+    expect(mapFalHttpError(429, {}, "secret").message).toMatch(/rate limit/i);
   });
 });
 
@@ -72,15 +122,31 @@ describe("FalClient", () => {
     vi.restoreAllMocks();
   });
 
-  it("submits, polls, and returns result", async () => {
-    const calls: string[] = [];
+  it("never POSTs to the queue root and uses Key auth", async () => {
+    const calls: Array<{ url: string; method: string; auth?: string; body?: string }> =
+      [];
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      calls.push(`${init?.method || "GET"} ${url}`);
-      const auth = (init?.headers as Record<string, string>)?.Authorization;
-      expect(auth).toBe("Key test-key");
-      if (url.endsWith("/fal-ai/flux/schnell") && init?.method === "POST") {
-        return new Response(JSON.stringify({ request_id: "req-1" }), { status: 200 });
+      const headers = init?.headers as Record<string, string>;
+      calls.push({
+        url,
+        method: init?.method || "GET",
+        auth: headers?.Authorization,
+        body: typeof init?.body === "string" ? init.body : undefined,
+      });
+      if (init?.method === "POST") {
+        expect(url).toBe("https://queue.fal.run/fal-ai/nano-banana-2");
+        expect(url).not.toBe("https://queue.fal.run");
+        return new Response(
+          JSON.stringify({
+            request_id: "req-1",
+            status_url:
+              "https://queue.fal.run/fal-ai/nano-banana-2/requests/req-1/status",
+            response_url:
+              "https://queue.fal.run/fal-ai/nano-banana-2/requests/req-1/response",
+          }),
+          { status: 200 },
+        );
       }
       if (url.includes("/status")) {
         return new Response(JSON.stringify({ status: "COMPLETED" }), { status: 200 });
@@ -95,13 +161,67 @@ describe("FalClient", () => {
 
     const client = new FalClient({
       apiKey: "test-key",
-      pollIntervalMs: 10,
+      pollIntervalMs: 1,
       maxPollAttempts: 3,
     });
-    const result = await client.runModel("fal-ai/flux/schnell", { prompt: "cat" });
+    const result = await client.runModel("fal-ai/nano-banana-2", {
+      prompt: "A simple cinematic landscape",
+    });
     expect(result.requestId).toBe("req-1");
-    expect(result.data.images?.[0]?.url).toContain("out.png");
-    expect(calls[0]).toContain("POST");
+    expect(result.submitUrl).toBe("https://queue.fal.run/fal-ai/nano-banana-2");
+    expect(calls[0]?.auth).toBe("Key test-key");
+    expect(calls[0]?.auth).not.toMatch(/^Bearer /);
+    expect(calls[0]?.body).toContain("A simple cinematic landscape");
+    expect(calls.some((c) => c.url === "https://queue.fal.run")).toBe(false);
+  });
+
+  it("polls IN_QUEUE → IN_PROGRESS → COMPLETED", async () => {
+    let statusCalls = 0;
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (init?.method === "POST") {
+        return new Response(JSON.stringify({ request_id: "req-poll" }), { status: 200 });
+      }
+      if (url.includes("/status")) {
+        statusCalls += 1;
+        const status =
+          statusCalls === 1
+            ? "IN_QUEUE"
+            : statusCalls === 2
+              ? "IN_PROGRESS"
+              : "COMPLETED";
+        return new Response(JSON.stringify({ status }), { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ images: [{ url: "https://cdn.example/done.png" }] }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+
+    const client = new FalClient({
+      apiKey: "k",
+      pollIntervalMs: 1,
+      maxPollAttempts: 5,
+    });
+    const result = await client.runModel("fal-ai/flux/schnell", { prompt: "x" });
+    expect(result.data.images?.[0]?.url).toContain("done.png");
+    expect(statusCalls).toBeGreaterThanOrEqual(3);
+  });
+
+  it("propagates FAILED queue status", async () => {
+    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        return new Response(JSON.stringify({ request_id: "req-fail" }), { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ status: "FAILED", error: "boom" }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const client = new FalClient({ apiKey: "k", pollIntervalMs: 1, maxPollAttempts: 2 });
+    await expect(
+      client.runModel("fal-ai/flux/schnell", { prompt: "x" }),
+    ).rejects.toMatchObject({ message: expect.stringContaining("boom") });
   });
 
   it("maps missing api key on 401", async () => {
@@ -112,6 +232,28 @@ describe("FalClient", () => {
     await expect(client.runModel("fal-ai/flux/schnell", { prompt: "x" })).rejects.toMatchObject({
       code: "MISSING_API_KEY",
     });
+  });
+
+  it("maps HTTP 405 to a meaningful provider error", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({}), { status: 405 }),
+    ) as typeof fetch;
+    const client = new FalClient({ apiKey: "k" });
+    await expect(
+      client.runModel("fal-ai/nano-banana-2", { prompt: "x" }),
+    ).rejects.toMatchObject({
+      message: expect.stringMatching(/FAL HTTP 405[\s\S]*Expected: https:\/\/queue\.fal\.run\/\{model\}/),
+    });
+  });
+
+  it("refuses empty model without calling fetch", async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as typeof fetch;
+    const client = new FalClient({ apiKey: "k" });
+    await expect(client.runModel("", { prompt: "x" })).rejects.toBeInstanceOf(
+      AiProviderError,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -129,7 +271,9 @@ describe("FalProvider", () => {
       model: "fal-ai/flux/schnell",
       baseUrl: "https://queue.fal.run",
     });
-    await expect(provider.generateImage({ prompt: "x" })).rejects.toBeInstanceOf(AiProviderError);
+    await expect(provider.generateImage({ prompt: "x" })).rejects.toBeInstanceOf(
+      AiProviderError,
+    );
   });
 
   it("rejects chat capability", async () => {
@@ -143,10 +287,11 @@ describe("FalProvider", () => {
     });
   });
 
-  it("normalizes successful image response", async () => {
+  it("normalizes successful image response via queue lifecycle", async () => {
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (init?.method === "POST") {
+        expect(url).toBe("https://queue.fal.run/fal-ai/flux/schnell");
         return new Response(JSON.stringify({ request_id: "r1" }), { status: 200 });
       }
       if (url.includes("/status")) {
@@ -165,9 +310,14 @@ describe("FalProvider", () => {
       model: "fal-ai/flux/schnell",
       baseUrl: "https://queue.fal.run",
     });
-    const result = await provider.generateImage({ prompt: "hero" });
-    expect(result.images[0]?.url).toBe("https://cdn.example/i.png");
-    expect(result.provider).toBe("FAL");
+    const result = await provider.testImageConnection();
+    expect(result).toMatchObject({
+      provider: "FAL",
+      capability: "IMAGE",
+      model: "fal-ai/flux/schnell",
+      requestId: "r1",
+      message: "FAL connection test successful",
+    });
   });
 
   it("normalizes successful video response", async () => {

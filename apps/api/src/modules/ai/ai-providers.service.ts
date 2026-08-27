@@ -18,6 +18,7 @@ import { CreateAiProviderDto } from "./dto/create-ai-provider.dto";
 import { TestAiProviderDto } from "./dto/test-ai-provider.dto";
 import { UpdateAiProviderDto } from "./dto/update-ai-provider.dto";
 import { isSupportedProviderKind, defaultBaseUrlForKind } from "./providers/create-provider";
+import { FalProvider } from "./providers/fal/fal.provider";
 import { ProviderResolver } from "./provider-resolver";
 import { AiService } from "./ai.service";
 
@@ -211,7 +212,7 @@ export class AiProvidersService {
     return this.runTest(
       {
         provider: row.provider,
-        baseUrl: row.baseUrl,
+        baseUrl: row.baseUrl?.trim() || defaultBaseUrlForKind(row.provider) || row.baseUrl,
         apiKey,
         model: row.model,
       },
@@ -305,14 +306,34 @@ export class AiProvidersService {
     secret: string,
   ): Promise<AIProviderTestResult> {
     try {
-      await this.ai
-        .runtimeFromConfig({
-          kind: input.provider,
-          baseUrl: input.baseUrl,
-          apiKey: input.apiKey,
-          model: input.model,
-        })
-        .testConnection();
+      if (!input.model?.trim()) {
+        return {
+          success: false,
+          code: ErrorCodes.INVALID_REQUEST,
+          message:
+            input.provider === AiProviderKind.FAL
+              ? "FAL model endpoint is required. Expected https://queue.fal.run/{model}"
+              : "请填写 Model。",
+        };
+      }
+      const runtime = this.ai.runtimeFromConfig({
+        kind: input.provider,
+        baseUrl: input.baseUrl,
+        apiKey: input.apiKey,
+        model: input.model,
+      });
+      if (runtime instanceof FalProvider) {
+        const detail = await runtime.testImageConnection();
+        return {
+          success: true,
+          provider: detail.provider,
+          capability: detail.capability,
+          model: detail.model,
+          requestId: detail.requestId,
+          message: detail.message,
+        };
+      }
+      await runtime.testConnection();
       return { success: true };
     } catch (error) {
       const message = userFacingAiError(error, secret);

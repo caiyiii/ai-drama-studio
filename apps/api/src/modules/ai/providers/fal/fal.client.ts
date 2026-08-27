@@ -14,10 +14,22 @@ export interface FalClientConfig {
   maxPollAttempts?: number;
 }
 
+export interface FalSubmitResult {
+  requestId: string;
+  modelPath: string;
+  submitUrl: string;
+  statusUrl?: string;
+  responseUrl?: string;
+  raw: FalQueueSubmitResponse;
+}
+
 /**
  * Thin HTTP client for FAL queue API.
  * Auth: Authorization: Key <FAL_KEY>
  * Protocol: submit → poll status → fetch result
+ *
+ * Endpoint MUST always be: {baseUrl}/{model}
+ * Never POST to the bare queue root.
  */
 export class FalClient {
   private readonly apiKey: string;
@@ -28,7 +40,7 @@ export class FalClient {
 
   constructor(config: FalClientConfig) {
     this.apiKey = config.apiKey;
-    this.baseUrl = (config.baseUrl || FAL_QUEUE_BASE_URL).replace(/\/$/, "");
+    this.baseUrl = normalizeFalBaseUrl(config.baseUrl);
     this.timeoutMs = config.timeoutMs ?? 120_000;
     this.pollIntervalMs = config.pollIntervalMs ?? 2_000;
     this.maxPollAttempts = config.maxPollAttempts ?? 90;
@@ -37,45 +49,120 @@ export class FalClient {
   async runModel(
     modelId: string,
     input: Record<string, unknown>,
-  ): Promise<{ requestId: string; data: FalResultPayload }> {
-    const modelPath = normalizeFalModelPath(modelId);
-    const submitted = await this.submit(modelPath, input);
-    const requestId = submitted.request_id;
-    if (!requestId) {
-      throw new AiProviderError("FAL 未返回 request_id。", "UNAVAILABLE");
-    }
-    await this.waitUntilCompleted(modelPath, requestId);
-    const data = await this.fetchResult(modelPath, requestId);
-    return { requestId, data };
+  ): Promise<{ requestId: string; data: FalResultPayload; submitUrl: string }> {
+    const submitted = await this.submitRequest(modelId, input);
+    const status = await this.waitUntilCompleted(
+      submitted.modelPath,
+      submitted.requestId,
+      submitted.responseUrl,
+    );
+    const data = await this.getRequestResult(
+      submitted.modelPath,
+      submitted.requestId,
+      status.response_url || submitted.responseUrl,
+    );
+    return {
+      requestId: submitted.requestId,
+      data,
+      submitUrl: submitted.submitUrl,
+    };
   }
 
-  private async submit(
-    modelPath: string,
+  async submitRequest(
+    modelId: string,
     input: Record<string, unknown>,
-  ): Promise<FalQueueSubmitResponse> {
-    const url = `${this.baseUrl}/${modelPath}`;
-    const response = await this.request(url, {
+  ): Promise<FalSubmitResult> {
+    const modelPath = requireFalModelPath(modelId);
+    const submitUrl = buildFalQueueEndpoint(this.baseUrl, modelPath);
+    assertFalModelEndpoint(submitUrl, modelPath);
+
+    const response = await this.request(submitUrl, {
       method: "POST",
       body: JSON.stringify(input),
     });
     const payload = (await this.readJson(response)) as FalQueueSubmitResponse;
     if (!response.ok) {
-      throw mapFalHttpError(response.status, payload, this.apiKey);
+      throw mapFalHttpError(response.status, payload, this.apiKey, {
+        modelPath,
+        endpoint: submitUrl,
+      });
+    }
+    const requestId = payload.request_id?.trim();
+    if (!requestId) {
+      throw new AiProviderError("FAL 未返回 request_id。", "UNAVAILABLE");
+    }
+    return {
+      requestId,
+      modelPath,
+      submitUrl,
+      statusUrl: payload.status_url,
+      responseUrl: payload.response_url,
+      raw: payload,
+    };
+  }
+
+  async getRequestStatus(
+    modelId: string,
+    requestId: string,
+    statusUrl?: string,
+  ): Promise<FalQueueStatusResponse> {
+    const modelPath = requireFalModelPath(modelId);
+    const url =
+      statusUrl?.trim() ||
+      `${buildFalQueueEndpoint(this.baseUrl, modelPath)}/requests/${encodeURIComponent(requestId)}/status`;
+    const response = await this.request(url, { method: "GET" });
+    const payload = (await this.readJson(response)) as FalQueueStatusResponse;
+    if (!response.ok) {
+      throw mapFalHttpError(response.status, payload, this.apiKey, {
+        modelPath,
+        endpoint: url,
+        requestId,
+      });
     }
     return payload;
   }
 
-  private async waitUntilCompleted(modelPath: string, requestId: string) {
-    const statusUrl = `${this.baseUrl}/${modelPath}/requests/${requestId}/status`;
+  async getRequestResult(
+    modelId: string,
+    requestId: string,
+    responseUrl?: string,
+  ): Promise<FalResultPayload> {
+    const modelPath = requireFalModelPath(modelId);
+    const url =
+      responseUrl?.trim() ||
+      `${buildFalQueueEndpoint(this.baseUrl, modelPath)}/requests/${encodeURIComponent(requestId)}`;
+    const response = await this.request(url, { method: "GET" });
+    const payload = (await this.readJson(response)) as FalResultPayload &
+      FalQueueSubmitResponse;
+    if (!response.ok) {
+      throw mapFalHttpError(response.status, payload, this.apiKey, {
+        modelPath,
+        endpoint: url,
+        requestId,
+      });
+    }
+    return payload;
+  }
+
+  private async waitUntilCompleted(
+    modelPath: string,
+    requestId: string,
+    responseUrl?: string,
+  ): Promise<FalQueueStatusResponse> {
     for (let attempt = 0; attempt < this.maxPollAttempts; attempt += 1) {
-      const response = await this.request(statusUrl, { method: "GET" });
-      const payload = (await this.readJson(response)) as FalQueueStatusResponse;
-      if (!response.ok) {
-        throw mapFalHttpError(response.status, payload, this.apiKey);
-      }
+      const payload = await this.getRequestStatus(modelPath, requestId);
       const status = String(payload.status || "").toUpperCase();
       if (status === "COMPLETED") {
-        return;
+        if (payload.error) {
+          throw new AiProviderError(
+            sanitizeSecret(String(payload.error), this.apiKey),
+            "UNAVAILABLE",
+          );
+        }
+        return {
+          ...payload,
+          response_url: payload.response_url || responseUrl,
+        };
       }
       if (status === "FAILED" || status === "ERROR" || status === "CANCELLED") {
         throw new AiProviderError(
@@ -86,34 +173,24 @@ export class FalClient {
           "UNAVAILABLE",
         );
       }
+      // IN_QUEUE / IN_PROGRESS / unknown → keep polling until deadline
       await sleep(this.pollIntervalMs);
     }
     throw new AiProviderError("FAL 任务等待超时。", "TIMEOUT");
   }
 
-  private async fetchResult(
-    modelPath: string,
-    requestId: string,
-  ): Promise<FalResultPayload> {
-    const resultUrl = `${this.baseUrl}/${modelPath}/requests/${requestId}`;
-    const response = await this.request(resultUrl, { method: "GET" });
-    const payload = (await this.readJson(response)) as FalResultPayload &
-      FalQueueSubmitResponse;
-    if (!response.ok) {
-      throw mapFalHttpError(response.status, payload, this.apiKey);
-    }
-    return payload;
-  }
-
   private async request(url: string, init: RequestInit): Promise<Response> {
+    const headers: Record<string, string> = {
+      Authorization: `Key ${this.apiKey}`,
+      ...(init.headers as Record<string, string> | undefined),
+    };
+    if (init.body) {
+      headers["Content-Type"] = "application/json";
+    }
     try {
       return await fetch(url, {
         ...init,
-        headers: {
-          Authorization: `Key ${this.apiKey}`,
-          "Content-Type": "application/json",
-          ...(init.headers || {}),
-        },
+        headers,
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (error) {
@@ -146,38 +223,130 @@ export class FalClient {
   }
 }
 
+export function normalizeFalBaseUrl(baseUrl?: string): string {
+  const raw = (baseUrl || FAL_QUEUE_BASE_URL).trim() || FAL_QUEUE_BASE_URL;
+  return raw.replace(/\/$/, "");
+}
+
 export function normalizeFalModelPath(modelId: string): string {
   return modelId
     .trim()
-    .replace(/^https?:\/\/(queue\.)?fal\.run\//i, "")
-    .replace(/^\//, "");
+    .replace(/^https?:\/\/(queue\.)?fal\.run\/?/i, "")
+    .replace(/^\//, "")
+    .replace(/\/+$/, "");
+}
+
+export function requireFalModelPath(modelId: string): string {
+  const modelPath = normalizeFalModelPath(modelId);
+  if (!modelPath) {
+    throw new AiProviderError(
+      "FAL model endpoint is required. Expected https://queue.fal.run/{model}",
+      "MODEL_NOT_FOUND",
+    );
+  }
+  if (modelPath.includes("://") || /\s/.test(modelPath)) {
+    throw new AiProviderError(
+      `FAL model endpoint is invalid. Expected https://queue.fal.run/{model}. Current model: ${modelId.trim()}`,
+      "MODEL_NOT_FOUND",
+    );
+  }
+  if (!modelPath.includes("/")) {
+    throw new AiProviderError(
+      `FAL model must look like owner/name (e.g. fal-ai/nano-banana-2). Current model: ${modelPath}`,
+      "MODEL_NOT_FOUND",
+    );
+  }
+  return modelPath;
+}
+
+/**
+ * Build https://queue.fal.run/{model} without duplicating slashes.
+ */
+export function buildFalQueueEndpoint(baseUrl: string, modelId: string): string {
+  const root = normalizeFalBaseUrl(baseUrl);
+  const modelPath = requireFalModelPath(modelId);
+  return `${root}/${modelPath}`;
+}
+
+export function assertFalModelEndpoint(endpoint: string, modelPath: string): void {
+  const normalized = endpoint.replace(/\/$/, "");
+  const root = normalizeFalBaseUrl(FAL_QUEUE_BASE_URL);
+  if (
+    normalized === root ||
+    normalized === `${root}/` ||
+    normalized.endsWith("://queue.fal.run") ||
+    normalized.endsWith("://fal.run")
+  ) {
+    throw new AiProviderError(
+      `FAL model endpoint is required. Expected https://queue.fal.run/{model}. Current model: ${modelPath || "(empty)"}`,
+      "MODEL_NOT_FOUND",
+    );
+  }
 }
 
 export function mapFalHttpError(
   status: number,
   payload: { detail?: unknown; error?: string; message?: string },
   apiKey: string,
+  context?: { modelPath?: string; endpoint?: string; requestId?: string },
 ): AiProviderError {
   const detail = formatFalDetail(payload);
-  const message = sanitizeSecret(detail || `FAL HTTP ${status}`, apiKey);
-  if (status === 401 || status === 403) {
-    return new AiProviderError("FAL API Key 无效或没有权限。", "MISSING_API_KEY");
+  const modelHint = context?.modelPath
+    ? `\nCurrent model: ${context.modelPath}`
+    : "";
+  const endpointHint = context?.endpoint
+    ? `\nEndpoint: ${sanitizeSecret(context.endpoint, apiKey)}`
+    : "";
+  const requestHint = context?.requestId
+    ? `\nRequest ID: ${context.requestId}`
+    : "";
+
+  if (status === 401) {
+    return new AiProviderError("Invalid FAL API Key。", "MISSING_API_KEY");
+  }
+  if (status === 403) {
+    return new AiProviderError(
+      "FAL API Key does not have sufficient permissions。",
+      "MISSING_API_KEY",
+    );
   }
   if (status === 404) {
     return new AiProviderError(
-      message.includes("model") || message.includes("Model")
-        ? "FAL 模型不存在。"
-        : message,
+      sanitizeSecret(
+        `FAL model endpoint not found。${modelHint}${endpointHint}`,
+        apiKey,
+      ),
       "MODEL_NOT_FOUND",
     );
   }
+  if (status === 405) {
+    return new AiProviderError(
+      sanitizeSecret(
+        `FAL HTTP 405: Invalid Queue API endpoint or method.\nExpected: https://queue.fal.run/{model}${modelHint}${endpointHint}${requestHint}`,
+        apiKey,
+      ),
+      "UNAVAILABLE",
+    );
+  }
   if (status === 429) {
-    return new AiProviderError("FAL 请求过于频繁，请稍后重试。", "UNAVAILABLE");
+    return new AiProviderError("FAL rate limit exceeded. Please retry later。", "UNAVAILABLE");
   }
   if (status >= 500) {
-    return new AiProviderError(`FAL 服务不可用：${message}`, "UNAVAILABLE");
+    return new AiProviderError(
+      sanitizeSecret(
+        `FAL upstream error (HTTP ${status}): ${detail || "server error"}${requestHint}`,
+        apiKey,
+      ),
+      "UNAVAILABLE",
+    );
   }
-  return new AiProviderError(message, "UNAVAILABLE");
+  return new AiProviderError(
+    sanitizeSecret(
+      detail || `FAL HTTP ${status}${modelHint}${endpointHint}${requestHint}`,
+      apiKey,
+    ),
+    "UNAVAILABLE",
+  );
 }
 
 function formatFalDetail(payload: {

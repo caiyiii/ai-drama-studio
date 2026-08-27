@@ -53,7 +53,7 @@
           v-model="form.model"
           required
           class="mt-2 w-full rounded-xl border border-white/10 bg-ink-900 px-4 py-3 text-sm outline-none ring-gold-400/40 placeholder:text-zinc-600 focus:ring-2"
-          :placeholder="isFal ? 'fal-ai/flux/schnell' : 'deepseek-chat'"
+          :placeholder="isFal ? 'fal-ai/nano-banana-2' : 'deepseek-chat'"
         />
       </label>
       <div>
@@ -80,10 +80,12 @@
       </div>
       <StudioCheckbox v-model="form.isDefault" label="设为默认" />
 
-      <p v-if="localError" class="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+      <p v-if="localError" class="whitespace-pre-line rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
         {{ localError }}
       </p>
-      <p v-if="testOk" class="text-sm text-emerald-300">连接成功，可以保存。</p>
+      <p v-if="testOk" class="text-sm text-emerald-300">
+        {{ testSuccessMessage || "连接成功，可以保存。" }}
+      </p>
       <p v-else-if="verifiedMismatch" class="text-sm text-zinc-500">
         配置已更改，请重新测试连接后再保存。
       </p>
@@ -154,6 +156,7 @@ const form = reactive({
 });
 const verifiedSnapshot = ref<string | null>(null);
 const testOk = ref(false);
+const testSuccessMessage = ref<string | null>(null);
 const localError = ref<string | null>(null);
 
 const isFal = computed(() => form.provider === AIProviderKind.FAL);
@@ -284,7 +287,7 @@ watch(
         form.baseUrl = FAL_DEFAULT_BASE_URL;
       }
       if (!form.model.trim()) {
-        form.model = "fal-ai/flux/schnell";
+        form.model = "fal-ai/nano-banana-2";
       }
     }
   },
@@ -300,11 +303,23 @@ watch(
 async function onTest() {
   localError.value = null;
   testOk.value = false;
+  testSuccessMessage.value = null;
+  if (isFal.value && !form.model.trim()) {
+    localError.value =
+      "FAL model endpoint is required. Expected https://queue.fal.run/{model}";
+    return;
+  }
+  if (isFal.value && !form.model.trim().includes("/")) {
+    localError.value =
+      "FAL model must look like owner/name（例如 fal-ai/nano-banana-2）。";
+    return;
+  }
   if (props.editing && !form.apiKey.trim()) {
     const result = await store.testProvider(props.editing.id);
     if (result.success) {
       verifiedSnapshot.value = connectionSnapshot();
       testOk.value = true;
+      testSuccessMessage.value = formatTestSuccess(result);
     } else {
       verifiedSnapshot.value = null;
       localError.value = result.message || "测试连接失败";
@@ -320,10 +335,30 @@ async function onTest() {
   if (result.success) {
     verifiedSnapshot.value = connectionSnapshot();
     testOk.value = true;
+    testSuccessMessage.value = formatTestSuccess(result);
     return;
   }
   verifiedSnapshot.value = null;
   localError.value = result.message || "测试连接失败";
+}
+
+function formatTestSuccess(result: {
+  message?: string;
+  provider?: string;
+  model?: string;
+  requestId?: string;
+}) {
+  if (!isFal.value) {
+    return result.message || "连接成功，可以保存。";
+  }
+  const parts = [result.message || "FAL connection test successful"];
+  if (result.model) {
+    parts.push(`Model: ${result.model}`);
+  }
+  if (result.requestId) {
+    parts.push(`Request ID: ${result.requestId}`);
+  }
+  return parts.join("\n");
 }
 
 async function onSave() {
